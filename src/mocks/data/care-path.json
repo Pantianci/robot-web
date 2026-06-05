@@ -1,0 +1,156 @@
+{
+  "plans": [
+    {
+      "id": "plan-001",
+      "patientId": "pat-001",
+      "patientName": "张三",
+      "type": "基础功能恢复",
+      "goal": "恢复肩外展能力并降低疼痛",
+      "risk": "中风险",
+      "description": "以被动活动、关节活动度维护和核心稳定激活为主，2 周后评估是否进入主动训练。",
+      "doctor": "李明",
+      "nurse": "周宁",
+      "deviceId": "设备012",
+      "stage": "术后1至6周",
+      "updatedAt": "2026-06-04T10:00:00.000Z",
+      "aiReference": "AI 推荐先进行摆动和肩胛激活，再加入 30-60 度肩外展。",
+      "status": "已同步"
+    },
+    {
+      "id": "plan-002",
+      "patientId": "pat-002",
+      "patientName": "李华",
+      "type": "步态强化",
+      "goal": "提升膝关节负重耐受与步行距离",
+      "risk": "低风险",
+      "description": "增加抗阻训练和步态节奏训练，避免训练后肿胀加重。",
+      "doctor": "王磊",
+      "nurse": "赵蕾",
+      "deviceId": "设备021",
+      "stage": "恢复第2周",
+      "updatedAt": "2026-06-03T10:00:00.000Z",
+      "aiReference": "AI 建议在下肢循环训练后进入抗阻步态模块。",
+      "status": "待同步"
+    }
+  ],
+  "currentActions": [
+    {
+      "id": "act-001",
+      "patientId": "pat-001",
+      "title": "肩外展训练",
+      "part": "肩关节",
+      "duration": "06:00",
+      "intensity": "中等",
+      "note": "动作幅度控制 30-60 度，避免代偿",
+      "updatedAt": "2026-06-04T10:20:00.000Z"
+    },
+    {
+      "id": "act-002",
+      "patientId": "pat-001",
+      "title": "肩胛稳定激活",
+      "part": "肩带",
+      "duration": "05:00",
+      "intensity": "低",
+      "note": "配合呼吸完成 10 次收缩",
+      "updatedAt": "2026-06-04T10:15:00.000Z"
+    }
+  ],
+  "prescriptions": [
+    {
+      "id": "pre-001",
+      "patientId": "pat-001",
+      "patientName": "张三",
+      "stage": "术后1至6周",
+      "goal": "提高肩外展活动水平，改善睡眠和肥胖",
+      "risk": "中风险",
+      "sequenceName": "肩袖术后第 1 周序列",
+      "doctor": "李明医生",
+      "issuedAt": "2026-06-03T08:00:00.000Z",
+      "status": "已完成",
+      "note": "热身 5 分钟，肩胛稳定训练 5 分钟，标准动作 15 分钟，放松 5 分钟。",
+      "aiReference": "AI 推荐把肩胛稳定放在动作前段，以减少疼痛反馈。",
+      "videoTitle": "核心稳定训练 - 基础动作教学",
+      "videoDuration": "15分30秒",
+      "frequency": "3-5 次/周",
+      "movements": [
+        {
+          "id": "mv-001",
+          "name": "肩胛稳定激活",
+          "angle": "10-20 度",
+          "repetitions": "10 次",
+          "duration": "05:00"
+        },
+        {
+          "id": "mv-002",
+          "name": "肩外展训练",
+          "angle": "30-60 度",
+          "repetitions": "8 次",
+          "duration": "06:00"
+        },
+        {
+          "id": "mv-003",
+          "name": "被动摆动",
+          "angle": "小角度",
+          "repetitions": "12 次",
+          "duration": "04:30"
+        }
+      ]
+    },
+    {
+      "id": "pre-002",
+      "patientId": "pat-002",
+      "patientName": "李华",
+      "stage": "术后7至10周",
+      "goal": "提升步态稳定",
+      "risk": "低风险",
+      "sequenceName": "下肢循环+抗阻序列",
+      "doctor": "王医生",
+      "issuedAt": "2026-06-02T08:00:00.000Z",
+      "status": "待审核",
+      "note": "以踝泵和膝屈伸为主，注意观察负重痛。",
+      "aiReference": "AI 建议优先完成下肢循环激活。",
+      "videoTitle": "下肢训练基础视频",
+      "videoDuration": "12分00秒",
+      "frequency": "4 次/周",
+      "movements": [
+        {
+          "id": "mv-004",
+          "name": "踝泵训练",
+          "angle": "15-20 度",
+          "repetitions": "20 次",
+          "duration": "05:00"
+        }
+      ]
+    }
+  ],
+  "reports": [
+    {
+      "id": "rep-001",
+      "patientId": "pat-001",
+      "patientName": "张三",
+      "completionRate": "92%",
+      "romChange": "肩外展 +18°",
+      "painScore": "3/10",
+      "doctorComment": "疼痛控制较稳定，可以逐步加入协助主动训练。",
+      "nurseComment": "训练依从性高，夜间疼痛较前减轻。",
+      "note": "ROM 提升明显，建议下周期增加节奏训练。",
+      "aiReference": "AI 判断完成率高，趋势稳定，建议进入下一阶段。",
+      "reviewedAt": "2026-06-04T09:40:00.000Z",
+      "status": "已完成"
+    },
+    {
+      "id": "rep-002",
+      "patientId": "pat-003",
+      "patientName": "王敏",
+      "completionRate": "74%",
+      "romChange": "上肢前伸 +8°",
+      "painScore": "4/10",
+      "doctorComment": "需要加强坐站平衡与姿势控制。",
+      "nurseComment": "患者下午训练参与度较低。",
+      "note": "建议优化训练时段并减少连续时长。",
+      "aiReference": "AI 建议将训练拆分为两段进行。",
+      "reviewedAt": "2026-06-03T16:40:00.000Z",
+      "status": "待审核"
+    }
+  ]
+}

@@ -1,0 +1,189 @@
+{
+  "items": [
+    {
+      "id": "k-001",
+      "library": "knowledge",
+      "title": "肩袖损伤术后指南",
+      "category": "指南",
+      "format": "PDF",
+      "size": "1.01 MB",
+      "tags": ["肩关节", "术后早期"],
+      "status": "生效",
+      "uploadedAt": "2026-06-01T08:00:00.000Z",
+      "updatedAt": "2026-06-04T08:10:00.000Z",
+      "operator": "康复治疗师 王敏",
+      "description": "收录国内外康复医学指南，涵盖肩袖损伤分期训练、疼痛控制和家庭训练建议。",
+      "preview": "建议训练角度控制在 0-60 度内，优先激活肩胛稳定肌群。"
+    },
+    {
+      "id": "k-002",
+      "library": "knowledge",
+      "title": "疼痛控制论文",
+      "category": "论文",
+      "format": "TXT",
+      "size": "0.78 MB",
+      "tags": ["风险", "镇痛"],
+      "status": "生效",
+      "uploadedAt": "2026-05-28T10:00:00.000Z",
+      "updatedAt": "2026-05-29T10:10:00.000Z",
+      "operator": "康复主任 李明",
+      "description": "针对术后疼痛评分变化与运动处方强度联动策略的研究摘要。"
+    },
+    {
+      "id": "k-003",
+      "library": "knowledge",
+      "title": "活动度评估知识",
+      "category": "知识",
+      "format": "PNG",
+      "size": "3.01 MB",
+      "tags": ["木后早期", "评估"],
+      "status": "失效",
+      "uploadedAt": "2026-05-24T10:00:00.000Z",
+      "updatedAt": "2026-05-24T11:00:00.000Z",
+      "operator": "护士长 周宁",
+      "description": "用于康复评估培训的活动度图谱，因标注版本过旧已失效。"
+    },
+    {
+      "id": "v-001",
+      "library": "voice",
+      "title": "标准鼓励语句",
+      "category": "正向激励",
+      "format": "WAV",
+      "size": "2.1 MB",
+      "tags": ["激励", "肩关节"],
+      "status": "生效",
+      "uploadedAt": "2026-05-31T08:00:00.000Z",
+      "updatedAt": "2026-06-03T08:20:00.000Z",
+      "operator": "语音设计师 许珊",
+      "description": "训练完成后自动播放的鼓励性语音内容。",
+      "standardQuestion": "训练完成后给出鼓励",
+      "similarQuestions": ["训练做完了", "继续加油"],
+      "replies": ["今天表现很好，我们继续保持。", "动作完成得很稳定，继续加油。"]
+    },
+    {
+      "id": "m-001",
+      "library": "motion",
+      "title": "肩外展训练视频",
+      "category": "标准动作",
+      "format": "MP4",
+      "size": "14.8 MB",
+      "tags": ["肩关节", "木后早期"],
+      "status": "生效",
+      "uploadedAt": "2026-05-26T08:00:00.000Z",
+      "updatedAt": "2026-06-02T11:00:00.000Z",
+      "operator": "康复医生 王磊",
+      "description": "适用于肩袖损伤术后 1-3 周的基础肩外展训练。",
+      "preview": "肩部离床位 30 度后短暂停留 2 秒。",
+      "part": "上肢",
+      "angle": "30-60 度",
+      "direction": "外展",
+      "durationMinutes": 6
+    },
+    {
+      "id": "m-002",
+      "library": "motion",
+      "title": "踝泵训练视频",
+      "category": "标准动作",
+      "format": "MP4",
+      "size": "10.3 MB",
+      "tags": ["下肢", "循环"],
+      "status": "生效",
+      "uploadedAt": "2026-05-25T08:00:00.000Z",
+      "updatedAt": "2026-05-28T09:10:00.000Z",
+      "operator": "康复医生 王磊",
+      "description": "下肢循环促进训练，适用于卧床早期。",
+      "part": "下肢",
+      "angle": "15-20 度",
+      "direction": "跖屈/背屈",
+      "durationMinutes": 5
+    },
+    {
+      "id": "s-001",
+      "library": "sequence",
+      "title": "肩袖术后第 1 周序列",
+      "category": "动作序列",
+      "format": "JSON",
+      "size": "0.21 MB",
+      "tags": ["术后1周", "肩关节"],
+      "status": "生效",
+      "uploadedAt": "2026-05-29T08:00:00.000Z",
+      "updatedAt": "2026-06-04T09:10:00.000Z",
+      "operator": "康复组 张蕾",
+      "description": "包含肩胛稳定、肩外展和被动摆动的标准动作序列。",
+      "stage": "术后1周",
+      "sequenceSteps": ["肩胛稳定激活", "被动摆动", "肩外展训练"],
+      "durationMinutes": 18
+    }
+  ],
+  "tags": [
+    {
+      "id": "tag-001",
+      "library": "knowledge",
+      "name": "肩关节",
+      "parent": "上肢康复",
+      "description": "肩关节康复相关资料",
+      "status": "使用中",
+      "updatedAt": "2026-06-04T08:00:00.000Z",
+      "operator": "王敏",
+      "relatedCount": 12
+    },
+    {
+      "id": "tag-002",
+      "library": "knowledge",
+      "name": "术后早期",
+      "parent": "康复阶段",
+      "description": "术后 1-2 周重点资料",
+      "status": "使用中",
+      "updatedAt": "2026-06-03T08:00:00.000Z",
+      "operator": "李明",
+      "relatedCount": 9
+    },
+    {
+      "id": "tag-003",
+      "library": "voice",
+      "name": "激励",
+      "parent": "语音交互",
+      "description": "训练过程激励反馈",
+      "status": "使用中",
+      "updatedAt": "2026-06-03T08:00:00.000Z",
+      "operator": "许珊",
+      "relatedCount": 4
+    },
+    {
+      "id": "tag-004",
+      "library": "motion",
+      "name": "下肢",
+      "parent": "标准动作",
+      "description": "下肢标准动作标签",
+      "status": "使用中",
+      "updatedAt": "2026-05-30T08:00:00.000Z",
+      "operator": "王磊",
+      "relatedCount": 7
+    },
+    {
+      "id": "tag-005",
+      "library": "sequence",
+      "name": "术后1周",
+      "parent": "序列阶段",
+      "description": "术后早期动作序列",
+      "status": "使用中",
+      "updatedAt": "2026-06-04T08:00:00.000Z",
+      "operator": "张蕾",
+      "relatedCount": 3
+    }
+  ],
+  "qaContexts": [
+    {
+      "id": "qa-001",
+      "library": "knowledge",
+      "question": "肩袖损伤术后第 1 周是否可以主动外展？",
+      "answer": "建议以被动和协助训练为主，主动外展需要根据疼痛和固定情况评估。"
+    },
+    {
+      "id": "qa-002",
+      "library": "motion",
+      "question": "肩外展训练的推荐节奏是什么？",
+      "answer": "建议每组 8-10 次，每次抬起后停顿 2 秒，组间休息 30 秒。"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "id": "设备012",
+      "status": "执行中",
+      "patientName": "张三",
+      "battery": 92,
+      "bedNo": "12床",
+      "trainingStatus": "肩前屈",
+      "lastWorkAt": "2026-06-04T10:20:00.000Z",
+      "note": "最近操作：已同步患者和责任人信息。"
+    },
+    {
+      "id": "设备021",
+      "status": "正常",
+      "patientName": "李华",
+      "battery": 76,
+      "bedNo": "18床",
+      "trainingStatus": "待训练",
+      "lastWorkAt": "2026-06-04T08:20:00.000Z",
+      "note": "待医生确认强化阶段动作节奏。"
+    },
+    {
+      "id": "设备019",
+      "status": "预警",
+      "patientName": "王敏",
+      "battery": 48,
+      "bedNo": "07床",
+      "trainingStatus": "暂停",
+      "lastWorkAt": "2026-06-03T17:00:00.000Z",
+      "note": "电量低于 50%，建议转入充电队列。"
+    },
+    {
+      "id": "设备006",
+      "status": "离线",
+      "patientName": "赵薇",
+      "battery": 12,
+      "bedNo": "21床",
+      "trainingStatus": "未开始",
+      "lastWorkAt": "2026-06-03T09:00:00.000Z",
+      "note": "设备异常离线，需要人工排查。"
+    }
+  ]
+}

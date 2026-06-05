@@ -1,0 +1,57 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 214 100% 99%;
+    --foreground: 221 44% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 221 44% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 221 44% 15%;
+    --primary: 218 79% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 213 100% 96%;
+    --secondary-foreground: 221 44% 15%;
+    --muted: 213 100% 97%;
+    --muted-foreground: 218 16% 46%;
+    --accent: 213 100% 95%;
+    --accent-foreground: 221 44% 15%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 48% 88%;
+    --input: 214 48% 88%;
+    --ring: 218 79% 55%;
+    --radius: 1.2rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+    background-size: 30px 30px;
+  }
+}
+
+@layer components {
+  .field-shell {
+    @apply flex flex-col gap-2;
+  }
+
+  .native-select {
+    @apply flex h-10 w-full rounded-xl border border-border bg-white px-3 py-2 text-sm text-foreground outline-none transition focus-visible:ring-2 focus-visible:ring-ring;
+  }
+
+  .stat-kicker {
+    @apply text-xs font-semibold uppercase tracking-[0.24em] text-surface-500;
+  }
+}

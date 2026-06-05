@@ -1,0 +1,56 @@
+{
+  "items": [
+    {
+      "id": "pat-001",
+      "name": "张三",
+      "age": 41,
+      "gender": "男",
+      "diagnosis": "肩袖损伤",
+      "stage": "术后早期",
+      "robotId": "设备012",
+      "bedNo": "12床",
+      "createdBy": "王医生",
+      "createdAt": "2026-05-21T08:00:00.000Z",
+      "note": "患者主诉腰腿痛伴右下肢放射痛，肩关节活动受限，目前已进入早期被动康复阶段。"
+    },
+    {
+      "id": "pat-002",
+      "name": "李华",
+      "age": 36,
+      "gender": "女",
+      "diagnosis": "膝关节炎",
+      "stage": "强化阶段",
+      "robotId": "设备021",
+      "bedNo": "18床",
+      "createdBy": "护士长",
+      "createdAt": "2026-05-20T08:00:00.000Z",
+      "note": "目前以步态训练和膝关节屈伸训练为主，痛感稳定。"
+    },
+    {
+      "id": "pat-003",
+      "name": "王敏",
+      "age": 53,
+      "gender": "男",
+      "diagnosis": "脑卒中偏瘫",
+      "stage": "恢复阶段",
+      "robotId": "设备019",
+      "bedNo": "07床",
+      "createdBy": "李护士",
+      "createdAt": "2026-05-19T08:00:00.000Z",
+      "note": "重点关注上肢主动参与度和坐站平衡。"
+    },
+    {
+      "id": "pat-004",
+      "name": "赵薇",
+      "age": 48,
+      "gender": "女",
+      "diagnosis": "肩关节粘连",
+      "stage": "评估阶段",
+      "robotId": "设备006",
+      "bedNo": "21床",
+      "createdBy": "韩护士",
+      "createdAt": "2026-05-18T08:00:00.000Z",
+      "note": "活动度受限明显，需要结合评估报告调整方案。"
+    }
+  ]
+}
