@@ -10,5 +10,21 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true
   },
-  plugins: [TanStackRouterVite(), tanstackStart(), viteReact()]
+  plugins: [
+    TanStackRouterVite(),
+    tanstackStart({
+      prerender: {
+        enabled: true
+      },
+      pages: [
+        { path: "/" },
+        { path: "/knowledge" },
+        { path: "/patients" },
+        { path: "/prescriptions" },
+        { path: "/reports" },
+        { path: "/robots" }
+      ]
+    }),
+    viteReact()
+  ]
 });

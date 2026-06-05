@@ -20,6 +20,8 @@
 - MSW
 - LocalStorage 持久化
 
+当前 GitHub / Vercel 发布版本：`0.2.0`
+
 ## 项目结构
 
 ```text
@@ -48,7 +50,6 @@ public/
 ```bash
 cd /Users/a1234/robot-web-prototype
 npm install
-npx msw init public --save
 npm run dev
 ```
 
@@ -88,14 +89,7 @@ npx shadcn@latest add button card dialog input tabs textarea
 - 启动入口在 [src/client.tsx](/Users/a1234/robot-web-prototype/src/client.tsx:1)
 - 处理器在 [src/mocks/handlers.ts](/Users/a1234/robot-web-prototype/src/mocks/handlers.ts:1)
 - 种子数据在 `src/mocks/data/*.json`
-
-首次安装后请执行：
-
-```bash
-npx msw init public --save
-```
-
-它会生成 `public/mockServiceWorker.js`。
+- `public/mockServiceWorker.js` 已提交到仓库，拉取代码后无需再次执行 `msw init`
 
 ## 数据与持久化
 
@@ -108,6 +102,7 @@ npx msw init public --save
 - 开发环境下通过 MSW 读取这些 JSON
 - 首次加载后写入 LocalStorage
 - 后续新增、编辑、导出等原型操作均持久化在浏览器本地
+- 每个访问者的数据都只保存在自己的浏览器里，不会同步给其他访问者
 
 ## 环境变量
 
@@ -119,6 +114,12 @@ VITE_APP_TITLE=Robot Web Prototype
 ```
 
 项目中通过 `NODE_ENV` 区分开发/生产环境，MSW 在生产环境自动禁用。
+
+推荐 Node 版本：
+
+```bash
+>= 22.12.0 且 < 25
+```
 
 ## 文档映射
 
@@ -144,3 +145,22 @@ VITE_APP_TITLE=Robot Web Prototype
 - 富文本区域以多行文本编辑区代替
 - 导出行为当前为原型级反馈，不生成真实文件内容
 - 如果你希望继续扩展到医生端/护士端权限页，可以在当前路由结构上继续拆分
+
+## Vercel Hobby 部署
+
+这个仓库已经调整为适合 `Vercel Hobby` 免费版的公开演示部署：
+
+- 构建命令：`npm run build`
+- 输出目录：`dist/client`
+- 生产环境不启用 MSW
+- 固定路由会在构建时静态预渲染，适合直接公开分享链接
+
+通过 GitHub 导入 Vercel 时：
+
+1. 选择仓库 `Pantianci/robot-web`
+2. Build Command 填 `npm run build`
+3. Output Directory 填 `dist/client`
+4. Install Command 填 `npm install`
+5. 直接部署
+
+部署完成后，`*.vercel.app` 生产链接默认是公开的。你把链接发给其他人，对方可以直接打开查看。

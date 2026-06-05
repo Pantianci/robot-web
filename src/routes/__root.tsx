@@ -13,6 +13,7 @@ import { AppShell } from "@/components/app-shell";
 import { DefaultCatchBoundary } from "@/components/error-state";
 import { NotFoundState } from "@/components/empty-state";
 import indexCss from "@/index.css?url";
+import { isDevelopment } from "@/lib/runtime";
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
@@ -68,8 +69,12 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
-        <TanStackRouterDevtools position="bottom-right" />
-        <ReactQueryDevtools buttonPosition="bottom-left" />
+        {isDevelopment ? (
+          <>
+            <TanStackRouterDevtools position="bottom-right" />
+            <ReactQueryDevtools buttonPosition="bottom-left" />
+          </>
+        ) : null}
         <Scripts />
       </body>
     </html>

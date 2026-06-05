@@ -4,6 +4,4 @@ dist
 .env
 .env.local
 coverage
-src/routeTree.gen.ts
-public/mockServiceWorker.js
 .tanstack
