@@ -1,0 +1,1182 @@
+import { useNavigate } from "@tanstack/react-router";
+import { FileOutput, Save, Sparkles } from "lucide-react";
+import { useMemo, useState } from "react";
+import { api } from "@/lib/api";
+import {
+  useCreatePatientMutation,
+  useCreatePlanMutation,
+  useCreatePrescriptionMutation,
+  usePatientsQuery,
+  usePlansQuery,
+  usePrescriptionsQuery,
+  useReportsQuery,
+  useReviewReportMutation
+} from "@/lib/hooks";
+import {
+  buildPatientSummary,
+  defaultPatientWorkspace,
+  patientWorkspaceContextKey
+} from "@/lib/patient-context";
+import { clearDraft, readDraft, readState, writeDraft } from "@/lib/storage";
+import { formatDateTime, generateId } from "@/lib/utils";
+import type {
+  CurrentAction,
+  Patient,
+  Prescription,
+  PrescriptionMovement,
+  RehabPlan,
+  Report
+} from "@/lib/types";
+import { Field } from "@/components/field";
+import { PageHeader } from "@/components/page-header";
+import { PropertyList } from "@/components/property-list";
+import { SectionCard } from "@/components/section-card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+
+type PatientCreateDraft = {
+  name: string;
+  age: string;
+  gender: "男" | "女";
+  diagnosis: string;
+  stage: string;
+  robotId: string;
+  bedNo: string;
+  createdBy: string;
+  note: string;
+};
+
+type PlanCreateDraft = {
+  type: string;
+  goal: string;
+  risk: string;
+  description: string;
+  aiReference: string;
+};
+
+type PrescriptionCreateDraft = {
+  stage: string;
+  goal: string;
+  risk: string;
+  sequenceName: string;
+  frequency: string;
+  note: string;
+  aiReference: string;
+  movements: PrescriptionMovement[];
+};
+
+type CurrentActionCreateDraft = {
+  title: string;
+  part: string;
+  duration: string;
+  intensity: string;
+  note: string;
+};
+
+type ReportReviewDraft = {
+  completionRate: string;
+  romChange: string;
+  painScore: string;
+  nurseComment: string;
+  doctorComment: string;
+  note: string;
+  aiReference: string;
+};
+
+type ExportDraft = {
+  exportScope: string;
+  dateRange: string;
+  exportObject: string;
+  exportCondition: string;
+  format: string;
+};
+
+const patientCreateDraftKey = "patients:create-page";
+const planCreateDraftKey = "patients:plan-create-page";
+const prescriptionCreateDraftKey = "patients:prescription-create-page";
+const reviewDraftKey = "patients:report-review-page";
+const prescriptionExportDraftKey = "patients:prescription-export-page";
+const reportExportDraftKey = "patients:report-export-page";
+const currentActionCreateDraftKey = "patients:current-action-create-page";
+const currentActionExportDraftKey = "patients:current-action-export-page";
+const planExportDraftKey = "patients:plan-export-page";
+
+function resolveWorkspacePatient(
+  patients: Patient[],
+  plans: RehabPlan[] = [],
+  prescriptions: Prescription[] = []
+) {
+  const workspace = readState<{ patientId: string }>(patientWorkspaceContextKey);
+  return (
+    patients.find((item) => item.id === workspace?.patientId) ??
+    patients.find((item) => item.id === defaultPatientWorkspace.patientId) ??
+    plans.find((item) => item.patientId === defaultPatientWorkspace.patientId)
+      ? patients.find((item) => item.id === defaultPatientWorkspace.patientId) ?? patients[0] ?? null
+      : prescriptions.find((item) => item.patientId === defaultPatientWorkspace.patientId)
+        ? patients.find((item) => item.id === defaultPatientWorkspace.patientId) ?? patients[0] ?? null
+        : patients[0] ?? null
+  );
+}
+
+function SubPageLayout({
+  eyebrow,
+  title,
+  description,
+  actions,
+  left,
+  right,
+  bottom
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  actions?: React.ReactNode;
+  left: React.ReactNode;
+  right: React.ReactNode;
+  bottom: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
+      <PageHeader
+        eyebrow={eyebrow}
+        title={title}
+        description={description}
+        badge="子页面"
+        className="mb-1"
+        actions={actions}
+      />
+      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.55fr)_360px]">
+        <div className="flex min-h-0 flex-col gap-6">
+          {left}
+          <Card className="shrink-0 border-primary/15 bg-primary/5">
+            <CardContent className="flex items-center justify-between gap-4 p-5">
+              {bottom}
+            </CardContent>
+          </Card>
+        </div>
+        <div className="min-h-0 pt-1">{right}</div>
+      </div>
+    </div>
+  );
+}
+
+export function PatientCreatePage() {
+  const navigate = useNavigate();
+  const createMutation = useCreatePatientMutation();
+  const [draft, setDraft] = useState<PatientCreateDraft>(
+    readDraft<PatientCreateDraft>(patientCreateDraftKey) ?? {
+      name: "",
+      age: "41",
+      gender: "男",
+      diagnosis: "",
+      stage: "",
+      robotId: "",
+      bedNo: "",
+      createdBy: "王医生",
+      note: ""
+    }
+  );
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const notePreview = useMemo(
+    () =>
+      [
+        draft.name ? `患者姓名：${draft.name}` : "",
+        draft.diagnosis ? `病种：${draft.diagnosis}` : "",
+        draft.stage ? `阶段：${draft.stage}` : "",
+        draft.note ? `档案备注：${draft.note}` : "档案备注："
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    [draft]
+  );
+
+  const persist = (patch: Partial<PatientCreateDraft>) => {
+    const next = { ...draft, ...patch };
+    setDraft(next);
+    writeDraft(patientCreateDraftKey, next);
+  };
+
+  const submit = async () => {
+    if (!draft.name || !draft.age || !draft.diagnosis) {
+      setErrorMessage("无法上传，请补全姓名、年龄和病种。");
+      return;
+    }
+
+    await createMutation.mutateAsync({
+      name: draft.name,
+      age: Number(draft.age),
+      gender: draft.gender,
+      diagnosis: draft.diagnosis,
+      stage: draft.stage,
+      robotId: draft.robotId,
+      bedNo: draft.bedNo,
+      createdBy: draft.createdBy,
+      note: draft.note
+    });
+    clearDraft(patientCreateDraftKey);
+    navigate({ to: "/patients/base" });
+  };
+
+  const cancel = () => {
+    clearDraft(patientCreateDraftKey);
+    navigate({ to: "/patients/base" });
+  };
+
+  return (
+    <SubPageLayout
+      eyebrow="患者档案管理 > 基础档案 > 新增档案"
+      title="新增档案"
+      description="用于录入患者基础信息和备注，提交前会校验必填项，并支持草稿恢复。"
+      left={
+        <>
+          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <CardTitle>基础表单字段</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 p-5 md:grid-cols-2">
+              <Field label="姓名" required>
+                <Input value={draft.name} onChange={(event) => persist({ name: event.target.value })} />
+              </Field>
+              <Field label="年龄" required>
+                <Input value={draft.age} onChange={(event) => persist({ age: event.target.value })} />
+              </Field>
+              <Field label="性别" required>
+                <select
+                  className="native-select"
+                  value={draft.gender}
+                  onChange={(event) => persist({ gender: event.target.value as "男" | "女" })}
+                >
+                  <option value="男">男</option>
+                  <option value="女">女</option>
+                </select>
+              </Field>
+              <Field label="病种" required>
+                <Input
+                  value={draft.diagnosis}
+                  onChange={(event) => persist({ diagnosis: event.target.value })}
+                />
+              </Field>
+              <Field label="阶段">
+                <Input value={draft.stage} onChange={(event) => persist({ stage: event.target.value })} />
+              </Field>
+              <Field label="设备机器人ID">
+                <Input value={draft.robotId} onChange={(event) => persist({ robotId: event.target.value })} />
+              </Field>
+              <Field label="病床号">
+                <Input value={draft.bedNo} onChange={(event) => persist({ bedNo: event.target.value })} />
+              </Field>
+              <Field label="建档人">
+                <Input value={draft.createdBy} onChange={(event) => persist({ createdBy: event.target.value })} />
+              </Field>
+              <div className="md:col-span-2">
+                <Field label="备注说明">
+                  <Textarea value={draft.note} onChange={(event) => persist({ note: event.target.value })} />
+                </Field>
+              </div>
+              <div className="md:col-span-2">
+                <Field label="富文本自动回填">
+                  <Textarea value={notePreview} onChange={(event) => persist({ note: event.target.value })} />
+                </Field>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      }
+      right={
+        <Card className="flex h-full min-h-0 flex-col overflow-hidden">
+          <CardHeader className="border-b border-border/60">
+            <CardTitle>页面摘要</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 min-h-0 space-y-5 overflow-y-auto p-5">
+            <PropertyList
+              items={[
+                { label: "页面模式", value: "新增档案" },
+                { label: "姓名", value: draft.name || "待填写" },
+                { label: "病种", value: draft.diagnosis || "待填写" },
+                { label: "阶段", value: draft.stage || "待填写" },
+                { label: "建档人", value: draft.createdBy || "待填写" }
+              ]}
+            />
+            <SectionCard title="录入提示">
+              <div className="space-y-3">
+                {[
+                  "富文本区域会自动加载表单内容，允许继续编辑。",
+                  "再次进入新增档案页时会恢复最近草稿。",
+                  "取消会清空当前页面信息并返回患者档案列表。"
+                ].map((item) => (
+                  <div key={item} className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3 text-sm leading-7 text-muted-foreground">
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+          </CardContent>
+        </Card>
+      }
+      bottom={
+        <>
+          <div>
+            {errorMessage ? (
+              <p className="text-sm text-rose-700">{errorMessage}</p>
+            ) : (
+              <p className="text-sm text-primary">提交前会校验必填项，失败时在此提示。</p>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => writeDraft(patientCreateDraftKey, draft)}>
+              <Save className="h-4 w-4" />
+              草稿保存
+            </Button>
+            <Button variant="outline" onClick={cancel}>
+              取消
+            </Button>
+            <Button onClick={submit}>提交</Button>
+          </div>
+        </>
+      }
+    />
+  );
+}
+
+export function PlanCreatePage() {
+  const navigate = useNavigate();
+  const { data: patients = [] } = usePatientsQuery();
+  const { data: plans = [] } = usePlansQuery();
+  const patient = resolveWorkspacePatient(patients, plans) ?? patients[0] ?? null;
+  const createMutation = useCreatePlanMutation();
+  const summaryPlan = plans.find((item) => item.patientId === patient?.id) ?? null;
+  const [draft, setDraft] = useState<PlanCreateDraft>(
+    readDraft<PlanCreateDraft>(planCreateDraftKey) ?? {
+      type: "基础功能恢复",
+      goal: "",
+      risk: "",
+      description: "",
+      aiReference: "AI 将根据患者阶段、评估结果和历史训练情况推荐康复方案。"
+    }
+  );
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const persist = (patch: Partial<PlanCreateDraft>) => {
+    const next = { ...draft, ...patch };
+    setDraft(next);
+    writeDraft(planCreateDraftKey, next);
+  };
+
+  const submit = async () => {
+    if (!patient || !draft.type || !draft.goal || !draft.risk) {
+      setErrorMessage("无法提交，请补全方案类型、目标和风险。");
+      return;
+    }
+
+    await createMutation.mutateAsync({
+      patientId: patient.id,
+      patientName: patient.name,
+      type: draft.type,
+      goal: draft.goal,
+      risk: draft.risk,
+      description: draft.description || `${draft.goal}\n方案备注：${draft.description}`,
+      doctor: summaryPlan?.doctor ?? "李明",
+      nurse: summaryPlan?.nurse ?? "周宁",
+      deviceId: patient.robotId,
+      stage: patient.stage,
+      aiReference: draft.aiReference,
+      status: "待同步"
+    });
+    clearDraft(planCreateDraftKey);
+    navigate({ to: "/patients/plans" });
+  };
+
+  const cancel = () => {
+    clearDraft(planCreateDraftKey);
+    navigate({ to: "/patients/plans" });
+  };
+
+  return (
+    <SubPageLayout
+      eyebrow="患者档案管理 > 康复方案 > 新增方案"
+      title="新增方案"
+      description="当前页面默认绑定基础档案选中的患者；若未选择，则默认落到张三。"
+      left={
+        <>
+          <PatientSummaryCard
+            patient={patient}
+            plan={summaryPlan}
+            prescription={null}
+            currentAction={null}
+          />
+          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <CardTitle>方案表单字段</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 p-5 md:grid-cols-2">
+              <Field label="患者姓名">
+                <Input value={patient?.name ?? defaultPatientWorkspace.patientName} disabled />
+              </Field>
+              <Field label="方案类型" required>
+                <Input value={draft.type} onChange={(event) => persist({ type: event.target.value })} />
+              </Field>
+              <Field label="目标" required>
+                <Input value={draft.goal} onChange={(event) => persist({ goal: event.target.value })} />
+              </Field>
+              <Field label="风险" required>
+                <Input value={draft.risk} onChange={(event) => persist({ risk: event.target.value })} />
+              </Field>
+              <div className="md:col-span-2">
+                <Field label="处方说明">
+                  <Textarea
+                    value={draft.description}
+                    onChange={(event) => persist({ description: event.target.value })}
+                  />
+                </Field>
+              </div>
+              <div className="md:col-span-2">
+                <Field label="富文本自动回填">
+                  <Textarea
+                    value={`${draft.goal ? `目标：${draft.goal}` : ""}\n${draft.description ? `方案备注：${draft.description}` : "方案备注："}`}
+                    onChange={(event) => persist({ description: event.target.value })}
+                  />
+                </Field>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      }
+      right={
+        <Card className="flex h-full min-h-0 flex-col overflow-hidden">
+          <CardHeader className="border-b border-border/60">
+            <CardTitle>AI 参考侧栏</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 min-h-0 space-y-5 overflow-y-auto p-5">
+            <SectionCard title="AI加载的方案参考">
+              <Textarea
+                value={draft.aiReference}
+                onChange={(event) => persist({ aiReference: event.target.value })}
+                className="min-h-[220px]"
+              />
+            </SectionCard>
+            <SectionCard title="页面说明">
+              <div className="space-y-3">
+                {[
+                  "右侧展示 AI 加载的方案参考，供医生编辑时参考。",
+                  "支持提交、草稿保存、再次进入时恢复草稿。",
+                  "取消会清空页面信息并返回康复方案列表。"
+                ].map((item) => (
+                  <div key={item} className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3 text-sm leading-7 text-muted-foreground">
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+          </CardContent>
+        </Card>
+      }
+      bottom={
+        <>
+          <div>
+            {errorMessage ? <p className="text-sm text-rose-700">{errorMessage}</p> : <p className="text-sm text-primary">方案提交后会回流到张三的康复方案页。</p>}
+          </div>
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => writeDraft(planCreateDraftKey, draft)}>
+              <Save className="h-4 w-4" />
+              草稿保存
+            </Button>
+            <Button variant="outline" onClick={cancel}>
+              取消
+            </Button>
+            <Button onClick={submit}>提交</Button>
+          </div>
+        </>
+      }
+    />
+  );
+}
+
+function PatientSummaryCard({
+  patient,
+  plan,
+  prescription,
+  currentAction
+}: {
+  patient: Patient | null;
+  plan: RehabPlan | null;
+  prescription: Prescription | null;
+  currentAction: CurrentAction | null;
+}) {
+  const summary = buildPatientSummary(patient, plan, prescription, currentAction);
+
+  return (
+    <Card className="border-border/70 bg-white shadow-none">
+      <CardContent className="grid gap-4 p-5 md:grid-cols-5 xl:grid-cols-9">
+        {summary.map((item, index) => (
+          <div key={`${item.label}-${index}`} className={index === 0 ? "md:col-span-2 xl:col-span-2" : ""}>
+            <p className="text-xs text-muted-foreground">{item.label}</p>
+            <p className={index === 0 ? "mt-2 text-xl font-semibold text-surface-900" : "mt-2 text-sm font-medium text-surface-900"}>
+              {item.value}
+            </p>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+export function PrescriptionCreatePage() {
+  const navigate = useNavigate();
+  const { data: patients = [] } = usePatientsQuery();
+  const { data: plans = [] } = usePlansQuery();
+  const { data: prescriptions = [] } = usePrescriptionsQuery();
+  const patient = resolveWorkspacePatient(patients, plans, prescriptions) ?? patients[0] ?? null;
+  const summaryPlan = plans.find((item) => item.patientId === patient?.id) ?? null;
+  const createMutation = useCreatePrescriptionMutation();
+  const [draft, setDraft] = useState<PrescriptionCreateDraft>(
+    readDraft<PrescriptionCreateDraft>(prescriptionCreateDraftKey) ?? {
+      stage: patient?.stage ?? "术后早期",
+      goal: "",
+      risk: "",
+      sequenceName: "肩袖术后第 1 周序列",
+      frequency: "3-5 次/周",
+      note: "",
+      aiReference: "AI 将输出运动处方参考及处方记录区。",
+      movements: [
+        { id: generateId("mv"), name: "肩胛稳定激活", angle: "10-20 度", repetitions: "10 次", duration: "05:00" },
+        { id: generateId("mv"), name: "肩外展训练", angle: "30-60 度", repetitions: "8 次", duration: "06:00" }
+      ]
+    }
+  );
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const persist = (patch: Partial<PrescriptionCreateDraft>) => {
+    const next = { ...draft, ...patch };
+    setDraft(next);
+    writeDraft(prescriptionCreateDraftKey, next);
+  };
+
+  const updateMovement = (index: number, patch: Partial<PrescriptionMovement>) => {
+    const next = draft.movements.map((movement, currentIndex) =>
+      currentIndex === index ? { ...movement, ...patch } : movement
+    );
+    persist({ movements: next });
+  };
+
+  const submit = async () => {
+    if (!patient || !draft.stage || !draft.goal || !draft.risk || !draft.sequenceName) {
+      setErrorMessage("无法提交，请补全阶段、目标、风险和动作序列。");
+      return;
+    }
+
+    await createMutation.mutateAsync({
+      patientId: patient.id,
+      patientName: patient.name,
+      stage: draft.stage,
+      goal: draft.goal,
+      risk: draft.risk,
+      sequenceName: draft.sequenceName,
+      doctor: `${summaryPlan?.doctor ?? "李明"}医生`,
+      status: "待审核",
+      note: draft.note,
+      aiReference: draft.aiReference,
+      videoTitle: "核心稳定训练 - 基础动作教学",
+      videoDuration: "15分30秒",
+      frequency: draft.frequency,
+      movements: draft.movements
+    });
+    clearDraft(prescriptionCreateDraftKey);
+    navigate({ to: "/patients/prescriptions" });
+  };
+
+  const cancel = () => {
+    clearDraft(prescriptionCreateDraftKey);
+    navigate({ to: "/patients/prescriptions" });
+  };
+
+  return (
+    <SubPageLayout
+      eyebrow="患者档案管理 > 处方列表 > 新增动作处方"
+      title="新增动作处方"
+      description="默认加载当前患者姓名，支持对动作序列中的各动作参数进行二次编辑。"
+      left={
+        <>
+          <PatientSummaryCard
+            patient={patient}
+            plan={summaryPlan}
+            prescription={null}
+            currentAction={null}
+          />
+          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <CardTitle>处方表单字段</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 p-5 md:grid-cols-2">
+              <Field label="患者姓名">
+                <Input value={patient?.name ?? defaultPatientWorkspace.patientName} disabled />
+              </Field>
+              <Field label="阶段" required>
+                <Input value={draft.stage} onChange={(event) => persist({ stage: event.target.value })} />
+              </Field>
+              <Field label="目标" required>
+                <Input value={draft.goal} onChange={(event) => persist({ goal: event.target.value })} />
+              </Field>
+              <Field label="风险" required>
+                <Input value={draft.risk} onChange={(event) => persist({ risk: event.target.value })} />
+              </Field>
+              <Field label="动作序列" required>
+                <Input
+                  value={draft.sequenceName}
+                  onChange={(event) => persist({ sequenceName: event.target.value })}
+                />
+              </Field>
+              <Field label="频率">
+                <Input
+                  value={draft.frequency}
+                  onChange={(event) => persist({ frequency: event.target.value })}
+                />
+              </Field>
+              <div className="md:col-span-2">
+                <Field label="方案备注">
+                  <Textarea value={draft.note} onChange={(event) => persist({ note: event.target.value })} />
+                </Field>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/70 shadow-none">
+            <CardHeader className="border-b border-border/60">
+              <CardTitle>各动作详情编辑</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 p-5">
+              {draft.movements.map((movement, index) => (
+                <div key={movement.id} className="grid gap-4 rounded-[1rem] border border-border/70 bg-surface-50 p-4 md:grid-cols-4">
+                  <Field label="动作名称">
+                    <Input value={movement.name} onChange={(event) => updateMovement(index, { name: event.target.value })} />
+                  </Field>
+                  <Field label="角度">
+                    <Input value={movement.angle} onChange={(event) => updateMovement(index, { angle: event.target.value })} />
+                  </Field>
+                  <Field label="次数">
+                    <Input value={movement.repetitions} onChange={(event) => updateMovement(index, { repetitions: event.target.value })} />
+                  </Field>
+                  <Field label="时长">
+                    <Input value={movement.duration} onChange={(event) => updateMovement(index, { duration: event.target.value })} />
+                  </Field>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </>
+      }
+      right={
+        <Card className="flex h-full min-h-0 flex-col overflow-hidden">
+          <CardHeader className="border-b border-border/60">
+            <CardTitle>AI参考侧栏</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 min-h-0 space-y-5 overflow-y-auto p-5">
+            <SectionCard title="AI加载的运动处方参考">
+              <Textarea
+                value={draft.aiReference}
+                onChange={(event) => persist({ aiReference: event.target.value })}
+                className="min-h-[220px]"
+              />
+            </SectionCard>
+            <SectionCard title="处方记录区">
+              <div className="space-y-3">
+                {draft.movements.map((movement) => (
+                  <div key={movement.id} className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
+                    {`${movement.name}｜${movement.angle}｜${movement.repetitions}｜${movement.duration}`}
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+          </CardContent>
+        </Card>
+      }
+      bottom={
+        <>
+          <div>
+            {errorMessage ? <p className="text-sm text-rose-700">{errorMessage}</p> : <p className="text-sm text-primary">提交后会返回张三的运动处方列表页。</p>}
+          </div>
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => writeDraft(prescriptionCreateDraftKey, draft)}>
+              <Save className="h-4 w-4" />
+              草稿保存
+            </Button>
+            <Button variant="outline" onClick={cancel}>
+              取消
+            </Button>
+            <Button onClick={submit}>提交</Button>
+          </div>
+        </>
+      }
+    />
+  );
+}
+
+export function CurrentActionCreatePage() {
+  const navigate = useNavigate();
+  const { data: patients = [] } = usePatientsQuery();
+  const { data: plans = [] } = usePlansQuery();
+  const patient = resolveWorkspacePatient(patients, plans) ?? patients[0] ?? null;
+  const summaryPlan = plans.find((item) => item.patientId === patient?.id) ?? null;
+  const [draft, setDraft] = useState<CurrentActionCreateDraft>(
+    readDraft<CurrentActionCreateDraft>(currentActionCreateDraftKey) ?? {
+      title: "肩外展训练",
+      part: "肩关节",
+      duration: "06:00",
+      intensity: "中等",
+      note: "动作幅度控制 30-60 度，避免代偿"
+    }
+  );
+
+  const persist = (patch: Partial<CurrentActionCreateDraft>) => {
+    const next = { ...draft, ...patch };
+    setDraft(next);
+    writeDraft(currentActionCreateDraftKey, next);
+  };
+
+  const cancel = () => {
+    clearDraft(currentActionCreateDraftKey);
+    navigate({ to: "/patients/current" });
+  };
+
+  const submit = () => {
+    clearDraft(currentActionCreateDraftKey);
+    navigate({ to: "/patients/current" });
+  };
+
+  return (
+    <SubPageLayout
+      eyebrow="患者档案管理 > 当前处方 > 新增单体动作"
+      title="新增单体动作"
+      description="当前原型页用于补充单体动作信息与视频预览位，提交后返回张三的当前处方页。"
+      left={
+        <>
+          <PatientSummaryCard
+            patient={patient}
+            plan={summaryPlan}
+            prescription={null}
+            currentAction={null}
+          />
+          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <CardTitle>单体动作字段</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 p-5 md:grid-cols-2">
+              <Field label="动作名称">
+                <Input value={draft.title} onChange={(event) => persist({ title: event.target.value })} />
+              </Field>
+              <Field label="部位">
+                <Input value={draft.part} onChange={(event) => persist({ part: event.target.value })} />
+              </Field>
+              <Field label="时间">
+                <Input value={draft.duration} onChange={(event) => persist({ duration: event.target.value })} />
+              </Field>
+              <Field label="强度">
+                <Input value={draft.intensity} onChange={(event) => persist({ intensity: event.target.value })} />
+              </Field>
+              <div className="md:col-span-2">
+                <Field label="动作说明">
+                  <Textarea value={draft.note} onChange={(event) => persist({ note: event.target.value })} />
+                </Field>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      }
+      right={
+        <Card className="flex h-full min-h-0 flex-col overflow-hidden">
+          <CardHeader className="border-b border-border/60">
+            <CardTitle>视频与说明侧栏</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 min-h-0 space-y-5 overflow-y-auto p-5">
+            <SectionCard title="视频预览位">
+              <div className="rounded-[1.25rem] border border-border/70 bg-surface-950 px-4 py-5 text-white">
+                <p className="text-base font-semibold">康复训练教学视频</p>
+                <p className="mt-2 text-sm text-white/70">核心稳定性训练 - 基础动作教学</p>
+                <p className="mt-2 text-xs text-white/60">时长：15分30秒 | 难度：初级</p>
+              </div>
+            </SectionCard>
+            <PropertyList
+              items={[
+                { label: "动作名称", value: draft.title },
+                { label: "动作部位", value: draft.part },
+                { label: "执行时间", value: draft.duration },
+                { label: "执行强度", value: draft.intensity }
+              ]}
+            />
+          </CardContent>
+        </Card>
+      }
+      bottom={
+        <>
+          <div>
+            <p className="text-sm text-primary">原型阶段先保留页面结构和字段编辑，不额外落本地动作数据。</p>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => writeDraft(currentActionCreateDraftKey, draft)}>
+              <Save className="h-4 w-4" />
+              草稿保存
+            </Button>
+            <Button variant="outline" onClick={cancel}>
+              取消
+            </Button>
+            <Button onClick={submit}>提交</Button>
+          </div>
+        </>
+      }
+    />
+  );
+}
+
+function ExportSubPage({
+  eyebrow,
+  title,
+  description,
+  draftKey,
+  detailTitle,
+  initialDraft,
+  exportHint,
+  onGenerate
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  draftKey: string;
+  detailTitle: string;
+  initialDraft: ExportDraft;
+  exportHint: string;
+  onGenerate: (draft: ExportDraft) => Promise<string>;
+}) {
+  const navigate = useNavigate();
+  const [draft, setDraft] = useState<ExportDraft>(readDraft<ExportDraft>(draftKey) ?? initialDraft);
+  const [message, setMessage] = useState("");
+
+  const persist = (patch: Partial<ExportDraft>) => {
+    const next = { ...draft, ...patch };
+    setDraft(next);
+    writeDraft(draftKey, next);
+  };
+
+  const submit = async () => {
+    const next = await onGenerate(draft);
+    setMessage(next);
+  };
+
+  const cancel = () => {
+    clearDraft(draftKey);
+    navigate({ to: title.includes("评估报告") ? "/patients/reports" : "/patients/prescriptions" });
+  };
+
+  return (
+    <SubPageLayout
+      eyebrow={eyebrow}
+      title={title}
+      description={description}
+      left={
+        <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <CardHeader className="border-b border-border/60">
+            <CardTitle>导出配置</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 p-5 md:grid-cols-2">
+            <Field label="导出对象">
+              <Input value={draft.exportScope} onChange={(event) => persist({ exportScope: event.target.value })} />
+            </Field>
+            <Field label="导出时间范围">
+              <Input value={draft.dateRange} onChange={(event) => persist({ dateRange: event.target.value })} />
+            </Field>
+            <Field label="导出对象说明">
+              <Input value={draft.exportObject} onChange={(event) => persist({ exportObject: event.target.value })} />
+            </Field>
+            <Field label="导出条件">
+              <Input value={draft.exportCondition} onChange={(event) => persist({ exportCondition: event.target.value })} />
+            </Field>
+            <Field label="导出格式">
+              <Input value={draft.format} onChange={(event) => persist({ format: event.target.value })} />
+            </Field>
+          </CardContent>
+        </Card>
+      }
+      right={
+        <Card className="flex h-full min-h-0 flex-col overflow-hidden">
+          <CardHeader className="border-b border-border/60">
+            <CardTitle>{detailTitle}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 min-h-0 space-y-5 overflow-y-auto p-5">
+            <PropertyList
+              items={[
+                { label: "导出对象", value: draft.exportScope },
+                { label: "时间范围", value: draft.dateRange },
+                { label: "导出条件", value: draft.exportCondition },
+                { label: "导出格式", value: draft.format }
+              ]}
+            />
+            <SectionCard title="导出说明">
+              <p className="text-sm leading-7 text-muted-foreground">{exportHint}</p>
+            </SectionCard>
+            {message ? (
+              <SectionCard title="任务结果">
+                <p className="text-sm leading-7 text-primary">{message}</p>
+              </SectionCard>
+            ) : null}
+          </CardContent>
+        </Card>
+      }
+      bottom={
+        <>
+          <div>
+            <p className="text-sm text-primary">支持开始导出、草稿保存；导出历史本期先预留。</p>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => writeDraft(draftKey, draft)}>
+              <Save className="h-4 w-4" />
+              草稿保存
+            </Button>
+            <Button variant="outline" onClick={cancel}>
+              取消
+            </Button>
+            <Button onClick={submit}>
+              <FileOutput className="h-4 w-4" />
+              开始导出
+            </Button>
+          </div>
+        </>
+      }
+    />
+  );
+}
+
+export function PrescriptionExportPage() {
+  return (
+    <ExportSubPage
+      eyebrow="患者档案管理 > 处方列表 > 导出运动处方"
+      title="导出运动处方"
+      description="支持按当前筛选结果或选中记录导出，并配置导出时间范围、对象和条件。"
+      draftKey={prescriptionExportDraftKey}
+      detailTitle="导出任务摘要"
+      initialDraft={{
+        exportScope: "当前筛选结果",
+        dateRange: "近30天",
+        exportObject: "张三运动处方",
+        exportCondition: "已完成 + 待审核",
+        format: "PDF / XLSX / DOCX"
+      }}
+      exportHint="适合用于查房资料、病区同步和康复方案备案。"
+      onGenerate={async () => {
+        const result = await api.exportPrescriptions(1);
+        return `已生成 ${result.fileName}，生成时间 ${formatDateTime(result.generatedAt)}`;
+      }}
+    />
+  );
+}
+
+export function PlanExportPage() {
+  return (
+    <ExportSubPage
+      eyebrow="患者档案管理 > 康复方案 > 导出方案"
+      title="导出方案"
+      description="支持当前筛选结果或张三当前方案导出，并配置时间范围、导出对象和条件。"
+      draftKey={planExportDraftKey}
+      detailTitle="导出任务摘要"
+      initialDraft={{
+        exportScope: "张三当前筛选结果",
+        dateRange: "近30天",
+        exportObject: "张三康复方案",
+        exportCondition: "已同步 + 待同步",
+        format: "PDF / XLSX / DOCX"
+      }}
+      exportHint="适合用于医生查房记录、护理同步和康复方案备案。"
+      onGenerate={async () => {
+        const result = await api.exportPrescriptions(1);
+        return `已生成 ${result.fileName.replace("prescriptions", "plans")}，生成时间 ${formatDateTime(result.generatedAt)}`;
+      }}
+    />
+  );
+}
+
+export function CurrentActionExportPage() {
+  return (
+    <ExportSubPage
+      eyebrow="患者档案管理 > 当前处方 > 导出单体动作"
+      title="导出单体动作"
+      description="支持导出张三当前单体动作列表，并配置导出时间范围、对象和条件。"
+      draftKey={currentActionExportDraftKey}
+      detailTitle="导出任务摘要"
+      initialDraft={{
+        exportScope: "张三当前单体动作",
+        dateRange: "近30天",
+        exportObject: "当前标准动作处方列表",
+        exportCondition: "按最近操作时间排序",
+        format: "PDF / XLSX / DOCX"
+      }}
+      exportHint="适合用于病区床旁演示、动作单页打印和教学视频同步。"
+      onGenerate={async () => {
+        const result = await api.exportPrescriptions(1);
+        return `已生成 ${result.fileName.replace("prescriptions", "current-actions")}，生成时间 ${formatDateTime(result.generatedAt)}`;
+      }}
+    />
+  );
+}
+
+export function ReportReviewPage() {
+  const navigate = useNavigate();
+  const { data: reports = [] } = useReportsQuery();
+  const reviewMutation = useReviewReportMutation();
+  const report = reports.find((item) => item.patientId === defaultPatientWorkspace.patientId) ?? reports[0] ?? null;
+  const [draft, setDraft] = useState<ReportReviewDraft>(
+    readDraft<ReportReviewDraft>(reviewDraftKey) ?? {
+      completionRate: report?.completionRate ?? "92%",
+      romChange: report?.romChange ?? "肩外展 +18°",
+      painScore: report?.painScore ?? "3/10",
+      nurseComment: report?.nurseComment ?? "",
+      doctorComment: report?.doctorComment ?? "",
+      note: report?.note ?? "",
+      aiReference: report?.aiReference ?? "AI 已根据训练数据和历史评估结果自动生成评估摘要。"
+    }
+  );
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const persist = (patch: Partial<ReportReviewDraft>) => {
+    const next = { ...draft, ...patch };
+    setDraft(next);
+    writeDraft(reviewDraftKey, next);
+  };
+
+  const submit = async () => {
+    if (!report) {
+      setErrorMessage("无法提交，当前没有可审核的评估报告。");
+      return;
+    }
+
+    await reviewMutation.mutateAsync({
+      id: report.id,
+      patch: {
+        ...draft,
+        status: "已完成"
+      }
+    });
+    clearDraft(reviewDraftKey);
+    navigate({ to: "/patients/reports" });
+  };
+
+  const cancel = () => {
+    clearDraft(reviewDraftKey);
+    navigate({ to: "/patients/reports" });
+  };
+
+  return (
+    <SubPageLayout
+      eyebrow="患者档案管理 > 评估报告 > 审核评估报告"
+      title="审核评估报告"
+      description="默认加载姓名、完成率、关节活动度变化、疼痛评分、护士评价、医生评价。"
+      actions={
+        <Button variant="secondary">
+          <Sparkles className="h-4 w-4" />
+          AI辅助校验
+        </Button>
+      }
+      left={
+        <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <CardHeader className="border-b border-border/60">
+            <CardTitle>审核表单字段</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 p-5">
+            <div className="grid gap-4 md:grid-cols-3">
+              <Field label="姓名">
+                <Input value={report?.patientName ?? defaultPatientWorkspace.patientName} disabled />
+              </Field>
+              <Field label="完成率">
+                <Input value={draft.completionRate} onChange={(event) => persist({ completionRate: event.target.value })} />
+              </Field>
+              <Field label="关节活动度变化">
+                <Input value={draft.romChange} onChange={(event) => persist({ romChange: event.target.value })} />
+              </Field>
+            </div>
+            <Field label="疼痛评分">
+              <Input value={draft.painScore} onChange={(event) => persist({ painScore: event.target.value })} />
+            </Field>
+            <Field label="护士评价">
+              <Textarea value={draft.nurseComment} onChange={(event) => persist({ nurseComment: event.target.value })} />
+            </Field>
+            <Field label="医生评价">
+              <Textarea value={draft.doctorComment} onChange={(event) => persist({ doctorComment: event.target.value })} />
+            </Field>
+            <Field label="评估报告备注">
+              <Textarea value={draft.note} onChange={(event) => persist({ note: event.target.value })} />
+            </Field>
+            <Field label="富文本编辑区">
+              <Textarea
+                value={`完成率：${draft.completionRate}\n关节活动度变化：${draft.romChange}\n疼痛评分：${draft.painScore}\n评估报告备注：${draft.note}`}
+                onChange={(event) => persist({ note: event.target.value })}
+              />
+            </Field>
+          </CardContent>
+        </Card>
+      }
+      right={
+        <Card className="flex h-full min-h-0 flex-col overflow-hidden">
+          <CardHeader className="border-b border-border/60">
+            <CardTitle>AI参考侧栏</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 min-h-0 space-y-5 overflow-y-auto p-5">
+            <PropertyList
+              items={[
+                { label: "患者", value: report?.patientName ?? defaultPatientWorkspace.patientName },
+                { label: "完成率", value: draft.completionRate },
+                { label: "ROM变化", value: draft.romChange },
+                { label: "疼痛评分", value: draft.painScore }
+              ]}
+            />
+            <SectionCard title="AI参考评估结果">
+              <Textarea
+                value={draft.aiReference}
+                onChange={(event) => persist({ aiReference: event.target.value })}
+                className="min-h-[220px]"
+              />
+            </SectionCard>
+          </CardContent>
+        </Card>
+      }
+      bottom={
+        <>
+          <div>
+            {errorMessage ? <p className="text-sm text-rose-700">{errorMessage}</p> : <p className="text-sm text-primary">支持提交、草稿保存、再次进入时恢复草稿。</p>}
+          </div>
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => writeDraft(reviewDraftKey, draft)}>
+              <Save className="h-4 w-4" />
+              草稿保存
+            </Button>
+            <Button variant="outline" onClick={cancel}>
+              取消
+            </Button>
+            <Button onClick={submit}>提交审核</Button>
+          </div>
+        </>
+      }
+    />
+  );
+}
+
+export function ReportExportPage() {
+  return (
+    <ExportSubPage
+      eyebrow="患者档案管理 > 评估报告 > 导出评估报告"
+      title="导出评估报告"
+      description="支持当前筛选结果或选中记录导出，并配置时间范围、导出对象和条件。"
+      draftKey={reportExportDraftKey}
+      detailTitle="导出任务摘要"
+      initialDraft={{
+        exportScope: "当前筛选结果",
+        dateRange: "近30天",
+        exportObject: "全局评估报告",
+        exportCondition: "医生待评价 + 已完成",
+        format: "PDF / XLSX / DOCX"
+      }}
+      exportHint="当前原型保留导出项配置和结果反馈，适合演示查房归档流程。"
+      onGenerate={async () => {
+        const result = await api.exportReports(2);
+        return `已生成 ${result.fileName}，生成时间 ${formatDateTime(result.generatedAt)}`;
+      }}
+    />
+  );
+}

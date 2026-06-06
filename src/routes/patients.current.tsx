@@ -6,5 +6,5 @@ export const Route = createFileRoute("/patients/current")({
 });
 
 function CurrentPrescriptionPage() {
-  return <PrescriptionManagement initialTab="current" />;
+  return <PrescriptionManagement view="current" />;
 }

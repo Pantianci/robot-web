@@ -1,7 +1,9 @@
-import { useMemo, useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, Pencil, Plus, Trash2 } from "lucide-react";
 import { useCreatePatientMutation, useDeletePatientMutation, usePatientsQuery, useUpdatePatientMutation } from "@/lib/hooks";
-import { clearDraft, readDraft, writeDraft } from "@/lib/storage";
+import { defaultPatientWorkspace, patientWorkspaceContextKey } from "@/lib/patient-context";
+import { clearDraft, readDraft, readState, writeDraft, writeState } from "@/lib/storage";
 import { formatDateTime } from "@/lib/utils";
 import type { Patient } from "@/lib/types";
 import { DetailPanel } from "@/components/detail-panel";
@@ -27,6 +29,7 @@ import { Textarea } from "@/components/ui/textarea";
 type PatientDraft = Omit<Patient, "id" | "createdAt">;
 
 const patientDraftKey = "patients:new";
+const patientPageSize = 10;
 
 const emptyDraft: PatientDraft = {
   name: "",
@@ -47,23 +50,89 @@ export function PatientManagement() {
   const deleteMutation = useDeletePatientMutation();
 
   const [query, setQuery] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(patients[0]?.id ?? null);
+  const [stageFilter, setStageFilter] = useState("全部");
+  const [bedFilter, setBedFilter] = useState("");
+  const [creatorFilter, setCreatorFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("全部");
+  const [selectedId, setSelectedId] = useState<string | null>(
+    readState<{ selectedId: string }>(patientWorkspaceContextKey)?.selectedId ??
+      defaultPatientWorkspace.patientId
+  );
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"create" | "edit">("create");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [page, setPage] = useState(1);
   const [draft, setDraft] = useState<PatientDraft>(readDraft<PatientDraft>(patientDraftKey) ?? emptyDraft);
 
-  const filtered = useMemo(
-    () =>
-      patients.filter((item) =>
-        [item.name, item.diagnosis, item.stage, item.bedNo, item.createdBy]
-          .join(" ")
-          .toLowerCase()
-          .includes(query.toLowerCase())
-      ),
-    [patients, query]
-  );
+  useEffect(() => {
+    if (!patients.length) {
+      return;
+    }
+
+    const current =
+      patients.find((item) => item.id === selectedId) ??
+      patients.find((item) => item.id === defaultPatientWorkspace.patientId) ??
+      patients[0];
+
+    if (current && current.id !== selectedId) {
+      setSelectedId(current.id);
+    }
+  }, [patients, selectedId]);
+
+  const filtered = useMemo(() => {
+    const now = Date.now();
+    return [...patients]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .filter((item) => {
+        const keywordMatch =
+          !query ||
+          [item.id, item.name, item.diagnosis, item.stage, item.bedNo, item.createdBy]
+            .join(" ")
+            .toLowerCase()
+            .includes(query.toLowerCase());
+        const stageMatch = stageFilter === "全部" || item.stage === stageFilter;
+        const bedMatch = !bedFilter || item.bedNo.toLowerCase().includes(bedFilter.toLowerCase());
+        const creatorMatch =
+          !creatorFilter || item.createdBy.toLowerCase().includes(creatorFilter.toLowerCase());
+
+        let dateMatch = true;
+        if (dateFilter !== "全部") {
+          const createdTime = new Date(item.createdAt).getTime();
+          const diff = now - createdTime;
+          const oneDay = 24 * 60 * 60 * 1000;
+          if (dateFilter === "近7天") {
+            dateMatch = diff <= oneDay * 7;
+          } else if (dateFilter === "近30天") {
+            dateMatch = diff <= oneDay * 30;
+          } else if (dateFilter === "近90天") {
+            dateMatch = diff <= oneDay * 90;
+          }
+        }
+
+        return keywordMatch && stageMatch && bedMatch && creatorMatch && dateMatch;
+      });
+  }, [bedFilter, creatorFilter, dateFilter, patients, query, stageFilter]);
 
   const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0] ?? null;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / patientPageSize));
+  const safePage = Math.min(page, totalPages);
+  const paged = filtered.slice((safePage - 1) * patientPageSize, safePage * patientPageSize);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
+
+  useEffect(() => {
+    if (!selected) {
+      return;
+    }
+
+    writeState(patientWorkspaceContextKey, {
+      selectedId: selected.id,
+      patientId: selected.id,
+      patientName: selected.name
+    });
+  }, [selected]);
 
   const persistDraft = (patch: Partial<PatientDraft>) => {
     const next = { ...draft, ...patch };
@@ -116,6 +185,24 @@ export function PatientManagement() {
     setOpen(false);
   };
 
+  const resetFilters = () => {
+    setQuery("");
+    setStageFilter("全部");
+    setBedFilter("");
+    setCreatorFilter("");
+    setDateFilter("全部");
+    setPage(1);
+  };
+
+  const handleDelete = async () => {
+    if (!selected) {
+      return;
+    }
+
+    await deleteMutation.mutateAsync(selected.id);
+    setDeleteOpen(false);
+  };
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6">
       <PageHeader
@@ -124,39 +211,77 @@ export function PatientManagement() {
         description="支持患者档案检索、右侧详情预览、新增档案与编辑删除操作。"
         className="mb-1"
         actions={
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            新增档案
-          </Button>
+          <>
+            <Button asChild variant="outline">
+              <Link to="/patients/base/create">
+                <ArrowRight className="h-4 w-4" />
+                进入新建页
+              </Link>
+            </Button>
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              新增档案
+            </Button>
+          </>
         }
       />
 
       <FilterBar
         actions={
           <>
-            <Button variant="secondary" onClick={() => setQuery("")}>
+            <Button variant="secondary" onClick={resetFilters}>
               重置
             </Button>
-            <Button>查询</Button>
+            <Button onClick={() => setPage(1)}>查询</Button>
           </>
         }
       >
         <Field label="关键字检索">
-          <Input value={query} onChange={(event) => setQuery(event.target.value)} />
+          <Input
+            value={query}
+            placeholder="患者ID / 姓名 / 病种 / 阶段"
+            onChange={(event) => setQuery(event.target.value)}
+          />
         </Field>
         <Field label="阶段">
-          <select className="native-select">
-            <option>全部</option>
+          <select
+            className="native-select"
+            value={stageFilter}
+            onChange={(event) => setStageFilter(event.target.value)}
+          >
+            <option value="全部">全部</option>
             {[...new Set(patients.map((item) => item.stage))].map((stage) => (
-              <option key={stage}>{stage}</option>
+              <option key={stage} value={stage}>
+                {stage}
+              </option>
             ))}
           </select>
         </Field>
         <Field label="病床号">
-          <Input placeholder="12床" />
+          <Input
+            value={bedFilter}
+            placeholder="12床"
+            onChange={(event) => setBedFilter(event.target.value)}
+          />
         </Field>
         <Field label="建档人">
-          <Input placeholder="王医生" />
+          <Input
+            value={creatorFilter}
+            placeholder="王医生"
+            onChange={(event) => setCreatorFilter(event.target.value)}
+          />
+        </Field>
+        <Field label="建档时间">
+          <select
+            className="native-select"
+            value={dateFilter}
+            onChange={(event) => setDateFilter(event.target.value)}
+          >
+            <option value="全部">全部</option>
+            <option value="近7天">近7天</option>
+            <option value="近30天">近30天</option>
+            <option value="近90天">近90天</option>
+          </select>
         </Field>
       </FilterBar>
 
@@ -170,7 +295,7 @@ export function PatientManagement() {
                   <Pencil className="h-4 w-4" />
                   编辑
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate(selected.id)}>
+                <Button variant="ghost" size="sm" onClick={() => setDeleteOpen(true)}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -179,7 +304,7 @@ export function PatientManagement() {
           <CardContent className="flex min-h-0 flex-1 flex-col p-0">
             {filtered.length ? (
               <Table className="min-w-full">
-                <TableHeader>
+                <TableHeader className="sticky top-0 z-10 bg-white">
                   <TableRow>
                     <TableHead>患者ID</TableHead>
                     <TableHead>姓名</TableHead>
@@ -192,7 +317,7 @@ export function PatientManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((item) => (
+                  {paged.map((item) => (
                     <TableRow
                       key={item.id}
                       data-state={selected?.id === item.id ? "selected" : undefined}
@@ -217,6 +342,31 @@ export function PatientManagement() {
               </div>
             )}
           </CardContent>
+          {filtered.length ? (
+            <div className="flex items-center justify-between border-t border-border/60 px-5 py-4 text-sm text-muted-foreground">
+              <span>
+                共 {filtered.length} 条，当前第 {safePage} / {totalPages} 页
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={safePage <= 1}
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                >
+                  上一页
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={safePage >= totalPages}
+                  onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                >
+                  下一页
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </Card>
 
         <DetailPanel title="患者档案" className="h-full pt-1">
@@ -231,15 +381,24 @@ export function PatientManagement() {
                   { label: "病种", value: selected.diagnosis },
                   { label: "设备ID", value: selected.robotId },
                   { label: "病床号", value: selected.bedNo },
+                  { label: "建档人", value: selected.createdBy },
                   { label: "建档时间", value: formatDateTime(selected.createdAt) }
                 ]}
               />
               <Card className="border-border/60 bg-surface-50 shadow-none">
                 <CardHeader>
-                  <CardTitle className="text-base">评估备注</CardTitle>
+                  <CardTitle className="text-base">患者备注</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 text-sm leading-7 text-muted-foreground">
                   {selected.note}
+                </CardContent>
+              </Card>
+              <Card className="border-border/60 bg-surface-50 shadow-none">
+                <CardHeader>
+                  <CardTitle className="text-base">最近操作</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 text-sm leading-7 text-muted-foreground">
+                  {`${selected.createdBy} 于 ${formatDateTime(selected.createdAt)} 完成建档，当前患者已同步为后续康复方案与处方页上下文。`}
                 </CardContent>
               </Card>
             </>
@@ -306,6 +465,19 @@ export function PatientManagement() {
           <Button type="button" variant="outline" onClick={resetDraft}>
             清空
           </Button>
+        </div>
+      </DialogFormShell>
+
+      <DialogFormShell
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="删除患者档案"
+        description={`确认删除“${selected?.name ?? ""}”后，列表会立即刷新，并记录最近处理日志。`}
+        onSubmit={handleDelete}
+        submitLabel="确认删除"
+      >
+        <div className="rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-7 text-amber-800">
+          当前原型会直接从本地数据中删除该患者档案。若该患者已作为当前上下文，后续页面会自动回退到张三。
         </div>
       </DialogFormShell>
     </div>
