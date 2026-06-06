@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import {
   Activity,
   Bot,
@@ -13,12 +12,15 @@ import {
   Plus,
   ShieldCheck,
   Sparkles,
+  SquarePen,
+  Trash2,
   UploadCloud,
   Workflow,
   type LucideIcon
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DetailPanel } from "@/components/detail-panel";
+import { DialogFormShell } from "@/components/dialog-form-shell";
 import { EmptyState } from "@/components/empty-state";
 import { Field } from "@/components/field";
 import { FilterBar } from "@/components/filter-bar";
@@ -38,6 +40,13 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  useCreateKnowledgeTagMutation,
+  useDeleteKnowledgeTagMutation,
+  useKnowledgeQuery,
+  useUpdateKnowledgeTagMutation
+} from "@/lib/hooks";
+import type { KnowledgeLibrary, TagItem } from "@/lib/types";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
 
 type FormField = {
@@ -1679,201 +1688,527 @@ export function TagManagementPage({
   title,
   description,
   tags,
-  createLink
+  library
 }: {
   eyebrow: string;
   title: string;
   description: string;
-  tags: Array<{
-    id: string;
-    name: string;
-    parent: string;
-    status: string;
-    operator: string;
-    relatedCount: number;
-    updatedAt: string;
-    description: string;
-  }>;
-  createLink?: string;
+  tags: TagItem[];
+  library: KnowledgeLibrary;
 }) {
-  const [query, setQuery] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(tags[0]?.id ?? null);
+  const { data: items = [] } = useKnowledgeQuery(library);
+  const createMutation = useCreateKnowledgeTagMutation(library);
+  const updateMutation = useUpdateKnowledgeTagMutation(library);
+  const deleteMutation = useDeleteKnowledgeTagMutation(library);
 
-  const filtered = useMemo(
-    () =>
-      tags.filter((tag) =>
+  const [query, setQuery] = useState("");
+  const [parentFilter, setParentFilter] = useState("全部");
+  const [statusFilter, setStatusFilter] = useState("全部");
+  const [dateFilter, setDateFilter] = useState("全部");
+  const [selectedId, setSelectedId] = useState<string | null>(tags[0]?.id ?? null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editingTag, setEditingTag] = useState<TagItem | null>(null);
+  const [deletingTag, setDeletingTag] = useState<TagItem | null>(null);
+  const [formError, setFormError] = useState("");
+  const [tagForm, setTagForm] = useState({
+    name: "",
+    parent: "",
+    enabled: true,
+    description: ""
+  });
+  const resolveTagStatus = (tag: Pick<TagItem, "relatedCount" | "status">): TagItem["status"] =>
+    tag.relatedCount > 0 ? "使用中" : "未使用";
+
+  useEffect(() => {
+    if (!tags.length) {
+      setSelectedId(null);
+      return;
+    }
+
+    if (!selectedId || !tags.some((item) => item.id === selectedId)) {
+      setSelectedId(tags[0]?.id ?? null);
+    }
+  }, [selectedId, tags]);
+
+  const parentOptions = useMemo(
+    () => Array.from(new Set(tags.map((tag) => tag.parent).filter(Boolean))),
+    [tags]
+  );
+
+  const filtered = useMemo(() => {
+    const now = Date.now();
+    return tags.filter((tag) => {
+      const keywordMatch =
+        !query ||
         [tag.name, tag.parent, tag.description, tag.operator]
           .join(" ")
           .toLowerCase()
-          .includes(query.toLowerCase())
-      ),
-    [query, tags]
-  );
+          .includes(query.toLowerCase());
+      const parentMatch = parentFilter === "全部" || tag.parent === parentFilter;
+      const statusMatch =
+        statusFilter === "全部" || resolveTagStatus(tag) === statusFilter;
+
+      let dateMatch = true;
+      if (dateFilter !== "全部") {
+        const updatedTime = new Date(tag.updatedAt).getTime();
+        const diff = now - updatedTime;
+        const oneDay = 24 * 60 * 60 * 1000;
+        if (dateFilter === "近7天") {
+          dateMatch = diff <= oneDay * 7;
+        } else if (dateFilter === "近30天") {
+          dateMatch = diff <= oneDay * 30;
+        } else if (dateFilter === "近90天") {
+          dateMatch = diff <= oneDay * 90;
+        }
+      }
+
+      return keywordMatch && parentMatch && statusMatch && dateMatch;
+    });
+  }, [dateFilter, parentFilter, query, statusFilter, tags]);
 
   const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0] ?? null;
-  const groupedParents = useMemo(() => {
-    const groups = new Map<string, string[]>();
+  const relatedItems = useMemo(() => {
+    if (!selected) {
+      return [];
+    }
 
-    tags.forEach((tag) => {
-      const current = groups.get(tag.parent) ?? [];
-      current.push(tag.name);
-      groups.set(tag.parent, current);
+    return items.filter((item) => item.tags.includes(selected.name)).slice(0, 10);
+  }, [items, selected]);
+
+  const resetFilters = () => {
+    setQuery("");
+    setParentFilter("全部");
+    setStatusFilter("全部");
+    setDateFilter("全部");
+  };
+
+  const resetTagForm = () => {
+    setTagForm({
+      name: "",
+      parent: parentOptions[0] ?? "",
+      enabled: true,
+      description: ""
     });
+    setFormError("");
+  };
 
-    return Array.from(groups.entries());
-  }, [tags]);
+  const openCreateDialog = () => {
+    setEditingTag(null);
+    resetTagForm();
+    setCreateOpen(true);
+  };
+
+  const openEditDialog = (tag: TagItem) => {
+    setEditingTag(tag);
+    setTagForm({
+      name: tag.name,
+      parent: tag.parent,
+      enabled: tag.enabled ?? tag.status === "使用中",
+      description: tag.description
+    });
+    setFormError("");
+  };
+
+  const closeDialogs = () => {
+    setCreateOpen(false);
+    setEditingTag(null);
+    setDeletingTag(null);
+    setFormError("");
+  };
+
+  const handleSubmitTag = async () => {
+    if (!tagForm.name.trim() || !tagForm.parent.trim()) {
+      setFormError("请补全标签名称和上级标签。");
+      return;
+    }
+
+    const payload = {
+      name: tagForm.name.trim(),
+      parent: tagForm.parent.trim(),
+      description: tagForm.description.trim(),
+      enabled: tagForm.enabled,
+      operator: "当前用户",
+      status: resolveTagStatus({
+        relatedCount: editingTag?.relatedCount ?? 0,
+        status: editingTag?.status ?? "未使用"
+      }) as TagItem["status"],
+      relatedCount: editingTag?.relatedCount ?? 0,
+      createdAt: editingTag?.createdAt ?? new Date().toISOString()
+    };
+
+    if (editingTag) {
+      await updateMutation.mutateAsync({
+        id: editingTag.id,
+        patch: payload
+      });
+    } else {
+      await createMutation.mutateAsync(payload);
+    }
+
+    closeDialogs();
+  };
+
+  const handleDeleteTag = async () => {
+    if (!deletingTag) {
+      return;
+    }
+
+    await deleteMutation.mutateAsync(deletingTag.id);
+
+    if (selectedId === deletingTag.id) {
+      const fallback = tags.find((item) => item.id !== deletingTag.id);
+      setSelectedId(fallback?.id ?? null);
+    }
+
+    setDeletingTag(null);
+  };
 
   return (
     <SubPageScaffold eyebrow={eyebrow} title={title} description={description} status="管理页">
-      <div className="grid gap-4 md:grid-cols-3">
-        <SummaryMetric
-          item={{
-            label: "标签总数",
-            value: `${tags.length} 个`,
-            helper: "当前模块全部标签",
-            icon: FolderKanban,
-            tone: "primary"
-          }}
-        />
-        <SummaryMetric
-          item={{
-            label: "使用中",
-            value: `${tags.filter((tag) => tag.status === "使用中").length} 个`,
-            helper: "已被业务模块引用",
-            icon: CheckCircle2,
-            tone: "emerald"
-          }}
-        />
-        <SummaryMetric
-          item={{
-            label: "上级层级",
-            value: `${new Set(tags.map((tag) => tag.parent)).size} 组`,
-            helper: "便于查看层级结构",
-            icon: Workflow,
-            tone: "amber"
-          }}
-        />
-      </div>
-
       <FilterBar
         actions={
           <>
-            <Button variant="secondary" onClick={() => setQuery("")}>
+            <Button variant="secondary" onClick={resetFilters}>
               重置
             </Button>
-            {createLink ? (
-              <Button asChild>
-                <Link to={createLink}>
-                  <Plus className="h-4 w-4" />
-                  新增标签
-                </Link>
-              </Button>
-            ) : null}
+            <Button onClick={openCreateDialog}>
+              <Plus className="h-4 w-4" />
+              新建标签
+            </Button>
           </>
         }
       >
         <Field label="标签检索">
-          <Input value={query} onChange={(event) => setQuery(event.target.value)} />
+          <Input
+            value={query}
+            placeholder="搜索标签名称、说明、操作人"
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </Field>
+        <Field label="上级标签">
+          <select
+            className="native-select"
+            value={parentFilter}
+            onChange={(event) => setParentFilter(event.target.value)}
+          >
+            <option value="全部">全部</option>
+            {parentOptions.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="状态">
-          <select className="native-select">
-            <option>全部</option>
-            <option>使用中</option>
-            <option>未使用</option>
+          <select
+            className="native-select"
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+          >
+            <option value="全部">全部</option>
+            <option value="使用中">使用中</option>
+            <option value="未使用">未使用</option>
+          </select>
+        </Field>
+        <Field label="更新时间">
+          <select
+            className="native-select"
+            value={dateFilter}
+            onChange={(event) => setDateFilter(event.target.value)}
+          >
+            <option value="全部">全部</option>
+            <option value="近7天">近7天</option>
+            <option value="近30天">近30天</option>
+            <option value="近90天">近90天</option>
           </select>
         </Field>
       </FilterBar>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_360px]">
-        <div className="space-y-6">
-          <Card>
-            <CardHeader className="border-b border-border/60">
-              <CardTitle>标签列表</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {filtered.length ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>标签</TableHead>
-                      <TableHead>上级标签</TableHead>
-                      <TableHead>状态</TableHead>
-                      <TableHead>关联数</TableHead>
-                      <TableHead>操作人</TableHead>
+      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.55fr)_360px]">
+        <Card className="flex min-h-0 flex-col overflow-hidden">
+          <CardHeader className="border-b border-border/60">
+            <CardTitle>标签列表</CardTitle>
+          </CardHeader>
+          <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+            {filtered.length ? (
+              <Table className="min-w-full">
+                <TableHeader className="sticky top-0 z-10 bg-white">
+                  <TableRow>
+                    <TableHead className="min-w-[140px]">标签名称</TableHead>
+                    <TableHead className="min-w-[220px]">标签说明</TableHead>
+                    <TableHead className="min-w-[120px]">上级标签</TableHead>
+                    <TableHead className="min-w-[100px]">标签状态</TableHead>
+                    <TableHead className="min-w-[110px]">最近操作人</TableHead>
+                    <TableHead className="min-w-[150px]">更新时间</TableHead>
+                    <TableHead className="min-w-[140px]">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((tag) => (
+                    <TableRow
+                      key={tag.id}
+                      className="cursor-pointer"
+                      data-state={selected?.id === tag.id ? "selected" : undefined}
+                      onClick={() => setSelectedId(tag.id)}
+                    >
+                      <TableCell className="font-medium">{tag.name}</TableCell>
+                      <TableCell className="max-w-[280px] text-muted-foreground">
+                        <p className="line-clamp-2">{tag.description || "暂无说明"}</p>
+                      </TableCell>
+                      <TableCell>{tag.parent}</TableCell>
+                      <TableCell>
+                        <Badge>{resolveTagStatus(tag)}</Badge>
+                      </TableCell>
+                      <TableCell>{tag.operator}</TableCell>
+                      <TableCell>{formatDateTime(tag.updatedAt)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openEditDialog(tag);
+                            }}
+                          >
+                            <SquarePen className="h-4 w-4" />
+                            编辑
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-rose-600 hover:text-rose-700"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setDeletingTag(tag);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            删除
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((tag) => (
-                      <TableRow
-                        key={tag.id}
-                        className="cursor-pointer"
-                        data-state={selected?.id === tag.id ? "selected" : undefined}
-                        onClick={() => setSelectedId(tag.id)}
-                      >
-                        <TableCell className="font-medium">{tag.name}</TableCell>
-                        <TableCell>{tag.parent}</TableCell>
-                        <TableCell>
-                          <Badge>{tag.status}</Badge>
-                        </TableCell>
-                        <TableCell>{tag.relatedCount}</TableCell>
-                        <TableCell>{tag.operator}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="p-6">
-                  <EmptyState title="暂无匹配标签" />
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="p-6">
+                <EmptyState title="暂无匹配标签" />
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-          <SectionCard title="层级概览" description="把原来单表格页补成带层级分组的管理视图。">
-            <div className="grid gap-3 md:grid-cols-2">
-              {groupedParents.map(([parent, items]) => (
-                <div key={parent} className="rounded-[1.25rem] border border-border/70 bg-white p-4">
-                  <p className="text-sm font-medium text-surface-900">{parent}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {items.map((item) => (
-                      <PathBadge key={item}>{item}</PathBadge>
-                    ))}
+        <div className="min-h-0 pt-1">
+          <DetailPanel title="标签详情" className="h-full">
+            {selected ? (
+              <>
+                <PropertyList
+                  items={[
+                    { label: "标签名称", value: selected.name },
+                    { label: "上级标签", value: selected.parent },
+                    { label: "标签状态", value: resolveTagStatus(selected) },
+                    { label: "创建时间", value: selected.createdAt ? formatDateTime(selected.createdAt) : "暂无记录" },
+                    { label: "最近操作人", value: selected.operator },
+                    { label: "更新时间", value: formatDateTime(selected.updatedAt) }
+                  ]}
+                />
+                <SectionCard title="标签说明">
+                  <p className="text-sm leading-7 text-muted-foreground">
+                    {selected.description || "暂无标签说明。"}
+                  </p>
+                </SectionCard>
+                <SectionCard title="标签关系">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <PathBadge>{selected.parent}</PathBadge>
+                    <ChevronRight className="h-4 w-4 text-surface-400" />
+                    <PathBadge>{selected.name}</PathBadge>
                   </div>
-                </div>
-              ))}
-            </div>
-          </SectionCard>
+                </SectionCard>
+                <SectionCard title="关联文件（最近10条）">
+                  <div className="space-y-3">
+                    {relatedItems.length ? (
+                      relatedItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3"
+                        >
+                          <p className="text-sm font-medium text-surface-900">{item.title}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {item.category} · {formatDate(item.updatedAt)}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="rounded-[1rem] border border-dashed border-border/70 bg-surface-50 px-4 py-5 text-sm text-muted-foreground">
+                        当前标签暂无关联文件。
+                      </div>
+                    )}
+                  </div>
+                </SectionCard>
+              </>
+            ) : (
+              <EmptyState title="请选择一个标签" />
+            )}
+          </DetailPanel>
         </div>
-
-        <DetailPanel title="标签详情">
-          {selected ? (
-            <>
-              <PropertyList
-                items={[
-                  { label: "标签", value: selected.name },
-                  { label: "上级", value: selected.parent },
-                  { label: "状态", value: selected.status },
-                  { label: "关联数", value: selected.relatedCount },
-                  { label: "操作人", value: selected.operator },
-                  { label: "更新时间", value: formatDateTime(selected.updatedAt) }
-                ]}
-              />
-              <SectionCard title="标签路径">
-                <div className="flex flex-wrap items-center gap-2">
-                  <PathBadge>{selected.parent}</PathBadge>
-                  <ChevronRight className="h-4 w-4 text-surface-400" />
-                  <PathBadge>{selected.name}</PathBadge>
-                </div>
-              </SectionCard>
-              <SectionCard title="说明">
-                <p className="text-sm leading-7 text-muted-foreground">{selected.description}</p>
-              </SectionCard>
-            </>
-          ) : (
-            <EmptyState title="请选择一个标签" />
-          )}
-        </DetailPanel>
       </div>
+
+      <DialogFormShell
+        open={createOpen}
+        onOpenChange={(open) => {
+          setCreateOpen(open);
+          if (!open) {
+            resetTagForm();
+          }
+        }}
+        title={`新建${title}`}
+        description="填写标签名称、上级标签、启用状态和说明，提交后会回流到当前标签列表。"
+        onSubmit={handleSubmitTag}
+        submitLabel="提交"
+      >
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="标签名称">
+            <Input
+              value={tagForm.name}
+              placeholder="请输入标签名称"
+              onChange={(event) => setTagForm((current) => ({ ...current, name: event.target.value }))}
+            />
+          </Field>
+          <Field label="上级标签">
+            <select
+              className="native-select"
+              value={tagForm.parent}
+              onChange={(event) => setTagForm((current) => ({ ...current, parent: event.target.value }))}
+            >
+              {parentOptions.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="启用状态">
+            <select
+              className="native-select"
+              value={tagForm.enabled ? "启用" : "停用"}
+              onChange={(event) =>
+                setTagForm((current) => ({ ...current, enabled: event.target.value === "启用" }))
+              }
+            >
+              <option value="启用">启用</option>
+              <option value="停用">停用</option>
+            </select>
+          </Field>
+          <Field label="最近操作人">
+            <Input value="当前用户" disabled />
+          </Field>
+          <div className="md:col-span-2">
+            <Field label="标签说明">
+              <Textarea
+                value={tagForm.description}
+                placeholder="补充标签适用范围和说明"
+                onChange={(event) =>
+                  setTagForm((current) => ({ ...current, description: event.target.value }))
+                }
+              />
+            </Field>
+          </div>
+        </div>
+        {formError ? (
+          <div className="rounded-[1rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            {formError}
+          </div>
+        ) : null}
+      </DialogFormShell>
+
+      <DialogFormShell
+        open={Boolean(editingTag)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingTag(null);
+            resetTagForm();
+          }
+        }}
+        title={`编辑${title}`}
+        description="支持调整标签名称、上级标签、启用状态和说明，并记录最近操作时间。"
+        onSubmit={handleSubmitTag}
+        submitLabel="保存"
+      >
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="标签名称">
+            <Input
+              value={tagForm.name}
+              placeholder="请输入标签名称"
+              onChange={(event) => setTagForm((current) => ({ ...current, name: event.target.value }))}
+            />
+          </Field>
+          <Field label="上级标签">
+            <select
+              className="native-select"
+              value={tagForm.parent}
+              onChange={(event) => setTagForm((current) => ({ ...current, parent: event.target.value }))}
+            >
+              {parentOptions.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="启用状态">
+            <select
+              className="native-select"
+              value={tagForm.enabled ? "启用" : "停用"}
+              onChange={(event) =>
+                setTagForm((current) => ({ ...current, enabled: event.target.value === "启用" }))
+              }
+            >
+              <option value="启用">启用</option>
+              <option value="停用">停用</option>
+            </select>
+          </Field>
+          <Field label="更新时间">
+            <Input value={editingTag ? formatDateTime(editingTag.updatedAt) : ""} disabled />
+          </Field>
+          <div className="md:col-span-2">
+            <Field label="标签说明">
+              <Textarea
+                value={tagForm.description}
+                placeholder="补充标签适用范围和说明"
+                onChange={(event) =>
+                  setTagForm((current) => ({ ...current, description: event.target.value }))
+                }
+              />
+            </Field>
+          </div>
+        </div>
+        {formError ? (
+          <div className="rounded-[1rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            {formError}
+          </div>
+        ) : null}
+      </DialogFormShell>
+
+      <DialogFormShell
+        open={Boolean(deletingTag)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingTag(null);
+          }
+        }}
+        title="删除标签"
+        description={`确认删除“${deletingTag?.name ?? ""}”后，将从当前标签库中移除。`}
+        onSubmit={handleDeleteTag}
+        submitLabel="确认删除"
+      >
+        <div className="rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-7 text-amber-800">
+          删除前请确认该标签的业务关系已处理完成。当前原型会直接更新列表与详情区域。
+        </div>
+      </DialogFormShell>
     </SubPageScaffold>
   );
 }

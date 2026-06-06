@@ -15,7 +15,7 @@ function SequenceTagsPage() {
       title="动作序列标签库"
       description="用于管理动作序列标签、状态和关联关系。"
       tags={data}
-      createLink="/tags/sequence/create"
+      library="sequence"
     />
   );
 }

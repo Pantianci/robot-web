@@ -15,7 +15,7 @@ function MotionTagsPage() {
       title="标准动作标签库"
       description="用于管理标准动作标签、状态和关联关系。"
       tags={data}
-      createLink="/tags/motion/create"
+      library="motion"
     />
   );
 }

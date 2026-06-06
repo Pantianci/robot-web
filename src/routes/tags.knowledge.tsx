@@ -15,7 +15,7 @@ function KnowledgeTagsPage() {
       title="康复知识标签库"
       description="用于管理康复知识标签，支持筛选、详情、编辑和删除。"
       tags={data}
-      createLink="/tags/knowledge/create"
+      library="knowledge"
     />
   );
 }

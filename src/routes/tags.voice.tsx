@@ -15,7 +15,7 @@ function VoiceTagsPage() {
       title="语音交互标签库"
       description="用于管理语音数据标签及标签层级、状态和关联关系。"
       tags={data}
-      createLink="/tags/voice/create"
+      library="voice"
     />
   );
 }
