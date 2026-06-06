@@ -1,25 +1,23 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { FileOutput, Pencil, PlayCircle, Plus, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { api } from "@/lib/api";
 import {
   useCurrentActionsQuery,
   usePatientsQuery,
   usePlansQuery,
-  usePrescriptionsQuery,
-  useUpdatePlanMutation,
-  useUpdatePrescriptionMutation
+  usePrescriptionsQuery
 } from "@/lib/hooks";
 import {
   buildPatientSummary,
   defaultPatientWorkspace,
-  patientWorkspaceContextKey
+  patientWorkspaceContextKey,
+  planWorkspaceContextKey,
+  prescriptionWorkspaceContextKey
 } from "@/lib/patient-context";
 import { readState, writeState } from "@/lib/storage";
 import { formatDateTime } from "@/lib/utils";
 import type { CurrentAction, Patient, Prescription, RehabPlan } from "@/lib/types";
 import { DetailPanel } from "@/components/detail-panel";
-import { DialogFormShell } from "@/components/dialog-form-shell";
 import { EmptyState } from "@/components/empty-state";
 import { Field } from "@/components/field";
 import { FilterBar } from "@/components/filter-bar";
@@ -38,7 +36,6 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 
 type ViewMode = "plans" | "current" | "prescriptions";
 
@@ -46,18 +43,6 @@ type WorkspaceContext = {
   selectedId?: string;
   patientId: string;
   patientName: string;
-};
-
-type PlanEditorDraft = {
-  type: string;
-  risk: string;
-  description: string;
-};
-
-type PrescriptionEditorDraft = {
-  stage: string;
-  risk: string;
-  note: string;
 };
 
 const pageSize = 8;
@@ -150,12 +135,11 @@ export function PrescriptionManagement({
 }: {
   view: ViewMode;
 }) {
+  const navigate = useNavigate();
   const { data: patients = [] } = usePatientsQuery();
   const { data: plans = [] } = usePlansQuery();
   const { data: currentActions = [] } = useCurrentActionsQuery();
   const { data: prescriptions = [] } = usePrescriptionsQuery();
-  const updatePlanMutation = useUpdatePlanMutation();
-  const updatePrescriptionMutation = useUpdatePrescriptionMutation();
 
   const workspace = readState<WorkspaceContext>(patientWorkspaceContextKey);
   const patient = resolveWorkspacePatient(patients, workspace);
@@ -190,19 +174,6 @@ export function PrescriptionManagement({
   const [planPage, setPlanPage] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [prescriptionPage, setPrescriptionPage] = useState(1);
-  const [planEditOpen, setPlanEditOpen] = useState(false);
-  const [prescriptionEditOpen, setPrescriptionEditOpen] = useState(false);
-  const [planEditor, setPlanEditor] = useState<PlanEditorDraft>({
-    type: "",
-    risk: "",
-    description: ""
-  });
-  const [prescriptionEditor, setPrescriptionEditor] = useState<PrescriptionEditorDraft>({
-    stage: "",
-    risk: "",
-    note: ""
-  });
-  const [exportMessage, setExportMessage] = useState("");
 
   useEffect(() => {
     if (patient) {
@@ -307,73 +278,6 @@ export function PrescriptionManagement({
     setPrescriptionPage(1);
   };
 
-  const openPlanEdit = () => {
-    if (!selectedPlan) {
-      return;
-    }
-
-    setPlanEditor({
-      type: selectedPlan.type,
-      risk: selectedPlan.risk,
-      description: selectedPlan.description
-    });
-    setPlanEditOpen(true);
-  };
-
-  const openPrescriptionEdit = () => {
-    if (!selectedPrescription) {
-      return;
-    }
-
-    setPrescriptionEditor({
-      stage: selectedPrescription.stage,
-      risk: selectedPrescription.risk,
-      note: selectedPrescription.note
-    });
-    setPrescriptionEditOpen(true);
-  };
-
-  const handlePlanUpdate = async () => {
-    if (!selectedPlan) {
-      return;
-    }
-
-    await updatePlanMutation.mutateAsync({
-      id: selectedPlan.id,
-      patch: {
-        type: planEditor.type,
-        risk: planEditor.risk,
-        description: planEditor.description
-      }
-    });
-    setPlanEditOpen(false);
-  };
-
-  const handlePrescriptionUpdate = async () => {
-    if (!selectedPrescription) {
-      return;
-    }
-
-    await updatePrescriptionMutation.mutateAsync({
-      id: selectedPrescription.id,
-      patch: {
-        stage: prescriptionEditor.stage,
-        risk: prescriptionEditor.risk,
-        note: prescriptionEditor.note
-      }
-    });
-    setPrescriptionEditOpen(false);
-  };
-
-  const handleExport = async () => {
-    const result = await api.exportPrescriptions(filteredPrescriptions.length || filteredPlans.length || filteredActions.length);
-    setExportMessage(
-      `已生成 ${result.fileName}，包含 ${result.exportedCount} 条记录，生成时间 ${formatDateTime(
-        result.generatedAt
-      )}`
-    );
-  };
-
   const summaryPlan = selectedPlan ?? patientPlans[0] ?? null;
   const summaryPrescription = selectedPrescription ?? patientPrescriptions[0] ?? null;
   const summaryAction = selectedAction ?? patientActions[0] ?? null;
@@ -460,12 +364,6 @@ export function PrescriptionManagement({
         currentAction={summaryAction}
       />
 
-      {exportMessage ? (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="p-4 text-sm text-primary">{exportMessage}</CardContent>
-        </Card>
-      ) : null}
-
       <FilterBar
         actions={
           <>
@@ -542,8 +440,9 @@ export function PrescriptionManagement({
                               size="sm"
                               onClick={(event) => {
                                 event.stopPropagation();
+                                writeState(planWorkspaceContextKey, { planId: item.id });
                                 setSelectedPlanId(item.id);
-                                setTimeout(openPlanEdit, 0);
+                                navigate({ to: "/patients/plans/edit" });
                               }}
                             >
                               <Pencil className="h-4 w-4" />
@@ -747,8 +646,11 @@ export function PrescriptionManagement({
                             size="sm"
                             onClick={(event) => {
                               event.stopPropagation();
+                              writeState(prescriptionWorkspaceContextKey, {
+                                prescriptionId: item.id
+                              });
                               setSelectedPrescriptionId(item.id);
-                              setTimeout(openPrescriptionEdit, 0);
+                              navigate({ to: "/patients/prescriptions/edit" });
                             }}
                           >
                             <Pencil className="h-4 w-4" />
@@ -814,77 +716,6 @@ export function PrescriptionManagement({
         </div>
       ) : null}
 
-      <DialogFormShell
-        open={planEditOpen}
-        onOpenChange={setPlanEditOpen}
-        title="编辑康复方案"
-        description="支持修改方案类型、风险和方案说明，并保留患者顶部摘要不变。"
-        onSubmit={handlePlanUpdate}
-        submitLabel="保存"
-      >
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="方案类型">
-            <Input
-              value={planEditor.type}
-              onChange={(event) => setPlanEditor((current) => ({ ...current, type: event.target.value }))}
-            />
-          </Field>
-          <Field label="风险等级">
-            <Input
-              value={planEditor.risk}
-              onChange={(event) => setPlanEditor((current) => ({ ...current, risk: event.target.value }))}
-            />
-          </Field>
-          <div className="md:col-span-2">
-            <Field label="方案说明">
-              <Textarea
-                value={planEditor.description}
-                onChange={(event) =>
-                  setPlanEditor((current) => ({ ...current, description: event.target.value }))
-                }
-              />
-            </Field>
-          </div>
-        </div>
-      </DialogFormShell>
-
-      <DialogFormShell
-        open={prescriptionEditOpen}
-        onOpenChange={setPrescriptionEditOpen}
-        title="编辑运动处方"
-        description="支持修改阶段、风险和处方说明。"
-        onSubmit={handlePrescriptionUpdate}
-        submitLabel="保存"
-      >
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="阶段">
-            <Input
-              value={prescriptionEditor.stage}
-              onChange={(event) =>
-                setPrescriptionEditor((current) => ({ ...current, stage: event.target.value }))
-              }
-            />
-          </Field>
-          <Field label="风险">
-            <Input
-              value={prescriptionEditor.risk}
-              onChange={(event) =>
-                setPrescriptionEditor((current) => ({ ...current, risk: event.target.value }))
-              }
-            />
-          </Field>
-          <div className="md:col-span-2">
-            <Field label="处方说明">
-              <Textarea
-                value={prescriptionEditor.note}
-                onChange={(event) =>
-                  setPrescriptionEditor((current) => ({ ...current, note: event.target.value }))
-                }
-              />
-            </Field>
-          </div>
-        </div>
-      </DialogFormShell>
     </div>
   );
 }

@@ -1,10 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PrescriptionManagement } from "@/components/prescription-management";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/patients/current")({
-  component: CurrentPrescriptionPage
+  component: CurrentPrescriptionLayout
 });
 
-function CurrentPrescriptionPage() {
-  return <PrescriptionManagement view="current" />;
+function CurrentPrescriptionLayout() {
+  return <Outlet />;
 }

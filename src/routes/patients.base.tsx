@@ -1,10 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PatientManagement } from "@/components/patient-management";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/patients/base")({
-  component: PatientBasePage
+  component: PatientBaseLayout
 });
 
-function PatientBasePage() {
-  return <PatientManagement />;
+function PatientBaseLayout() {
+  return <Outlet />;
 }

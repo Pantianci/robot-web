@@ -1,9 +1,9 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
-import { useDeletePatientMutation, usePatientsQuery, useUpdatePatientMutation } from "@/lib/hooks";
+import { useDeletePatientMutation, usePatientsQuery } from "@/lib/hooks";
 import { defaultPatientWorkspace, patientWorkspaceContextKey } from "@/lib/patient-context";
-import { clearDraft, readDraft, readState, writeDraft, writeState } from "@/lib/storage";
+import { readState, writeState } from "@/lib/storage";
 import { formatDateTime } from "@/lib/utils";
 import type { Patient } from "@/lib/types";
 import { DetailPanel } from "@/components/detail-panel";
@@ -24,28 +24,14 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 
 type PatientDraft = Omit<Patient, "id" | "createdAt">;
 
-const patientDraftKey = "patients:new";
 const patientPageSize = 10;
 
-const emptyDraft: PatientDraft = {
-  name: "",
-  age: 30,
-  gender: "男",
-  diagnosis: "",
-  stage: "",
-  robotId: "",
-  bedNo: "",
-  createdBy: "",
-  note: ""
-};
-
 export function PatientManagement() {
+  const navigate = useNavigate();
   const { data: patients = [] } = usePatientsQuery();
-  const updateMutation = useUpdatePatientMutation();
   const deleteMutation = useDeletePatientMutation();
 
   const [query, setQuery] = useState("");
@@ -57,10 +43,8 @@ export function PatientManagement() {
     readState<{ selectedId: string }>(patientWorkspaceContextKey)?.selectedId ??
       defaultPatientWorkspace.patientId
   );
-  const [open, setOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [page, setPage] = useState(1);
-  const [draft, setDraft] = useState<PatientDraft>(readDraft<PatientDraft>(patientDraftKey) ?? emptyDraft);
 
   useEffect(() => {
     if (!patients.length) {
@@ -132,44 +116,16 @@ export function PatientManagement() {
     });
   }, [selected]);
 
-  const persistDraft = (patch: Partial<PatientDraft>) => {
-    const next = { ...draft, ...patch };
-    setDraft(next);
-    writeDraft(patientDraftKey, next);
-  };
-
-  const resetDraft = () => {
-    setDraft(emptyDraft);
-    clearDraft(patientDraftKey);
-  };
-
-  const openEdit = () => {
+  const openEditPage = () => {
     if (!selected) {
       return;
     }
-    setDraft({
-      name: selected.name,
-      age: selected.age,
-      gender: selected.gender,
-      diagnosis: selected.diagnosis,
-      stage: selected.stage,
-      robotId: selected.robotId,
-      bedNo: selected.bedNo,
-      createdBy: selected.createdBy,
-      note: selected.note
+    writeState(patientWorkspaceContextKey, {
+      selectedId: selected.id,
+      patientId: selected.id,
+      patientName: selected.name
     });
-    setOpen(true);
-  };
-
-  const handleSubmit = async () => {
-    if (!draft.name || !draft.diagnosis) {
-      return;
-    }
-
-    if (selected) {
-      await updateMutation.mutateAsync({ id: selected.id, patch: draft });
-    }
-    setOpen(false);
+    navigate({ to: "/patients/base/edit" });
   };
 
   const resetFilters = () => {
@@ -198,11 +154,14 @@ export function PatientManagement() {
         description="支持患者档案检索、右侧详情预览、新增档案与编辑删除操作。"
         className="mb-1"
         actions={
-          <Button asChild>
-            <Link to="/patients/base/create">
+          <Button
+            type="button"
+            onClick={() => {
+              navigate({ to: "/patients/base/create" });
+            }}
+          >
               <Plus className="h-4 w-4" />
               新增档案
-            </Link>
           </Button>
         }
       />
@@ -272,9 +231,12 @@ export function PatientManagement() {
             <CardTitle>患者列表</CardTitle>
             {selected ? (
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={openEdit}>
+                <Button variant="outline" size="sm" onClick={openEditPage}>
                   <Pencil className="h-4 w-4" />
                   编辑
+                </Button>
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/patients/base/export">导出</Link>
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setDeleteOpen(true)}>
                   <Trash2 className="h-4 w-4" />
@@ -388,66 +350,6 @@ export function PatientManagement() {
           )}
         </DetailPanel>
       </div>
-
-      <DialogFormShell
-        open={open}
-        onOpenChange={setOpen}
-        title="编辑档案"
-        description="支持修改姓名、病种、阶段、设备机器人ID、病床号等信息，并可临时保存草稿。"
-        onSubmit={handleSubmit}
-      >
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="姓名" required>
-            <Input value={draft.name} onChange={(event) => persistDraft({ name: event.target.value })} />
-          </Field>
-          <Field label="年龄" required>
-            <Input
-              type="number"
-              value={draft.age}
-              onChange={(event) => persistDraft({ age: Number(event.target.value) })}
-            />
-          </Field>
-          <Field label="性别" required>
-            <select
-              className="native-select"
-              value={draft.gender}
-              onChange={(event) => persistDraft({ gender: event.target.value as "男" | "女" })}
-            >
-              <option value="男">男</option>
-              <option value="女">女</option>
-            </select>
-          </Field>
-          <Field label="病种" required>
-            <Input
-              value={draft.diagnosis}
-              onChange={(event) => persistDraft({ diagnosis: event.target.value })}
-            />
-          </Field>
-          <Field label="阶段">
-            <Input value={draft.stage} onChange={(event) => persistDraft({ stage: event.target.value })} />
-          </Field>
-          <Field label="设备机器人ID">
-            <Input value={draft.robotId} onChange={(event) => persistDraft({ robotId: event.target.value })} />
-          </Field>
-          <Field label="病床号">
-            <Input value={draft.bedNo} onChange={(event) => persistDraft({ bedNo: event.target.value })} />
-          </Field>
-          <Field label="建档人">
-            <Input value={draft.createdBy} onChange={(event) => persistDraft({ createdBy: event.target.value })} />
-          </Field>
-        </div>
-        <Field label="备注说明">
-          <Textarea value={draft.note} onChange={(event) => persistDraft({ note: event.target.value })} />
-        </Field>
-        <div className="flex gap-2">
-          <Button type="button" variant="secondary" onClick={() => writeDraft(patientDraftKey, draft)}>
-            草稿保存
-          </Button>
-          <Button type="button" variant="outline" onClick={resetDraft}>
-            清空
-          </Button>
-        </div>
-      </DialogFormShell>
 
       <DialogFormShell
         open={deleteOpen}

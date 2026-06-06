@@ -1,0 +1,10 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { ReportManagement } from "@/components/report-management";
+
+export const Route = createFileRoute("/patients/reports/")({
+  component: ReportsPage
+});
+
+function ReportsPage() {
+  return <ReportManagement />;
+}

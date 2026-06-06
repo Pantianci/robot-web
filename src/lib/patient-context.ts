@@ -5,7 +5,22 @@ export type PatientWorkspaceContext = {
   patientName: string;
 };
 
+export type PlanWorkspaceContext = {
+  planId: string;
+};
+
+export type PrescriptionWorkspaceContext = {
+  prescriptionId: string;
+};
+
+export type ReportWorkspaceContext = {
+  reportId: string;
+};
+
 export const patientWorkspaceContextKey = "robot-web-prototype::patient-workspace";
+export const planWorkspaceContextKey = "robot-web-prototype::plan-workspace";
+export const prescriptionWorkspaceContextKey = "robot-web-prototype::prescription-workspace";
+export const reportWorkspaceContextKey = "robot-web-prototype::report-workspace";
 
 export const defaultPatientWorkspace: PatientWorkspaceContext = {
   patientId: "pat-001",
