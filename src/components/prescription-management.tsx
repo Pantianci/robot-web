@@ -40,7 +40,11 @@ type PrescriptionDraft = Omit<Prescription, "id" | "issuedAt">;
 const planDraftKey = "care-plan:draft";
 const prescriptionDraftKey = "prescription:draft";
 
-export function PrescriptionManagement() {
+export function PrescriptionManagement({
+  initialTab = "plans"
+}: {
+  initialTab?: "plans" | "current" | "prescriptions";
+}) {
   const { data: patients = [] } = usePatientsQuery();
   const { data: plans = [] } = usePlansQuery();
   const { data: currentActions = [] } = useCurrentActionsQuery();
@@ -172,7 +176,7 @@ export function PrescriptionManagement() {
         </Card>
       ) : null}
 
-      <Tabs defaultValue="plans">
+      <Tabs defaultValue={initialTab}>
         <TabsList>
           <TabsTrigger value="plans">康复方案</TabsTrigger>
           <TabsTrigger value="current">当前处方</TabsTrigger>

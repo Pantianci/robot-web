@@ -1,25 +1,14 @@
 import type { ReactNode } from "react";
 import {
   BookCopy,
-  ClipboardList,
   FileBarChart2,
-  Home,
   LayoutGrid,
-  MonitorCog,
-  Users2
+  Sparkles
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-const navigation = [
-  { to: "/", label: "首页预览", icon: Home },
-  { to: "/knowledge", label: "多模态知识库", icon: BookCopy },
-  { to: "/patients", label: "患者档案管理", icon: Users2 },
-  { to: "/prescriptions", label: "处方列表管理", icon: ClipboardList },
-  { to: "/reports", label: "评估报告管理", icon: FileBarChart2 },
-  { to: "/robots", label: "机器人管理", icon: MonitorCog }
-];
+import { navigationGroups, quickLinks } from "@/lib/navigation";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -39,31 +28,39 @@ export function AppShell({ children }: { children: ReactNode }) {
               </div>
             </div>
 
-            <nav className="mt-6 space-y-2">
-              {navigation.map((item) => {
-                const Icon = item.icon;
+            <nav className="mt-6 space-y-5">
+              {navigationGroups.map((group) => {
+                const Icon = group.icon;
+
                 return (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    activeOptions={{ exact: item.to === "/" }}
-                    className="block"
-                    activeProps={{
-                      className: "block"
-                    }}
-                  >
-                    {({ isActive }) => (
-                      <div
-                        className={cn(
-                          "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-white/72 transition hover:bg-white/10 hover:text-white",
-                          isActive && "bg-white text-surface-900 shadow-soft"
-                        )}
-                      >
-                        <Icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-white/60")} />
-                        <span>{item.label}</span>
-                      </div>
-                    )}
-                  </Link>
+                  <div key={group.label} className="space-y-2">
+                    <div className="flex items-center gap-2 px-3 text-sm font-semibold text-white/92">
+                      <Icon className="h-4 w-4 text-white/72" />
+                      <span>{group.label}</span>
+                    </div>
+                    <div className="space-y-1">
+                      {group.items.map((item) => (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          activeOptions={{ exact: true }}
+                          className="block"
+                          activeProps={{ className: "block" }}
+                        >
+                          {({ isActive }) => (
+                            <div
+                              className={cn(
+                                "rounded-2xl px-4 py-2.5 text-sm text-white/72 transition hover:bg-white/10 hover:text-white",
+                                isActive && "bg-white text-surface-900 shadow-soft"
+                              )}
+                            >
+                              {item.label}
+                            </div>
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
                 );
               })}
             </nav>
@@ -77,6 +74,26 @@ export function AppShell({ children }: { children: ReactNode }) {
                 当前原型覆盖管理端 P1 范围：知识库、档案、处方、评估和机器人调度。
               </p>
             </div>
+
+            <div className="mt-4 rounded-[1.25rem] bg-white/7 p-4">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Sparkles className="h-4 w-4 text-white/80" />
+                <span>快捷入口</span>
+              </div>
+              <div className="mt-3 space-y-2">
+                {quickLinks.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link key={item.to} to={item.to} className="block">
+                      <div className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs text-white/70 transition hover:bg-white/10 hover:text-white">
+                        <Icon className="h-3.5 w-3.5" />
+                        <span>{item.label}</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </aside>
 
@@ -89,12 +106,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </p>
                 <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                   <LayoutGrid className="h-4 w-4" />
-                  TanStack Start + shadcn/ui + MSW 高保真原型
+                  40 页面结构原型 · TanStack Start + shadcn/ui + MSW
                 </p>
               </div>
               <div className="flex items-center gap-3">
                 <Badge>通知 6</Badge>
                 <Badge className="bg-primary/10 text-primary">账号 李琴</Badge>
+                <Badge className="bg-emerald-100 text-emerald-700">Vercel Auto Deploy</Badge>
               </div>
             </div>
           </header>

@@ -1,10 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { RobotManagement } from "@/components/robot-management";
+import { Navigate, createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/robots")({
-  component: RobotsPage
+  component: RobotsEntryPage
 });
 
-function RobotsPage() {
-  return <RobotManagement />;
+function RobotsEntryPage() {
+  return <Navigate to="/robots/list" />;
 }

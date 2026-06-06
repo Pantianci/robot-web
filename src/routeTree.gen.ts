@@ -15,6 +15,45 @@ import { Route as PrescriptionsRouteImport } from './routes/prescriptions'
 import { Route as PatientsRouteImport } from './routes/patients'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TagsVoiceRouteImport } from './routes/tags.voice'
+import { Route as TagsSequenceRouteImport } from './routes/tags.sequence'
+import { Route as TagsMotionRouteImport } from './routes/tags.motion'
+import { Route as TagsKnowledgeRouteImport } from './routes/tags.knowledge'
+import { Route as RobotsListRouteImport } from './routes/robots.list'
+import { Route as RobotsDetailRouteImport } from './routes/robots.detail'
+import { Route as RobotsCreateRouteImport } from './routes/robots.create'
+import { Route as PatientsReportsRouteImport } from './routes/patients.reports'
+import { Route as PatientsPrescriptionsRouteImport } from './routes/patients.prescriptions'
+import { Route as PatientsPlansRouteImport } from './routes/patients.plans'
+import { Route as PatientsCurrentRouteImport } from './routes/patients.current'
+import { Route as PatientsBaseRouteImport } from './routes/patients.base'
+import { Route as KnowledgeVoiceRouteImport } from './routes/knowledge.voice'
+import { Route as KnowledgeSequenceRouteImport } from './routes/knowledge.sequence'
+import { Route as KnowledgeQaRouteImport } from './routes/knowledge.qa'
+import { Route as KnowledgeMotionRouteImport } from './routes/knowledge.motion'
+import { Route as KnowledgeLibraryRouteImport } from './routes/knowledge.library'
+import { Route as TagsVoiceCreateRouteImport } from './routes/tags.voice.create'
+import { Route as TagsSequenceCreateRouteImport } from './routes/tags.sequence.create'
+import { Route as TagsMotionCreateRouteImport } from './routes/tags.motion.create'
+import { Route as TagsKnowledgeCreateRouteImport } from './routes/tags.knowledge.create'
+import { Route as PatientsReportsReviewRouteImport } from './routes/patients.reports.review'
+import { Route as PatientsReportsExportRouteImport } from './routes/patients.reports.export'
+import { Route as PatientsPrescriptionsExportRouteImport } from './routes/patients.prescriptions.export'
+import { Route as PatientsPrescriptionsCreateRouteImport } from './routes/patients.prescriptions.create'
+import { Route as PatientsPlansCreateRouteImport } from './routes/patients.plans.create'
+import { Route as PatientsBaseCreateRouteImport } from './routes/patients.base.create'
+import { Route as KnowledgeVoiceExportRouteImport } from './routes/knowledge.voice.export'
+import { Route as KnowledgeVoiceEditRouteImport } from './routes/knowledge.voice.edit'
+import { Route as KnowledgeVoiceCreateRouteImport } from './routes/knowledge.voice.create'
+import { Route as KnowledgeSequenceExportRouteImport } from './routes/knowledge.sequence.export'
+import { Route as KnowledgeSequenceEditRouteImport } from './routes/knowledge.sequence.edit'
+import { Route as KnowledgeSequenceCreateRouteImport } from './routes/knowledge.sequence.create'
+import { Route as KnowledgeMotionExportRouteImport } from './routes/knowledge.motion.export'
+import { Route as KnowledgeMotionEditRouteImport } from './routes/knowledge.motion.edit'
+import { Route as KnowledgeMotionCreateRouteImport } from './routes/knowledge.motion.create'
+import { Route as KnowledgeLibraryExportRouteImport } from './routes/knowledge.library.export'
+import { Route as KnowledgeLibraryEditRouteImport } from './routes/knowledge.library.edit'
+import { Route as KnowledgeLibraryCreateRouteImport } from './routes/knowledge.library.create'
 
 const RobotsRoute = RobotsRouteImport.update({
   id: '/robots',
@@ -46,31 +85,345 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TagsVoiceRoute = TagsVoiceRouteImport.update({
+  id: '/tags/voice',
+  path: '/tags/voice',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TagsSequenceRoute = TagsSequenceRouteImport.update({
+  id: '/tags/sequence',
+  path: '/tags/sequence',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TagsMotionRoute = TagsMotionRouteImport.update({
+  id: '/tags/motion',
+  path: '/tags/motion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TagsKnowledgeRoute = TagsKnowledgeRouteImport.update({
+  id: '/tags/knowledge',
+  path: '/tags/knowledge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsListRoute = RobotsListRouteImport.update({
+  id: '/list',
+  path: '/list',
+  getParentRoute: () => RobotsRoute,
+} as any)
+const RobotsDetailRoute = RobotsDetailRouteImport.update({
+  id: '/detail',
+  path: '/detail',
+  getParentRoute: () => RobotsRoute,
+} as any)
+const RobotsCreateRoute = RobotsCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => RobotsRoute,
+} as any)
+const PatientsReportsRoute = PatientsReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => PatientsRoute,
+} as any)
+const PatientsPrescriptionsRoute = PatientsPrescriptionsRouteImport.update({
+  id: '/prescriptions',
+  path: '/prescriptions',
+  getParentRoute: () => PatientsRoute,
+} as any)
+const PatientsPlansRoute = PatientsPlansRouteImport.update({
+  id: '/plans',
+  path: '/plans',
+  getParentRoute: () => PatientsRoute,
+} as any)
+const PatientsCurrentRoute = PatientsCurrentRouteImport.update({
+  id: '/current',
+  path: '/current',
+  getParentRoute: () => PatientsRoute,
+} as any)
+const PatientsBaseRoute = PatientsBaseRouteImport.update({
+  id: '/base',
+  path: '/base',
+  getParentRoute: () => PatientsRoute,
+} as any)
+const KnowledgeVoiceRoute = KnowledgeVoiceRouteImport.update({
+  id: '/voice',
+  path: '/voice',
+  getParentRoute: () => KnowledgeRoute,
+} as any)
+const KnowledgeSequenceRoute = KnowledgeSequenceRouteImport.update({
+  id: '/sequence',
+  path: '/sequence',
+  getParentRoute: () => KnowledgeRoute,
+} as any)
+const KnowledgeQaRoute = KnowledgeQaRouteImport.update({
+  id: '/qa',
+  path: '/qa',
+  getParentRoute: () => KnowledgeRoute,
+} as any)
+const KnowledgeMotionRoute = KnowledgeMotionRouteImport.update({
+  id: '/motion',
+  path: '/motion',
+  getParentRoute: () => KnowledgeRoute,
+} as any)
+const KnowledgeLibraryRoute = KnowledgeLibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => KnowledgeRoute,
+} as any)
+const TagsVoiceCreateRoute = TagsVoiceCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => TagsVoiceRoute,
+} as any)
+const TagsSequenceCreateRoute = TagsSequenceCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => TagsSequenceRoute,
+} as any)
+const TagsMotionCreateRoute = TagsMotionCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => TagsMotionRoute,
+} as any)
+const TagsKnowledgeCreateRoute = TagsKnowledgeCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => TagsKnowledgeRoute,
+} as any)
+const PatientsReportsReviewRoute = PatientsReportsReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => PatientsReportsRoute,
+} as any)
+const PatientsReportsExportRoute = PatientsReportsExportRouteImport.update({
+  id: '/export',
+  path: '/export',
+  getParentRoute: () => PatientsReportsRoute,
+} as any)
+const PatientsPrescriptionsExportRoute =
+  PatientsPrescriptionsExportRouteImport.update({
+    id: '/export',
+    path: '/export',
+    getParentRoute: () => PatientsPrescriptionsRoute,
+  } as any)
+const PatientsPrescriptionsCreateRoute =
+  PatientsPrescriptionsCreateRouteImport.update({
+    id: '/create',
+    path: '/create',
+    getParentRoute: () => PatientsPrescriptionsRoute,
+  } as any)
+const PatientsPlansCreateRoute = PatientsPlansCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => PatientsPlansRoute,
+} as any)
+const PatientsBaseCreateRoute = PatientsBaseCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => PatientsBaseRoute,
+} as any)
+const KnowledgeVoiceExportRoute = KnowledgeVoiceExportRouteImport.update({
+  id: '/export',
+  path: '/export',
+  getParentRoute: () => KnowledgeVoiceRoute,
+} as any)
+const KnowledgeVoiceEditRoute = KnowledgeVoiceEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => KnowledgeVoiceRoute,
+} as any)
+const KnowledgeVoiceCreateRoute = KnowledgeVoiceCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => KnowledgeVoiceRoute,
+} as any)
+const KnowledgeSequenceExportRoute = KnowledgeSequenceExportRouteImport.update({
+  id: '/export',
+  path: '/export',
+  getParentRoute: () => KnowledgeSequenceRoute,
+} as any)
+const KnowledgeSequenceEditRoute = KnowledgeSequenceEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => KnowledgeSequenceRoute,
+} as any)
+const KnowledgeSequenceCreateRoute = KnowledgeSequenceCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => KnowledgeSequenceRoute,
+} as any)
+const KnowledgeMotionExportRoute = KnowledgeMotionExportRouteImport.update({
+  id: '/export',
+  path: '/export',
+  getParentRoute: () => KnowledgeMotionRoute,
+} as any)
+const KnowledgeMotionEditRoute = KnowledgeMotionEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => KnowledgeMotionRoute,
+} as any)
+const KnowledgeMotionCreateRoute = KnowledgeMotionCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => KnowledgeMotionRoute,
+} as any)
+const KnowledgeLibraryExportRoute = KnowledgeLibraryExportRouteImport.update({
+  id: '/export',
+  path: '/export',
+  getParentRoute: () => KnowledgeLibraryRoute,
+} as any)
+const KnowledgeLibraryEditRoute = KnowledgeLibraryEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => KnowledgeLibraryRoute,
+} as any)
+const KnowledgeLibraryCreateRoute = KnowledgeLibraryCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => KnowledgeLibraryRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/knowledge': typeof KnowledgeRoute
-  '/patients': typeof PatientsRoute
+  '/knowledge': typeof KnowledgeRouteWithChildren
+  '/patients': typeof PatientsRouteWithChildren
   '/prescriptions': typeof PrescriptionsRoute
   '/reports': typeof ReportsRoute
-  '/robots': typeof RobotsRoute
+  '/robots': typeof RobotsRouteWithChildren
+  '/knowledge/library': typeof KnowledgeLibraryRouteWithChildren
+  '/knowledge/motion': typeof KnowledgeMotionRouteWithChildren
+  '/knowledge/qa': typeof KnowledgeQaRoute
+  '/knowledge/sequence': typeof KnowledgeSequenceRouteWithChildren
+  '/knowledge/voice': typeof KnowledgeVoiceRouteWithChildren
+  '/patients/base': typeof PatientsBaseRouteWithChildren
+  '/patients/current': typeof PatientsCurrentRoute
+  '/patients/plans': typeof PatientsPlansRouteWithChildren
+  '/patients/prescriptions': typeof PatientsPrescriptionsRouteWithChildren
+  '/patients/reports': typeof PatientsReportsRouteWithChildren
+  '/robots/create': typeof RobotsCreateRoute
+  '/robots/detail': typeof RobotsDetailRoute
+  '/robots/list': typeof RobotsListRoute
+  '/tags/knowledge': typeof TagsKnowledgeRouteWithChildren
+  '/tags/motion': typeof TagsMotionRouteWithChildren
+  '/tags/sequence': typeof TagsSequenceRouteWithChildren
+  '/tags/voice': typeof TagsVoiceRouteWithChildren
+  '/knowledge/library/create': typeof KnowledgeLibraryCreateRoute
+  '/knowledge/library/edit': typeof KnowledgeLibraryEditRoute
+  '/knowledge/library/export': typeof KnowledgeLibraryExportRoute
+  '/knowledge/motion/create': typeof KnowledgeMotionCreateRoute
+  '/knowledge/motion/edit': typeof KnowledgeMotionEditRoute
+  '/knowledge/motion/export': typeof KnowledgeMotionExportRoute
+  '/knowledge/sequence/create': typeof KnowledgeSequenceCreateRoute
+  '/knowledge/sequence/edit': typeof KnowledgeSequenceEditRoute
+  '/knowledge/sequence/export': typeof KnowledgeSequenceExportRoute
+  '/knowledge/voice/create': typeof KnowledgeVoiceCreateRoute
+  '/knowledge/voice/edit': typeof KnowledgeVoiceEditRoute
+  '/knowledge/voice/export': typeof KnowledgeVoiceExportRoute
+  '/patients/base/create': typeof PatientsBaseCreateRoute
+  '/patients/plans/create': typeof PatientsPlansCreateRoute
+  '/patients/prescriptions/create': typeof PatientsPrescriptionsCreateRoute
+  '/patients/prescriptions/export': typeof PatientsPrescriptionsExportRoute
+  '/patients/reports/export': typeof PatientsReportsExportRoute
+  '/patients/reports/review': typeof PatientsReportsReviewRoute
+  '/tags/knowledge/create': typeof TagsKnowledgeCreateRoute
+  '/tags/motion/create': typeof TagsMotionCreateRoute
+  '/tags/sequence/create': typeof TagsSequenceCreateRoute
+  '/tags/voice/create': typeof TagsVoiceCreateRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/knowledge': typeof KnowledgeRoute
-  '/patients': typeof PatientsRoute
+  '/knowledge': typeof KnowledgeRouteWithChildren
+  '/patients': typeof PatientsRouteWithChildren
   '/prescriptions': typeof PrescriptionsRoute
   '/reports': typeof ReportsRoute
-  '/robots': typeof RobotsRoute
+  '/robots': typeof RobotsRouteWithChildren
+  '/knowledge/library': typeof KnowledgeLibraryRouteWithChildren
+  '/knowledge/motion': typeof KnowledgeMotionRouteWithChildren
+  '/knowledge/qa': typeof KnowledgeQaRoute
+  '/knowledge/sequence': typeof KnowledgeSequenceRouteWithChildren
+  '/knowledge/voice': typeof KnowledgeVoiceRouteWithChildren
+  '/patients/base': typeof PatientsBaseRouteWithChildren
+  '/patients/current': typeof PatientsCurrentRoute
+  '/patients/plans': typeof PatientsPlansRouteWithChildren
+  '/patients/prescriptions': typeof PatientsPrescriptionsRouteWithChildren
+  '/patients/reports': typeof PatientsReportsRouteWithChildren
+  '/robots/create': typeof RobotsCreateRoute
+  '/robots/detail': typeof RobotsDetailRoute
+  '/robots/list': typeof RobotsListRoute
+  '/tags/knowledge': typeof TagsKnowledgeRouteWithChildren
+  '/tags/motion': typeof TagsMotionRouteWithChildren
+  '/tags/sequence': typeof TagsSequenceRouteWithChildren
+  '/tags/voice': typeof TagsVoiceRouteWithChildren
+  '/knowledge/library/create': typeof KnowledgeLibraryCreateRoute
+  '/knowledge/library/edit': typeof KnowledgeLibraryEditRoute
+  '/knowledge/library/export': typeof KnowledgeLibraryExportRoute
+  '/knowledge/motion/create': typeof KnowledgeMotionCreateRoute
+  '/knowledge/motion/edit': typeof KnowledgeMotionEditRoute
+  '/knowledge/motion/export': typeof KnowledgeMotionExportRoute
+  '/knowledge/sequence/create': typeof KnowledgeSequenceCreateRoute
+  '/knowledge/sequence/edit': typeof KnowledgeSequenceEditRoute
+  '/knowledge/sequence/export': typeof KnowledgeSequenceExportRoute
+  '/knowledge/voice/create': typeof KnowledgeVoiceCreateRoute
+  '/knowledge/voice/edit': typeof KnowledgeVoiceEditRoute
+  '/knowledge/voice/export': typeof KnowledgeVoiceExportRoute
+  '/patients/base/create': typeof PatientsBaseCreateRoute
+  '/patients/plans/create': typeof PatientsPlansCreateRoute
+  '/patients/prescriptions/create': typeof PatientsPrescriptionsCreateRoute
+  '/patients/prescriptions/export': typeof PatientsPrescriptionsExportRoute
+  '/patients/reports/export': typeof PatientsReportsExportRoute
+  '/patients/reports/review': typeof PatientsReportsReviewRoute
+  '/tags/knowledge/create': typeof TagsKnowledgeCreateRoute
+  '/tags/motion/create': typeof TagsMotionCreateRoute
+  '/tags/sequence/create': typeof TagsSequenceCreateRoute
+  '/tags/voice/create': typeof TagsVoiceCreateRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/knowledge': typeof KnowledgeRoute
-  '/patients': typeof PatientsRoute
+  '/knowledge': typeof KnowledgeRouteWithChildren
+  '/patients': typeof PatientsRouteWithChildren
   '/prescriptions': typeof PrescriptionsRoute
   '/reports': typeof ReportsRoute
-  '/robots': typeof RobotsRoute
+  '/robots': typeof RobotsRouteWithChildren
+  '/knowledge/library': typeof KnowledgeLibraryRouteWithChildren
+  '/knowledge/motion': typeof KnowledgeMotionRouteWithChildren
+  '/knowledge/qa': typeof KnowledgeQaRoute
+  '/knowledge/sequence': typeof KnowledgeSequenceRouteWithChildren
+  '/knowledge/voice': typeof KnowledgeVoiceRouteWithChildren
+  '/patients/base': typeof PatientsBaseRouteWithChildren
+  '/patients/current': typeof PatientsCurrentRoute
+  '/patients/plans': typeof PatientsPlansRouteWithChildren
+  '/patients/prescriptions': typeof PatientsPrescriptionsRouteWithChildren
+  '/patients/reports': typeof PatientsReportsRouteWithChildren
+  '/robots/create': typeof RobotsCreateRoute
+  '/robots/detail': typeof RobotsDetailRoute
+  '/robots/list': typeof RobotsListRoute
+  '/tags/knowledge': typeof TagsKnowledgeRouteWithChildren
+  '/tags/motion': typeof TagsMotionRouteWithChildren
+  '/tags/sequence': typeof TagsSequenceRouteWithChildren
+  '/tags/voice': typeof TagsVoiceRouteWithChildren
+  '/knowledge/library/create': typeof KnowledgeLibraryCreateRoute
+  '/knowledge/library/edit': typeof KnowledgeLibraryEditRoute
+  '/knowledge/library/export': typeof KnowledgeLibraryExportRoute
+  '/knowledge/motion/create': typeof KnowledgeMotionCreateRoute
+  '/knowledge/motion/edit': typeof KnowledgeMotionEditRoute
+  '/knowledge/motion/export': typeof KnowledgeMotionExportRoute
+  '/knowledge/sequence/create': typeof KnowledgeSequenceCreateRoute
+  '/knowledge/sequence/edit': typeof KnowledgeSequenceEditRoute
+  '/knowledge/sequence/export': typeof KnowledgeSequenceExportRoute
+  '/knowledge/voice/create': typeof KnowledgeVoiceCreateRoute
+  '/knowledge/voice/edit': typeof KnowledgeVoiceEditRoute
+  '/knowledge/voice/export': typeof KnowledgeVoiceExportRoute
+  '/patients/base/create': typeof PatientsBaseCreateRoute
+  '/patients/plans/create': typeof PatientsPlansCreateRoute
+  '/patients/prescriptions/create': typeof PatientsPrescriptionsCreateRoute
+  '/patients/prescriptions/export': typeof PatientsPrescriptionsExportRoute
+  '/patients/reports/export': typeof PatientsReportsExportRoute
+  '/patients/reports/review': typeof PatientsReportsReviewRoute
+  '/tags/knowledge/create': typeof TagsKnowledgeCreateRoute
+  '/tags/motion/create': typeof TagsMotionCreateRoute
+  '/tags/sequence/create': typeof TagsSequenceCreateRoute
+  '/tags/voice/create': typeof TagsVoiceCreateRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,6 +434,45 @@ export interface FileRouteTypes {
     | '/prescriptions'
     | '/reports'
     | '/robots'
+    | '/knowledge/library'
+    | '/knowledge/motion'
+    | '/knowledge/qa'
+    | '/knowledge/sequence'
+    | '/knowledge/voice'
+    | '/patients/base'
+    | '/patients/current'
+    | '/patients/plans'
+    | '/patients/prescriptions'
+    | '/patients/reports'
+    | '/robots/create'
+    | '/robots/detail'
+    | '/robots/list'
+    | '/tags/knowledge'
+    | '/tags/motion'
+    | '/tags/sequence'
+    | '/tags/voice'
+    | '/knowledge/library/create'
+    | '/knowledge/library/edit'
+    | '/knowledge/library/export'
+    | '/knowledge/motion/create'
+    | '/knowledge/motion/edit'
+    | '/knowledge/motion/export'
+    | '/knowledge/sequence/create'
+    | '/knowledge/sequence/edit'
+    | '/knowledge/sequence/export'
+    | '/knowledge/voice/create'
+    | '/knowledge/voice/edit'
+    | '/knowledge/voice/export'
+    | '/patients/base/create'
+    | '/patients/plans/create'
+    | '/patients/prescriptions/create'
+    | '/patients/prescriptions/export'
+    | '/patients/reports/export'
+    | '/patients/reports/review'
+    | '/tags/knowledge/create'
+    | '/tags/motion/create'
+    | '/tags/sequence/create'
+    | '/tags/voice/create'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,6 +481,45 @@ export interface FileRouteTypes {
     | '/prescriptions'
     | '/reports'
     | '/robots'
+    | '/knowledge/library'
+    | '/knowledge/motion'
+    | '/knowledge/qa'
+    | '/knowledge/sequence'
+    | '/knowledge/voice'
+    | '/patients/base'
+    | '/patients/current'
+    | '/patients/plans'
+    | '/patients/prescriptions'
+    | '/patients/reports'
+    | '/robots/create'
+    | '/robots/detail'
+    | '/robots/list'
+    | '/tags/knowledge'
+    | '/tags/motion'
+    | '/tags/sequence'
+    | '/tags/voice'
+    | '/knowledge/library/create'
+    | '/knowledge/library/edit'
+    | '/knowledge/library/export'
+    | '/knowledge/motion/create'
+    | '/knowledge/motion/edit'
+    | '/knowledge/motion/export'
+    | '/knowledge/sequence/create'
+    | '/knowledge/sequence/edit'
+    | '/knowledge/sequence/export'
+    | '/knowledge/voice/create'
+    | '/knowledge/voice/edit'
+    | '/knowledge/voice/export'
+    | '/patients/base/create'
+    | '/patients/plans/create'
+    | '/patients/prescriptions/create'
+    | '/patients/prescriptions/export'
+    | '/patients/reports/export'
+    | '/patients/reports/review'
+    | '/tags/knowledge/create'
+    | '/tags/motion/create'
+    | '/tags/sequence/create'
+    | '/tags/voice/create'
   id:
     | '__root__'
     | '/'
@@ -97,15 +528,58 @@ export interface FileRouteTypes {
     | '/prescriptions'
     | '/reports'
     | '/robots'
+    | '/knowledge/library'
+    | '/knowledge/motion'
+    | '/knowledge/qa'
+    | '/knowledge/sequence'
+    | '/knowledge/voice'
+    | '/patients/base'
+    | '/patients/current'
+    | '/patients/plans'
+    | '/patients/prescriptions'
+    | '/patients/reports'
+    | '/robots/create'
+    | '/robots/detail'
+    | '/robots/list'
+    | '/tags/knowledge'
+    | '/tags/motion'
+    | '/tags/sequence'
+    | '/tags/voice'
+    | '/knowledge/library/create'
+    | '/knowledge/library/edit'
+    | '/knowledge/library/export'
+    | '/knowledge/motion/create'
+    | '/knowledge/motion/edit'
+    | '/knowledge/motion/export'
+    | '/knowledge/sequence/create'
+    | '/knowledge/sequence/edit'
+    | '/knowledge/sequence/export'
+    | '/knowledge/voice/create'
+    | '/knowledge/voice/edit'
+    | '/knowledge/voice/export'
+    | '/patients/base/create'
+    | '/patients/plans/create'
+    | '/patients/prescriptions/create'
+    | '/patients/prescriptions/export'
+    | '/patients/reports/export'
+    | '/patients/reports/review'
+    | '/tags/knowledge/create'
+    | '/tags/motion/create'
+    | '/tags/sequence/create'
+    | '/tags/voice/create'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  KnowledgeRoute: typeof KnowledgeRoute
-  PatientsRoute: typeof PatientsRoute
+  KnowledgeRoute: typeof KnowledgeRouteWithChildren
+  PatientsRoute: typeof PatientsRouteWithChildren
   PrescriptionsRoute: typeof PrescriptionsRoute
   ReportsRoute: typeof ReportsRoute
-  RobotsRoute: typeof RobotsRoute
+  RobotsRoute: typeof RobotsRouteWithChildren
+  TagsKnowledgeRoute: typeof TagsKnowledgeRouteWithChildren
+  TagsMotionRoute: typeof TagsMotionRouteWithChildren
+  TagsSequenceRoute: typeof TagsSequenceRouteWithChildren
+  TagsVoiceRoute: typeof TagsVoiceRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -152,17 +626,521 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tags/voice': {
+      id: '/tags/voice'
+      path: '/tags/voice'
+      fullPath: '/tags/voice'
+      preLoaderRoute: typeof TagsVoiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tags/sequence': {
+      id: '/tags/sequence'
+      path: '/tags/sequence'
+      fullPath: '/tags/sequence'
+      preLoaderRoute: typeof TagsSequenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tags/motion': {
+      id: '/tags/motion'
+      path: '/tags/motion'
+      fullPath: '/tags/motion'
+      preLoaderRoute: typeof TagsMotionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tags/knowledge': {
+      id: '/tags/knowledge'
+      path: '/tags/knowledge'
+      fullPath: '/tags/knowledge'
+      preLoaderRoute: typeof TagsKnowledgeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots/list': {
+      id: '/robots/list'
+      path: '/list'
+      fullPath: '/robots/list'
+      preLoaderRoute: typeof RobotsListRouteImport
+      parentRoute: typeof RobotsRoute
+    }
+    '/robots/detail': {
+      id: '/robots/detail'
+      path: '/detail'
+      fullPath: '/robots/detail'
+      preLoaderRoute: typeof RobotsDetailRouteImport
+      parentRoute: typeof RobotsRoute
+    }
+    '/robots/create': {
+      id: '/robots/create'
+      path: '/create'
+      fullPath: '/robots/create'
+      preLoaderRoute: typeof RobotsCreateRouteImport
+      parentRoute: typeof RobotsRoute
+    }
+    '/patients/reports': {
+      id: '/patients/reports'
+      path: '/reports'
+      fullPath: '/patients/reports'
+      preLoaderRoute: typeof PatientsReportsRouteImport
+      parentRoute: typeof PatientsRoute
+    }
+    '/patients/prescriptions': {
+      id: '/patients/prescriptions'
+      path: '/prescriptions'
+      fullPath: '/patients/prescriptions'
+      preLoaderRoute: typeof PatientsPrescriptionsRouteImport
+      parentRoute: typeof PatientsRoute
+    }
+    '/patients/plans': {
+      id: '/patients/plans'
+      path: '/plans'
+      fullPath: '/patients/plans'
+      preLoaderRoute: typeof PatientsPlansRouteImport
+      parentRoute: typeof PatientsRoute
+    }
+    '/patients/current': {
+      id: '/patients/current'
+      path: '/current'
+      fullPath: '/patients/current'
+      preLoaderRoute: typeof PatientsCurrentRouteImport
+      parentRoute: typeof PatientsRoute
+    }
+    '/patients/base': {
+      id: '/patients/base'
+      path: '/base'
+      fullPath: '/patients/base'
+      preLoaderRoute: typeof PatientsBaseRouteImport
+      parentRoute: typeof PatientsRoute
+    }
+    '/knowledge/voice': {
+      id: '/knowledge/voice'
+      path: '/voice'
+      fullPath: '/knowledge/voice'
+      preLoaderRoute: typeof KnowledgeVoiceRouteImport
+      parentRoute: typeof KnowledgeRoute
+    }
+    '/knowledge/sequence': {
+      id: '/knowledge/sequence'
+      path: '/sequence'
+      fullPath: '/knowledge/sequence'
+      preLoaderRoute: typeof KnowledgeSequenceRouteImport
+      parentRoute: typeof KnowledgeRoute
+    }
+    '/knowledge/qa': {
+      id: '/knowledge/qa'
+      path: '/qa'
+      fullPath: '/knowledge/qa'
+      preLoaderRoute: typeof KnowledgeQaRouteImport
+      parentRoute: typeof KnowledgeRoute
+    }
+    '/knowledge/motion': {
+      id: '/knowledge/motion'
+      path: '/motion'
+      fullPath: '/knowledge/motion'
+      preLoaderRoute: typeof KnowledgeMotionRouteImport
+      parentRoute: typeof KnowledgeRoute
+    }
+    '/knowledge/library': {
+      id: '/knowledge/library'
+      path: '/library'
+      fullPath: '/knowledge/library'
+      preLoaderRoute: typeof KnowledgeLibraryRouteImport
+      parentRoute: typeof KnowledgeRoute
+    }
+    '/tags/voice/create': {
+      id: '/tags/voice/create'
+      path: '/create'
+      fullPath: '/tags/voice/create'
+      preLoaderRoute: typeof TagsVoiceCreateRouteImport
+      parentRoute: typeof TagsVoiceRoute
+    }
+    '/tags/sequence/create': {
+      id: '/tags/sequence/create'
+      path: '/create'
+      fullPath: '/tags/sequence/create'
+      preLoaderRoute: typeof TagsSequenceCreateRouteImport
+      parentRoute: typeof TagsSequenceRoute
+    }
+    '/tags/motion/create': {
+      id: '/tags/motion/create'
+      path: '/create'
+      fullPath: '/tags/motion/create'
+      preLoaderRoute: typeof TagsMotionCreateRouteImport
+      parentRoute: typeof TagsMotionRoute
+    }
+    '/tags/knowledge/create': {
+      id: '/tags/knowledge/create'
+      path: '/create'
+      fullPath: '/tags/knowledge/create'
+      preLoaderRoute: typeof TagsKnowledgeCreateRouteImport
+      parentRoute: typeof TagsKnowledgeRoute
+    }
+    '/patients/reports/review': {
+      id: '/patients/reports/review'
+      path: '/review'
+      fullPath: '/patients/reports/review'
+      preLoaderRoute: typeof PatientsReportsReviewRouteImport
+      parentRoute: typeof PatientsReportsRoute
+    }
+    '/patients/reports/export': {
+      id: '/patients/reports/export'
+      path: '/export'
+      fullPath: '/patients/reports/export'
+      preLoaderRoute: typeof PatientsReportsExportRouteImport
+      parentRoute: typeof PatientsReportsRoute
+    }
+    '/patients/prescriptions/export': {
+      id: '/patients/prescriptions/export'
+      path: '/export'
+      fullPath: '/patients/prescriptions/export'
+      preLoaderRoute: typeof PatientsPrescriptionsExportRouteImport
+      parentRoute: typeof PatientsPrescriptionsRoute
+    }
+    '/patients/prescriptions/create': {
+      id: '/patients/prescriptions/create'
+      path: '/create'
+      fullPath: '/patients/prescriptions/create'
+      preLoaderRoute: typeof PatientsPrescriptionsCreateRouteImport
+      parentRoute: typeof PatientsPrescriptionsRoute
+    }
+    '/patients/plans/create': {
+      id: '/patients/plans/create'
+      path: '/create'
+      fullPath: '/patients/plans/create'
+      preLoaderRoute: typeof PatientsPlansCreateRouteImport
+      parentRoute: typeof PatientsPlansRoute
+    }
+    '/patients/base/create': {
+      id: '/patients/base/create'
+      path: '/create'
+      fullPath: '/patients/base/create'
+      preLoaderRoute: typeof PatientsBaseCreateRouteImport
+      parentRoute: typeof PatientsBaseRoute
+    }
+    '/knowledge/voice/export': {
+      id: '/knowledge/voice/export'
+      path: '/export'
+      fullPath: '/knowledge/voice/export'
+      preLoaderRoute: typeof KnowledgeVoiceExportRouteImport
+      parentRoute: typeof KnowledgeVoiceRoute
+    }
+    '/knowledge/voice/edit': {
+      id: '/knowledge/voice/edit'
+      path: '/edit'
+      fullPath: '/knowledge/voice/edit'
+      preLoaderRoute: typeof KnowledgeVoiceEditRouteImport
+      parentRoute: typeof KnowledgeVoiceRoute
+    }
+    '/knowledge/voice/create': {
+      id: '/knowledge/voice/create'
+      path: '/create'
+      fullPath: '/knowledge/voice/create'
+      preLoaderRoute: typeof KnowledgeVoiceCreateRouteImport
+      parentRoute: typeof KnowledgeVoiceRoute
+    }
+    '/knowledge/sequence/export': {
+      id: '/knowledge/sequence/export'
+      path: '/export'
+      fullPath: '/knowledge/sequence/export'
+      preLoaderRoute: typeof KnowledgeSequenceExportRouteImport
+      parentRoute: typeof KnowledgeSequenceRoute
+    }
+    '/knowledge/sequence/edit': {
+      id: '/knowledge/sequence/edit'
+      path: '/edit'
+      fullPath: '/knowledge/sequence/edit'
+      preLoaderRoute: typeof KnowledgeSequenceEditRouteImport
+      parentRoute: typeof KnowledgeSequenceRoute
+    }
+    '/knowledge/sequence/create': {
+      id: '/knowledge/sequence/create'
+      path: '/create'
+      fullPath: '/knowledge/sequence/create'
+      preLoaderRoute: typeof KnowledgeSequenceCreateRouteImport
+      parentRoute: typeof KnowledgeSequenceRoute
+    }
+    '/knowledge/motion/export': {
+      id: '/knowledge/motion/export'
+      path: '/export'
+      fullPath: '/knowledge/motion/export'
+      preLoaderRoute: typeof KnowledgeMotionExportRouteImport
+      parentRoute: typeof KnowledgeMotionRoute
+    }
+    '/knowledge/motion/edit': {
+      id: '/knowledge/motion/edit'
+      path: '/edit'
+      fullPath: '/knowledge/motion/edit'
+      preLoaderRoute: typeof KnowledgeMotionEditRouteImport
+      parentRoute: typeof KnowledgeMotionRoute
+    }
+    '/knowledge/motion/create': {
+      id: '/knowledge/motion/create'
+      path: '/create'
+      fullPath: '/knowledge/motion/create'
+      preLoaderRoute: typeof KnowledgeMotionCreateRouteImport
+      parentRoute: typeof KnowledgeMotionRoute
+    }
+    '/knowledge/library/export': {
+      id: '/knowledge/library/export'
+      path: '/export'
+      fullPath: '/knowledge/library/export'
+      preLoaderRoute: typeof KnowledgeLibraryExportRouteImport
+      parentRoute: typeof KnowledgeLibraryRoute
+    }
+    '/knowledge/library/edit': {
+      id: '/knowledge/library/edit'
+      path: '/edit'
+      fullPath: '/knowledge/library/edit'
+      preLoaderRoute: typeof KnowledgeLibraryEditRouteImport
+      parentRoute: typeof KnowledgeLibraryRoute
+    }
+    '/knowledge/library/create': {
+      id: '/knowledge/library/create'
+      path: '/create'
+      fullPath: '/knowledge/library/create'
+      preLoaderRoute: typeof KnowledgeLibraryCreateRouteImport
+      parentRoute: typeof KnowledgeLibraryRoute
+    }
   }
 }
 
+interface KnowledgeLibraryRouteChildren {
+  KnowledgeLibraryCreateRoute: typeof KnowledgeLibraryCreateRoute
+  KnowledgeLibraryEditRoute: typeof KnowledgeLibraryEditRoute
+  KnowledgeLibraryExportRoute: typeof KnowledgeLibraryExportRoute
+}
+
+const KnowledgeLibraryRouteChildren: KnowledgeLibraryRouteChildren = {
+  KnowledgeLibraryCreateRoute: KnowledgeLibraryCreateRoute,
+  KnowledgeLibraryEditRoute: KnowledgeLibraryEditRoute,
+  KnowledgeLibraryExportRoute: KnowledgeLibraryExportRoute,
+}
+
+const KnowledgeLibraryRouteWithChildren =
+  KnowledgeLibraryRoute._addFileChildren(KnowledgeLibraryRouteChildren)
+
+interface KnowledgeMotionRouteChildren {
+  KnowledgeMotionCreateRoute: typeof KnowledgeMotionCreateRoute
+  KnowledgeMotionEditRoute: typeof KnowledgeMotionEditRoute
+  KnowledgeMotionExportRoute: typeof KnowledgeMotionExportRoute
+}
+
+const KnowledgeMotionRouteChildren: KnowledgeMotionRouteChildren = {
+  KnowledgeMotionCreateRoute: KnowledgeMotionCreateRoute,
+  KnowledgeMotionEditRoute: KnowledgeMotionEditRoute,
+  KnowledgeMotionExportRoute: KnowledgeMotionExportRoute,
+}
+
+const KnowledgeMotionRouteWithChildren = KnowledgeMotionRoute._addFileChildren(
+  KnowledgeMotionRouteChildren,
+)
+
+interface KnowledgeSequenceRouteChildren {
+  KnowledgeSequenceCreateRoute: typeof KnowledgeSequenceCreateRoute
+  KnowledgeSequenceEditRoute: typeof KnowledgeSequenceEditRoute
+  KnowledgeSequenceExportRoute: typeof KnowledgeSequenceExportRoute
+}
+
+const KnowledgeSequenceRouteChildren: KnowledgeSequenceRouteChildren = {
+  KnowledgeSequenceCreateRoute: KnowledgeSequenceCreateRoute,
+  KnowledgeSequenceEditRoute: KnowledgeSequenceEditRoute,
+  KnowledgeSequenceExportRoute: KnowledgeSequenceExportRoute,
+}
+
+const KnowledgeSequenceRouteWithChildren =
+  KnowledgeSequenceRoute._addFileChildren(KnowledgeSequenceRouteChildren)
+
+interface KnowledgeVoiceRouteChildren {
+  KnowledgeVoiceCreateRoute: typeof KnowledgeVoiceCreateRoute
+  KnowledgeVoiceEditRoute: typeof KnowledgeVoiceEditRoute
+  KnowledgeVoiceExportRoute: typeof KnowledgeVoiceExportRoute
+}
+
+const KnowledgeVoiceRouteChildren: KnowledgeVoiceRouteChildren = {
+  KnowledgeVoiceCreateRoute: KnowledgeVoiceCreateRoute,
+  KnowledgeVoiceEditRoute: KnowledgeVoiceEditRoute,
+  KnowledgeVoiceExportRoute: KnowledgeVoiceExportRoute,
+}
+
+const KnowledgeVoiceRouteWithChildren = KnowledgeVoiceRoute._addFileChildren(
+  KnowledgeVoiceRouteChildren,
+)
+
+interface KnowledgeRouteChildren {
+  KnowledgeLibraryRoute: typeof KnowledgeLibraryRouteWithChildren
+  KnowledgeMotionRoute: typeof KnowledgeMotionRouteWithChildren
+  KnowledgeQaRoute: typeof KnowledgeQaRoute
+  KnowledgeSequenceRoute: typeof KnowledgeSequenceRouteWithChildren
+  KnowledgeVoiceRoute: typeof KnowledgeVoiceRouteWithChildren
+}
+
+const KnowledgeRouteChildren: KnowledgeRouteChildren = {
+  KnowledgeLibraryRoute: KnowledgeLibraryRouteWithChildren,
+  KnowledgeMotionRoute: KnowledgeMotionRouteWithChildren,
+  KnowledgeQaRoute: KnowledgeQaRoute,
+  KnowledgeSequenceRoute: KnowledgeSequenceRouteWithChildren,
+  KnowledgeVoiceRoute: KnowledgeVoiceRouteWithChildren,
+}
+
+const KnowledgeRouteWithChildren = KnowledgeRoute._addFileChildren(
+  KnowledgeRouteChildren,
+)
+
+interface PatientsBaseRouteChildren {
+  PatientsBaseCreateRoute: typeof PatientsBaseCreateRoute
+}
+
+const PatientsBaseRouteChildren: PatientsBaseRouteChildren = {
+  PatientsBaseCreateRoute: PatientsBaseCreateRoute,
+}
+
+const PatientsBaseRouteWithChildren = PatientsBaseRoute._addFileChildren(
+  PatientsBaseRouteChildren,
+)
+
+interface PatientsPlansRouteChildren {
+  PatientsPlansCreateRoute: typeof PatientsPlansCreateRoute
+}
+
+const PatientsPlansRouteChildren: PatientsPlansRouteChildren = {
+  PatientsPlansCreateRoute: PatientsPlansCreateRoute,
+}
+
+const PatientsPlansRouteWithChildren = PatientsPlansRoute._addFileChildren(
+  PatientsPlansRouteChildren,
+)
+
+interface PatientsPrescriptionsRouteChildren {
+  PatientsPrescriptionsCreateRoute: typeof PatientsPrescriptionsCreateRoute
+  PatientsPrescriptionsExportRoute: typeof PatientsPrescriptionsExportRoute
+}
+
+const PatientsPrescriptionsRouteChildren: PatientsPrescriptionsRouteChildren = {
+  PatientsPrescriptionsCreateRoute: PatientsPrescriptionsCreateRoute,
+  PatientsPrescriptionsExportRoute: PatientsPrescriptionsExportRoute,
+}
+
+const PatientsPrescriptionsRouteWithChildren =
+  PatientsPrescriptionsRoute._addFileChildren(
+    PatientsPrescriptionsRouteChildren,
+  )
+
+interface PatientsReportsRouteChildren {
+  PatientsReportsExportRoute: typeof PatientsReportsExportRoute
+  PatientsReportsReviewRoute: typeof PatientsReportsReviewRoute
+}
+
+const PatientsReportsRouteChildren: PatientsReportsRouteChildren = {
+  PatientsReportsExportRoute: PatientsReportsExportRoute,
+  PatientsReportsReviewRoute: PatientsReportsReviewRoute,
+}
+
+const PatientsReportsRouteWithChildren = PatientsReportsRoute._addFileChildren(
+  PatientsReportsRouteChildren,
+)
+
+interface PatientsRouteChildren {
+  PatientsBaseRoute: typeof PatientsBaseRouteWithChildren
+  PatientsCurrentRoute: typeof PatientsCurrentRoute
+  PatientsPlansRoute: typeof PatientsPlansRouteWithChildren
+  PatientsPrescriptionsRoute: typeof PatientsPrescriptionsRouteWithChildren
+  PatientsReportsRoute: typeof PatientsReportsRouteWithChildren
+}
+
+const PatientsRouteChildren: PatientsRouteChildren = {
+  PatientsBaseRoute: PatientsBaseRouteWithChildren,
+  PatientsCurrentRoute: PatientsCurrentRoute,
+  PatientsPlansRoute: PatientsPlansRouteWithChildren,
+  PatientsPrescriptionsRoute: PatientsPrescriptionsRouteWithChildren,
+  PatientsReportsRoute: PatientsReportsRouteWithChildren,
+}
+
+const PatientsRouteWithChildren = PatientsRoute._addFileChildren(
+  PatientsRouteChildren,
+)
+
+interface RobotsRouteChildren {
+  RobotsCreateRoute: typeof RobotsCreateRoute
+  RobotsDetailRoute: typeof RobotsDetailRoute
+  RobotsListRoute: typeof RobotsListRoute
+}
+
+const RobotsRouteChildren: RobotsRouteChildren = {
+  RobotsCreateRoute: RobotsCreateRoute,
+  RobotsDetailRoute: RobotsDetailRoute,
+  RobotsListRoute: RobotsListRoute,
+}
+
+const RobotsRouteWithChildren =
+  RobotsRoute._addFileChildren(RobotsRouteChildren)
+
+interface TagsKnowledgeRouteChildren {
+  TagsKnowledgeCreateRoute: typeof TagsKnowledgeCreateRoute
+}
+
+const TagsKnowledgeRouteChildren: TagsKnowledgeRouteChildren = {
+  TagsKnowledgeCreateRoute: TagsKnowledgeCreateRoute,
+}
+
+const TagsKnowledgeRouteWithChildren = TagsKnowledgeRoute._addFileChildren(
+  TagsKnowledgeRouteChildren,
+)
+
+interface TagsMotionRouteChildren {
+  TagsMotionCreateRoute: typeof TagsMotionCreateRoute
+}
+
+const TagsMotionRouteChildren: TagsMotionRouteChildren = {
+  TagsMotionCreateRoute: TagsMotionCreateRoute,
+}
+
+const TagsMotionRouteWithChildren = TagsMotionRoute._addFileChildren(
+  TagsMotionRouteChildren,
+)
+
+interface TagsSequenceRouteChildren {
+  TagsSequenceCreateRoute: typeof TagsSequenceCreateRoute
+}
+
+const TagsSequenceRouteChildren: TagsSequenceRouteChildren = {
+  TagsSequenceCreateRoute: TagsSequenceCreateRoute,
+}
+
+const TagsSequenceRouteWithChildren = TagsSequenceRoute._addFileChildren(
+  TagsSequenceRouteChildren,
+)
+
+interface TagsVoiceRouteChildren {
+  TagsVoiceCreateRoute: typeof TagsVoiceCreateRoute
+}
+
+const TagsVoiceRouteChildren: TagsVoiceRouteChildren = {
+  TagsVoiceCreateRoute: TagsVoiceCreateRoute,
+}
+
+const TagsVoiceRouteWithChildren = TagsVoiceRoute._addFileChildren(
+  TagsVoiceRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  KnowledgeRoute: KnowledgeRoute,
-  PatientsRoute: PatientsRoute,
+  KnowledgeRoute: KnowledgeRouteWithChildren,
+  PatientsRoute: PatientsRouteWithChildren,
   PrescriptionsRoute: PrescriptionsRoute,
   ReportsRoute: ReportsRoute,
-  RobotsRoute: RobotsRoute,
+  RobotsRoute: RobotsRouteWithChildren,
+  TagsKnowledgeRoute: TagsKnowledgeRouteWithChildren,
+  TagsMotionRoute: TagsMotionRouteWithChildren,
+  TagsSequenceRoute: TagsSequenceRouteWithChildren,
+  TagsVoiceRoute: TagsVoiceRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
