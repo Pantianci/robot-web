@@ -1,9 +1,9 @@
-import { Navigate, createFileRoute } from "@tanstack/react-router";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/knowledge")({
-  component: KnowledgeEntryPage
+  component: KnowledgeLayout
 });
 
-function KnowledgeEntryPage() {
-  return <Navigate to="/knowledge/library" />;
+function KnowledgeLayout() {
+  return <Outlet />;
 }

@@ -1,9 +1,9 @@
-import { Navigate, createFileRoute } from "@tanstack/react-router";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/patients")({
-  component: PatientsEntryPage
+  component: PatientsLayout
 });
 
-function PatientsEntryPage() {
-  return <Navigate to="/patients/base" />;
+function PatientsLayout() {
+  return <Outlet />;
 }

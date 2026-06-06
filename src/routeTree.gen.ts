@@ -15,6 +15,9 @@ import { Route as PrescriptionsRouteImport } from './routes/prescriptions'
 import { Route as PatientsRouteImport } from './routes/patients'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RobotsIndexRouteImport } from './routes/robots.index'
+import { Route as PatientsIndexRouteImport } from './routes/patients.index'
+import { Route as KnowledgeIndexRouteImport } from './routes/knowledge.index'
 import { Route as TagsVoiceRouteImport } from './routes/tags.voice'
 import { Route as TagsSequenceRouteImport } from './routes/tags.sequence'
 import { Route as TagsMotionRouteImport } from './routes/tags.motion'
@@ -84,6 +87,21 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsIndexRoute = RobotsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => RobotsRoute,
+} as any)
+const PatientsIndexRoute = PatientsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PatientsRoute,
+} as any)
+const KnowledgeIndexRoute = KnowledgeIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => KnowledgeRoute,
 } as any)
 const TagsVoiceRoute = TagsVoiceRouteImport.update({
   id: '/tags/voice',
@@ -307,6 +325,9 @@ export interface FileRoutesByFullPath {
   '/tags/motion': typeof TagsMotionRouteWithChildren
   '/tags/sequence': typeof TagsSequenceRouteWithChildren
   '/tags/voice': typeof TagsVoiceRouteWithChildren
+  '/knowledge/': typeof KnowledgeIndexRoute
+  '/patients/': typeof PatientsIndexRoute
+  '/robots/': typeof RobotsIndexRoute
   '/knowledge/library/create': typeof KnowledgeLibraryCreateRoute
   '/knowledge/library/edit': typeof KnowledgeLibraryEditRoute
   '/knowledge/library/export': typeof KnowledgeLibraryExportRoute
@@ -332,11 +353,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/knowledge': typeof KnowledgeRouteWithChildren
-  '/patients': typeof PatientsRouteWithChildren
   '/prescriptions': typeof PrescriptionsRoute
   '/reports': typeof ReportsRoute
-  '/robots': typeof RobotsRouteWithChildren
   '/knowledge/library': typeof KnowledgeLibraryRouteWithChildren
   '/knowledge/motion': typeof KnowledgeMotionRouteWithChildren
   '/knowledge/qa': typeof KnowledgeQaRoute
@@ -354,6 +372,9 @@ export interface FileRoutesByTo {
   '/tags/motion': typeof TagsMotionRouteWithChildren
   '/tags/sequence': typeof TagsSequenceRouteWithChildren
   '/tags/voice': typeof TagsVoiceRouteWithChildren
+  '/knowledge': typeof KnowledgeIndexRoute
+  '/patients': typeof PatientsIndexRoute
+  '/robots': typeof RobotsIndexRoute
   '/knowledge/library/create': typeof KnowledgeLibraryCreateRoute
   '/knowledge/library/edit': typeof KnowledgeLibraryEditRoute
   '/knowledge/library/export': typeof KnowledgeLibraryExportRoute
@@ -402,6 +423,9 @@ export interface FileRoutesById {
   '/tags/motion': typeof TagsMotionRouteWithChildren
   '/tags/sequence': typeof TagsSequenceRouteWithChildren
   '/tags/voice': typeof TagsVoiceRouteWithChildren
+  '/knowledge/': typeof KnowledgeIndexRoute
+  '/patients/': typeof PatientsIndexRoute
+  '/robots/': typeof RobotsIndexRoute
   '/knowledge/library/create': typeof KnowledgeLibraryCreateRoute
   '/knowledge/library/edit': typeof KnowledgeLibraryEditRoute
   '/knowledge/library/export': typeof KnowledgeLibraryExportRoute
@@ -451,6 +475,9 @@ export interface FileRouteTypes {
     | '/tags/motion'
     | '/tags/sequence'
     | '/tags/voice'
+    | '/knowledge/'
+    | '/patients/'
+    | '/robots/'
     | '/knowledge/library/create'
     | '/knowledge/library/edit'
     | '/knowledge/library/export'
@@ -476,11 +503,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/knowledge'
-    | '/patients'
     | '/prescriptions'
     | '/reports'
-    | '/robots'
     | '/knowledge/library'
     | '/knowledge/motion'
     | '/knowledge/qa'
@@ -498,6 +522,9 @@ export interface FileRouteTypes {
     | '/tags/motion'
     | '/tags/sequence'
     | '/tags/voice'
+    | '/knowledge'
+    | '/patients'
+    | '/robots'
     | '/knowledge/library/create'
     | '/knowledge/library/edit'
     | '/knowledge/library/export'
@@ -545,6 +572,9 @@ export interface FileRouteTypes {
     | '/tags/motion'
     | '/tags/sequence'
     | '/tags/voice'
+    | '/knowledge/'
+    | '/patients/'
+    | '/robots/'
     | '/knowledge/library/create'
     | '/knowledge/library/edit'
     | '/knowledge/library/export'
@@ -625,6 +655,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/robots/': {
+      id: '/robots/'
+      path: '/'
+      fullPath: '/robots/'
+      preLoaderRoute: typeof RobotsIndexRouteImport
+      parentRoute: typeof RobotsRoute
+    }
+    '/patients/': {
+      id: '/patients/'
+      path: '/'
+      fullPath: '/patients/'
+      preLoaderRoute: typeof PatientsIndexRouteImport
+      parentRoute: typeof PatientsRoute
+    }
+    '/knowledge/': {
+      id: '/knowledge/'
+      path: '/'
+      fullPath: '/knowledge/'
+      preLoaderRoute: typeof KnowledgeIndexRouteImport
+      parentRoute: typeof KnowledgeRoute
     }
     '/tags/voice': {
       id: '/tags/voice'
@@ -970,6 +1021,7 @@ interface KnowledgeRouteChildren {
   KnowledgeQaRoute: typeof KnowledgeQaRoute
   KnowledgeSequenceRoute: typeof KnowledgeSequenceRouteWithChildren
   KnowledgeVoiceRoute: typeof KnowledgeVoiceRouteWithChildren
+  KnowledgeIndexRoute: typeof KnowledgeIndexRoute
 }
 
 const KnowledgeRouteChildren: KnowledgeRouteChildren = {
@@ -978,6 +1030,7 @@ const KnowledgeRouteChildren: KnowledgeRouteChildren = {
   KnowledgeQaRoute: KnowledgeQaRoute,
   KnowledgeSequenceRoute: KnowledgeSequenceRouteWithChildren,
   KnowledgeVoiceRoute: KnowledgeVoiceRouteWithChildren,
+  KnowledgeIndexRoute: KnowledgeIndexRoute,
 }
 
 const KnowledgeRouteWithChildren = KnowledgeRoute._addFileChildren(
@@ -1043,6 +1096,7 @@ interface PatientsRouteChildren {
   PatientsPlansRoute: typeof PatientsPlansRouteWithChildren
   PatientsPrescriptionsRoute: typeof PatientsPrescriptionsRouteWithChildren
   PatientsReportsRoute: typeof PatientsReportsRouteWithChildren
+  PatientsIndexRoute: typeof PatientsIndexRoute
 }
 
 const PatientsRouteChildren: PatientsRouteChildren = {
@@ -1051,6 +1105,7 @@ const PatientsRouteChildren: PatientsRouteChildren = {
   PatientsPlansRoute: PatientsPlansRouteWithChildren,
   PatientsPrescriptionsRoute: PatientsPrescriptionsRouteWithChildren,
   PatientsReportsRoute: PatientsReportsRouteWithChildren,
+  PatientsIndexRoute: PatientsIndexRoute,
 }
 
 const PatientsRouteWithChildren = PatientsRoute._addFileChildren(
@@ -1061,12 +1116,14 @@ interface RobotsRouteChildren {
   RobotsCreateRoute: typeof RobotsCreateRoute
   RobotsDetailRoute: typeof RobotsDetailRoute
   RobotsListRoute: typeof RobotsListRoute
+  RobotsIndexRoute: typeof RobotsIndexRoute
 }
 
 const RobotsRouteChildren: RobotsRouteChildren = {
   RobotsCreateRoute: RobotsCreateRoute,
   RobotsDetailRoute: RobotsDetailRoute,
   RobotsListRoute: RobotsListRoute,
+  RobotsIndexRoute: RobotsIndexRoute,
 }
 
 const RobotsRouteWithChildren =
