@@ -1,13 +1,8 @@
 import {
   BookCopy,
-  ClipboardList,
-  FileBarChart2,
   Home,
   type LucideIcon,
-  MessageSquareQuote,
   MonitorCog,
-  NotebookTabs,
-  Rows4,
   Tags,
   Users2
 } from "lucide-react";
@@ -76,12 +71,3 @@ export const navigationGroups = [
     ]
   }
 ] as const satisfies readonly NavigationGroup[];
-
-export const quickLinks = [
-  { to: "/knowledge/library/create", label: "新增康复知识", icon: NotebookTabs },
-  { to: "/patients/base/create", label: "新增档案", icon: Users2 },
-  { to: "/patients/prescriptions/create", label: "新增动作处方", icon: ClipboardList },
-  { to: "/patients/reports/review", label: "审核评估报告", icon: FileBarChart2 },
-  { to: "/robots/create", label: "新增机器人", icon: Rows4 },
-  { to: "/knowledge/qa", label: "知识问答", icon: MessageSquareQuote }
-] as const;

@@ -1,10 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { KnowledgeWorkspace } from "@/components/knowledge-workspace";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/knowledge/library")({
-  component: KnowledgeLibraryPage
+  component: KnowledgeLibraryLayout
 });
 
-function KnowledgeLibraryPage() {
-  return <KnowledgeWorkspace library="knowledge" />;
+function KnowledgeLibraryLayout() {
+  return <Outlet />;
 }

@@ -35,6 +35,10 @@ import { Route as KnowledgeSequenceRouteImport } from './routes/knowledge.sequen
 import { Route as KnowledgeQaRouteImport } from './routes/knowledge.qa'
 import { Route as KnowledgeMotionRouteImport } from './routes/knowledge.motion'
 import { Route as KnowledgeLibraryRouteImport } from './routes/knowledge.library'
+import { Route as KnowledgeVoiceIndexRouteImport } from './routes/knowledge.voice.index'
+import { Route as KnowledgeSequenceIndexRouteImport } from './routes/knowledge.sequence.index'
+import { Route as KnowledgeMotionIndexRouteImport } from './routes/knowledge.motion.index'
+import { Route as KnowledgeLibraryIndexRouteImport } from './routes/knowledge.library.index'
 import { Route as TagsVoiceCreateRouteImport } from './routes/tags.voice.create'
 import { Route as TagsSequenceCreateRouteImport } from './routes/tags.sequence.create'
 import { Route as TagsMotionCreateRouteImport } from './routes/tags.motion.create'
@@ -187,6 +191,26 @@ const KnowledgeLibraryRoute = KnowledgeLibraryRouteImport.update({
   id: '/library',
   path: '/library',
   getParentRoute: () => KnowledgeRoute,
+} as any)
+const KnowledgeVoiceIndexRoute = KnowledgeVoiceIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => KnowledgeVoiceRoute,
+} as any)
+const KnowledgeSequenceIndexRoute = KnowledgeSequenceIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => KnowledgeSequenceRoute,
+} as any)
+const KnowledgeMotionIndexRoute = KnowledgeMotionIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => KnowledgeMotionRoute,
+} as any)
+const KnowledgeLibraryIndexRoute = KnowledgeLibraryIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => KnowledgeLibraryRoute,
 } as any)
 const TagsVoiceCreateRoute = TagsVoiceCreateRouteImport.update({
   id: '/create',
@@ -350,16 +374,16 @@ export interface FileRoutesByFullPath {
   '/tags/motion/create': typeof TagsMotionCreateRoute
   '/tags/sequence/create': typeof TagsSequenceCreateRoute
   '/tags/voice/create': typeof TagsVoiceCreateRoute
+  '/knowledge/library/': typeof KnowledgeLibraryIndexRoute
+  '/knowledge/motion/': typeof KnowledgeMotionIndexRoute
+  '/knowledge/sequence/': typeof KnowledgeSequenceIndexRoute
+  '/knowledge/voice/': typeof KnowledgeVoiceIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/prescriptions': typeof PrescriptionsRoute
   '/reports': typeof ReportsRoute
-  '/knowledge/library': typeof KnowledgeLibraryRouteWithChildren
-  '/knowledge/motion': typeof KnowledgeMotionRouteWithChildren
   '/knowledge/qa': typeof KnowledgeQaRoute
-  '/knowledge/sequence': typeof KnowledgeSequenceRouteWithChildren
-  '/knowledge/voice': typeof KnowledgeVoiceRouteWithChildren
   '/patients/base': typeof PatientsBaseRouteWithChildren
   '/patients/current': typeof PatientsCurrentRoute
   '/patients/plans': typeof PatientsPlansRouteWithChildren
@@ -397,6 +421,10 @@ export interface FileRoutesByTo {
   '/tags/motion/create': typeof TagsMotionCreateRoute
   '/tags/sequence/create': typeof TagsSequenceCreateRoute
   '/tags/voice/create': typeof TagsVoiceCreateRoute
+  '/knowledge/library': typeof KnowledgeLibraryIndexRoute
+  '/knowledge/motion': typeof KnowledgeMotionIndexRoute
+  '/knowledge/sequence': typeof KnowledgeSequenceIndexRoute
+  '/knowledge/voice': typeof KnowledgeVoiceIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -448,6 +476,10 @@ export interface FileRoutesById {
   '/tags/motion/create': typeof TagsMotionCreateRoute
   '/tags/sequence/create': typeof TagsSequenceCreateRoute
   '/tags/voice/create': typeof TagsVoiceCreateRoute
+  '/knowledge/library/': typeof KnowledgeLibraryIndexRoute
+  '/knowledge/motion/': typeof KnowledgeMotionIndexRoute
+  '/knowledge/sequence/': typeof KnowledgeSequenceIndexRoute
+  '/knowledge/voice/': typeof KnowledgeVoiceIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -500,16 +532,16 @@ export interface FileRouteTypes {
     | '/tags/motion/create'
     | '/tags/sequence/create'
     | '/tags/voice/create'
+    | '/knowledge/library/'
+    | '/knowledge/motion/'
+    | '/knowledge/sequence/'
+    | '/knowledge/voice/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/prescriptions'
     | '/reports'
-    | '/knowledge/library'
-    | '/knowledge/motion'
     | '/knowledge/qa'
-    | '/knowledge/sequence'
-    | '/knowledge/voice'
     | '/patients/base'
     | '/patients/current'
     | '/patients/plans'
@@ -547,6 +579,10 @@ export interface FileRouteTypes {
     | '/tags/motion/create'
     | '/tags/sequence/create'
     | '/tags/voice/create'
+    | '/knowledge/library'
+    | '/knowledge/motion'
+    | '/knowledge/sequence'
+    | '/knowledge/voice'
   id:
     | '__root__'
     | '/'
@@ -597,6 +633,10 @@ export interface FileRouteTypes {
     | '/tags/motion/create'
     | '/tags/sequence/create'
     | '/tags/voice/create'
+    | '/knowledge/library/'
+    | '/knowledge/motion/'
+    | '/knowledge/sequence/'
+    | '/knowledge/voice/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -796,6 +836,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KnowledgeLibraryRouteImport
       parentRoute: typeof KnowledgeRoute
     }
+    '/knowledge/voice/': {
+      id: '/knowledge/voice/'
+      path: '/'
+      fullPath: '/knowledge/voice/'
+      preLoaderRoute: typeof KnowledgeVoiceIndexRouteImport
+      parentRoute: typeof KnowledgeVoiceRoute
+    }
+    '/knowledge/sequence/': {
+      id: '/knowledge/sequence/'
+      path: '/'
+      fullPath: '/knowledge/sequence/'
+      preLoaderRoute: typeof KnowledgeSequenceIndexRouteImport
+      parentRoute: typeof KnowledgeSequenceRoute
+    }
+    '/knowledge/motion/': {
+      id: '/knowledge/motion/'
+      path: '/'
+      fullPath: '/knowledge/motion/'
+      preLoaderRoute: typeof KnowledgeMotionIndexRouteImport
+      parentRoute: typeof KnowledgeMotionRoute
+    }
+    '/knowledge/library/': {
+      id: '/knowledge/library/'
+      path: '/'
+      fullPath: '/knowledge/library/'
+      preLoaderRoute: typeof KnowledgeLibraryIndexRouteImport
+      parentRoute: typeof KnowledgeLibraryRoute
+    }
     '/tags/voice/create': {
       id: '/tags/voice/create'
       path: '/create'
@@ -957,12 +1025,14 @@ interface KnowledgeLibraryRouteChildren {
   KnowledgeLibraryCreateRoute: typeof KnowledgeLibraryCreateRoute
   KnowledgeLibraryEditRoute: typeof KnowledgeLibraryEditRoute
   KnowledgeLibraryExportRoute: typeof KnowledgeLibraryExportRoute
+  KnowledgeLibraryIndexRoute: typeof KnowledgeLibraryIndexRoute
 }
 
 const KnowledgeLibraryRouteChildren: KnowledgeLibraryRouteChildren = {
   KnowledgeLibraryCreateRoute: KnowledgeLibraryCreateRoute,
   KnowledgeLibraryEditRoute: KnowledgeLibraryEditRoute,
   KnowledgeLibraryExportRoute: KnowledgeLibraryExportRoute,
+  KnowledgeLibraryIndexRoute: KnowledgeLibraryIndexRoute,
 }
 
 const KnowledgeLibraryRouteWithChildren =
@@ -972,12 +1042,14 @@ interface KnowledgeMotionRouteChildren {
   KnowledgeMotionCreateRoute: typeof KnowledgeMotionCreateRoute
   KnowledgeMotionEditRoute: typeof KnowledgeMotionEditRoute
   KnowledgeMotionExportRoute: typeof KnowledgeMotionExportRoute
+  KnowledgeMotionIndexRoute: typeof KnowledgeMotionIndexRoute
 }
 
 const KnowledgeMotionRouteChildren: KnowledgeMotionRouteChildren = {
   KnowledgeMotionCreateRoute: KnowledgeMotionCreateRoute,
   KnowledgeMotionEditRoute: KnowledgeMotionEditRoute,
   KnowledgeMotionExportRoute: KnowledgeMotionExportRoute,
+  KnowledgeMotionIndexRoute: KnowledgeMotionIndexRoute,
 }
 
 const KnowledgeMotionRouteWithChildren = KnowledgeMotionRoute._addFileChildren(
@@ -988,12 +1060,14 @@ interface KnowledgeSequenceRouteChildren {
   KnowledgeSequenceCreateRoute: typeof KnowledgeSequenceCreateRoute
   KnowledgeSequenceEditRoute: typeof KnowledgeSequenceEditRoute
   KnowledgeSequenceExportRoute: typeof KnowledgeSequenceExportRoute
+  KnowledgeSequenceIndexRoute: typeof KnowledgeSequenceIndexRoute
 }
 
 const KnowledgeSequenceRouteChildren: KnowledgeSequenceRouteChildren = {
   KnowledgeSequenceCreateRoute: KnowledgeSequenceCreateRoute,
   KnowledgeSequenceEditRoute: KnowledgeSequenceEditRoute,
   KnowledgeSequenceExportRoute: KnowledgeSequenceExportRoute,
+  KnowledgeSequenceIndexRoute: KnowledgeSequenceIndexRoute,
 }
 
 const KnowledgeSequenceRouteWithChildren =
@@ -1003,12 +1077,14 @@ interface KnowledgeVoiceRouteChildren {
   KnowledgeVoiceCreateRoute: typeof KnowledgeVoiceCreateRoute
   KnowledgeVoiceEditRoute: typeof KnowledgeVoiceEditRoute
   KnowledgeVoiceExportRoute: typeof KnowledgeVoiceExportRoute
+  KnowledgeVoiceIndexRoute: typeof KnowledgeVoiceIndexRoute
 }
 
 const KnowledgeVoiceRouteChildren: KnowledgeVoiceRouteChildren = {
   KnowledgeVoiceCreateRoute: KnowledgeVoiceCreateRoute,
   KnowledgeVoiceEditRoute: KnowledgeVoiceEditRoute,
   KnowledgeVoiceExportRoute: KnowledgeVoiceExportRoute,
+  KnowledgeVoiceIndexRoute: KnowledgeVoiceIndexRoute,
 }
 
 const KnowledgeVoiceRouteWithChildren = KnowledgeVoiceRoute._addFileChildren(
@@ -1192,12 +1268,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

@@ -7,18 +7,14 @@ import {
   PencilLine,
   Plus,
   Sparkles,
-  Tag,
   Trash2
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
-  useCreateKnowledgeTagMutation,
   useDeleteKnowledgeMutation,
-  useDeleteKnowledgeTagMutation,
   useKnowledgeQaQuery,
   useKnowledgeQuery,
-  useKnowledgeTagsQuery,
-  useUpdateKnowledgeTagMutation
+  useKnowledgeTagsQuery
 } from "@/lib/hooks";
 import {
   createMultiModalListContextKey,
@@ -30,8 +26,8 @@ import {
   type MultiModalListFilters
 } from "@/lib/multimodal";
 import { readState, writeState } from "@/lib/storage";
-import type { KnowledgeItem, KnowledgeLibrary, TagItem } from "@/lib/types";
-import { formatDate, formatDateTime } from "@/lib/utils";
+import type { KnowledgeItem, KnowledgeLibrary } from "@/lib/types";
+import { formatDateTime } from "@/lib/utils";
 import { DetailPanel } from "@/components/detail-panel";
 import { DialogFormShell } from "@/components/dialog-form-shell";
 import { EmptyState } from "@/components/empty-state";
@@ -53,22 +49,6 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-
-type TagFormState = {
-  id: string | null;
-  name: string;
-  parent: string;
-  description: string;
-  enabled: "启用" | "停用";
-};
-
-const defaultTagForm: TagFormState = {
-  id: null,
-  name: "",
-  parent: "",
-  description: "",
-  enabled: "启用"
-};
 
 function statusBadgeClass(status: string) {
   if (status === "生效") {
@@ -99,10 +79,6 @@ function createDefaultListContext(): MultiModalListContext {
     pageSize: 10,
     editId: null
   };
-}
-
-function buildTagStatus(relatedCount: number) {
-  return relatedCount > 0 ? "使用中" : "未使用";
 }
 
 function normalizeKeywordFields(item: KnowledgeItem) {
@@ -208,10 +184,6 @@ function libraryTableRow(
   ];
 }
 
-function buildTagRelations(items: KnowledgeItem[], tagName: string) {
-  return items.filter((item) => item.tags.includes(tagName)).slice(0, 10);
-}
-
 export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
   const meta = knowledgeLibraryMeta[library];
   const contextKey = createMultiModalListContextKey(library);
@@ -219,18 +191,12 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
     () => readState<MultiModalListContext>(contextKey) ?? createDefaultListContext()
   );
   const [deleteTarget, setDeleteTarget] = useState<KnowledgeItem | null>(null);
-  const [tagDeleteTarget, setTagDeleteTarget] = useState<TagItem | null>(null);
-  const [tagDialogOpen, setTagDialogOpen] = useState(false);
-  const [tagForm, setTagForm] = useState<TagFormState>(defaultTagForm);
   const [exportMessage, setExportMessage] = useState("");
 
   const { data: items = [] } = useKnowledgeQuery(library);
   const { data: tags = [] } = useKnowledgeTagsQuery(library);
   const { data: qaContexts = [] } = useKnowledgeQaQuery(library);
   const deleteKnowledgeMutation = useDeleteKnowledgeMutation(library);
-  const createTagMutation = useCreateKnowledgeTagMutation(library);
-  const updateTagMutation = useUpdateKnowledgeTagMutation(library);
-  const deleteTagMutation = useDeleteKnowledgeTagMutation(library);
 
   useEffect(() => {
     writeState(contextKey, context);
@@ -282,14 +248,6 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
     pagedItems[0] ??
     null;
 
-  const selectedTag =
-    tags.find((tag) => tag.id === context.editId) ??
-    null;
-
-  const relatedTagItems = selectedTag
-    ? buildTagRelations(sortedItems, selectedTag.name)
-    : [];
-
   useEffect(() => {
     if (selectedItem && selectedItem.id !== context.selectedId) {
       setContext((current) => ({ ...current, selectedId: selectedItem.id }));
@@ -301,51 +259,6 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
     }
   }, [context.selectedId, selectedItem]);
 
-  const openTagCreate = () => {
-    setTagForm(defaultTagForm);
-    setTagDialogOpen(true);
-  };
-
-  const openTagEdit = (tag: TagItem) => {
-    setTagForm({
-      id: tag.id,
-      name: tag.name,
-      parent: tag.parent,
-      description: tag.description,
-      enabled: tag.enabled === false ? "停用" : "启用"
-    });
-    setTagDialogOpen(true);
-  };
-
-  const handleTagSubmit = async () => {
-    if (!tagForm.name || !tagForm.parent) {
-      return;
-    }
-
-    const relatedCount = buildTagRelations(sortedItems, tagForm.name).length;
-    const payload = {
-      name: tagForm.name,
-      parent: tagForm.parent,
-      description: tagForm.description,
-      operator: "当前用户",
-      relatedCount,
-      status: buildTagStatus(relatedCount) as TagItem["status"],
-      enabled: tagForm.enabled === "启用"
-    };
-
-    if (tagForm.id) {
-      await updateTagMutation.mutateAsync({
-        id: tagForm.id,
-        patch: payload
-      });
-    } else {
-      await createTagMutation.mutateAsync(payload);
-    }
-
-    setTagDialogOpen(false);
-    setTagForm(defaultTagForm);
-  };
-
   const handleDeleteKnowledge = async () => {
     if (!deleteTarget) {
       return;
@@ -353,15 +266,6 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
 
     await deleteKnowledgeMutation.mutateAsync(deleteTarget.id);
     setDeleteTarget(null);
-  };
-
-  const handleDeleteTag = async () => {
-    if (!tagDeleteTarget) {
-      return;
-    }
-
-    await deleteTagMutation.mutateAsync(tagDeleteTarget.id);
-    setTagDeleteTarget(null);
   };
 
   const toggleSelected = (id: string) => {
@@ -705,57 +609,6 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between border-b border-border/60">
-              <div>
-                <CardTitle>{meta.tagTitle}</CardTitle>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  标签状态根据是否被内容引用自动计算。
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" asChild>
-                  <Link to={meta.tagPath}>
-                    <Tag className="h-4 w-4" />
-                    标签列表页
-                  </Link>
-                </Button>
-                <Button size="sm" onClick={openTagCreate}>
-                  新增标签
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-6">
-              {tags.length ? (
-                tags.map((tag) => (
-                  <div
-                    key={tag.id}
-                    className="rounded-[1.25rem] border border-border/70 bg-surface-50 px-4 py-3"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium text-surface-900">{tag.name}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          上级标签：{tag.parent} · 最近操作人：{tag.operator}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Badge className={statusBadgeClass(tag.status)}>{tag.status}</Badge>
-                        <Button variant="ghost" size="sm" onClick={() => openTagEdit(tag)}>
-                          <PencilLine className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setTagDeleteTarget(tag)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <EmptyState title="暂无标签数据" description="新增后可在此统一查看与维护。" />
-              )}
-            </CardContent>
-          </Card>
         </div>
 
         <div className="space-y-6">
@@ -847,45 +700,6 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
             )}
           </DetailPanel>
 
-          <DetailPanel title="标签详情">
-            {selectedTag ? (
-              <>
-                <PropertyList
-                  items={[
-                    { label: "标签名称", value: selectedTag.name },
-                    { label: "上级标签", value: selectedTag.parent },
-                    { label: "状态", value: selectedTag.status },
-                    { label: "创建时间", value: selectedTag.createdAt ? formatDateTime(selectedTag.createdAt) : "-" },
-                    { label: "更新时间", value: formatDateTime(selectedTag.updatedAt) }
-                  ]}
-                />
-                <SectionCard title="标签说明">
-                  <p className="text-sm leading-7 text-muted-foreground">
-                    {selectedTag.description}
-                  </p>
-                </SectionCard>
-                <SectionCard title="关联内容（最近10条）">
-                  <div className="space-y-3">
-                    {relatedTagItems.length ? (
-                      relatedTagItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3 text-sm text-surface-900"
-                        >
-                          {item.title}
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground">暂无关联内容。</p>
-                    )}
-                  </div>
-                </SectionCard>
-              </>
-            ) : (
-              <EmptyState title="请选择一个标签" description="在标签区域点击编辑后，可在此查看标签详情与关联内容。" />
-            )}
-          </DetailPanel>
-
           <Card>
             <CardHeader className="border-b border-border/60">
               <CardTitle>知识问答上下文</CardTitle>
@@ -909,56 +723,6 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
       </div>
 
       <DialogFormShell
-        open={tagDialogOpen}
-        onOpenChange={setTagDialogOpen}
-        title={tagForm.id ? `编辑${meta.tagTitle}` : `新增${meta.tagTitle}`}
-        description="支持维护标签名称、上级标签、启用状态和说明。"
-        onSubmit={handleTagSubmit}
-      >
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="标签名称" required>
-            <Input
-              value={tagForm.name}
-              onChange={(event) =>
-                setTagForm((current) => ({ ...current, name: event.target.value }))
-              }
-            />
-          </Field>
-          <Field label="上级标签" required>
-            <Input
-              value={tagForm.parent}
-              onChange={(event) =>
-                setTagForm((current) => ({ ...current, parent: event.target.value }))
-              }
-            />
-          </Field>
-        </div>
-        <Field label="是否启用" required>
-          <select
-            className="native-select"
-            value={tagForm.enabled}
-            onChange={(event) =>
-              setTagForm((current) => ({
-                ...current,
-                enabled: event.target.value as TagFormState["enabled"]
-              }))
-            }
-          >
-            <option value="启用">启用</option>
-            <option value="停用">停用</option>
-          </select>
-        </Field>
-        <Field label="说明">
-          <Textarea
-            value={tagForm.description}
-            onChange={(event) =>
-              setTagForm((current) => ({ ...current, description: event.target.value }))
-            }
-          />
-        </Field>
-      </DialogFormShell>
-
-      <DialogFormShell
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => {
           if (!open) {
@@ -972,23 +736,6 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
       >
         <p className="text-sm leading-7 text-muted-foreground">
           确定删除“{deleteTarget?.title}”吗？此操作在当前原型中不可恢复。
-        </p>
-      </DialogFormShell>
-
-      <DialogFormShell
-        open={Boolean(tagDeleteTarget)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setTagDeleteTarget(null);
-          }
-        }}
-        title="删除标签"
-        description="删除前需二次确认；若标签仍被内容使用，在正式系统中应追加删除规则校验。"
-        onSubmit={handleDeleteTag}
-        submitLabel="确认删除"
-      >
-        <p className="text-sm leading-7 text-muted-foreground">
-          确定删除标签“{tagDeleteTarget?.name}”吗？
         </p>
       </DialogFormShell>
     </div>
