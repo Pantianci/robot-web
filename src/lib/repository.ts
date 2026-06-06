@@ -108,7 +108,8 @@ export async function createKnowledgeItem(
       id: generateId("knowledge"),
       library,
       uploadedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      lastAction: "刚刚创建"
     });
     return database;
   });
@@ -126,7 +127,8 @@ export async function updateKnowledgeItem(
         ? {
             ...item,
             ...patch,
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString(),
+            lastAction: "刚刚更新"
           }
         : item
     );
@@ -138,7 +140,13 @@ export async function updateKnowledgeItem(
 
 export async function deleteKnowledgeItem(id: string) {
   await updateDatabase((database) => {
+    const item = database.knowledge.items.find((record) => record.id === id);
     database.knowledge.items = database.knowledge.items.filter((item) => item.id !== id);
+    if (item) {
+      database.knowledge.qaContexts = database.knowledge.qaContexts.filter(
+        (context) => context.library !== item.library || !context.question.includes(item.title)
+      );
+    }
     return database;
   });
 }
@@ -152,12 +160,40 @@ export async function createKnowledgeTag(
       ...input,
       id: generateId("tag"),
       library,
+      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     });
     return database;
   });
 
   return next.knowledge.tags[0];
+}
+
+export async function updateKnowledgeTag(
+  id: string,
+  patch: Partial<TagItem>
+) {
+  const next = await updateDatabase((database) => {
+    database.knowledge.tags = database.knowledge.tags.map((tag) =>
+      tag.id === id
+        ? {
+            ...tag,
+            ...patch,
+            updatedAt: new Date().toISOString()
+          }
+        : tag
+    );
+    return database;
+  });
+
+  return next.knowledge.tags.find((tag) => tag.id === id) ?? null;
+}
+
+export async function deleteKnowledgeTag(id: string) {
+  await updateDatabase((database) => {
+    database.knowledge.tags = database.knowledge.tags.filter((tag) => tag.id !== id);
+    return database;
+  });
 }
 
 export async function getPatients() {

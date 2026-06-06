@@ -3,6 +3,7 @@ import {
   createExportResult,
   createKnowledgeItem,
   createKnowledgeTag,
+  deleteKnowledgeTag,
   createPatient,
   createPrescription,
   createRehabPlan,
@@ -20,6 +21,7 @@ import {
   getRobots,
   reviewReport,
   updateKnowledgeItem,
+  updateKnowledgeTag,
   updatePatient,
   updatePrescription,
   updateRehabPlan
@@ -44,6 +46,8 @@ export const api = {
   updateKnowledgeItem,
   deleteKnowledgeItem,
   createKnowledgeTag,
+  updateKnowledgeTag,
+  deleteKnowledgeTag,
   exportKnowledge: async (library: KnowledgeLibrary, count: number) =>
     createExportResult(`${library}-export-${Date.now()}.zip`, count),
   getPatients,
@@ -72,6 +76,7 @@ export type CreateKnowledgeInput = Omit<
   "id" | "library" | "uploadedAt" | "updatedAt"
 >;
 export type CreateTagInput = Omit<TagItem, "id" | "library" | "updatedAt">;
+export type UpdateTagInput = Partial<TagItem>;
 export type CreatePatientInput = Omit<Patient, "id" | "createdAt">;
 export type CreatePlanInput = Omit<RehabPlan, "id" | "updatedAt">;
 export type CreatePrescriptionInput = Omit<Prescription, "id" | "issuedAt">;

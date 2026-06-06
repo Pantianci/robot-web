@@ -14,6 +14,8 @@ export interface TagItem {
   parent: string;
   description: string;
   status: "使用中" | "未使用";
+   enabled?: boolean;
+   createdAt?: string;
   updatedAt: string;
   operator: string;
   relatedCount: number;
@@ -41,10 +43,17 @@ export interface KnowledgeItem {
   description: string;
   preview?: string;
   stage?: string;
+  goal?: string;
+  actionName?: string;
   part?: string;
   angle?: string;
   direction?: string;
   durationMinutes?: number;
+  contraindication?: string;
+  indication?: string;
+  fileName?: string;
+  fileUrl?: string;
+  lastAction?: string;
   standardQuestion?: string;
   similarQuestions?: string[];
   replies?: string[];

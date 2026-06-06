@@ -8,7 +8,8 @@ import type {
   CreatePrescriptionInput,
   CreateRobotInput,
   CreateTagInput,
-  ReviewReportInput
+  ReviewReportInput,
+  UpdateTagInput
 } from "@/lib/api";
 import type {
   KnowledgeItem,
@@ -16,7 +17,8 @@ import type {
   Patient,
   Prescription,
   RehabPlan,
-  Report
+  Report,
+  TagItem
 } from "@/lib/types";
 
 export function useDashboardQuery() {
@@ -35,14 +37,14 @@ export function useKnowledgeQuery(library: KnowledgeLibrary) {
 
 export function useKnowledgeTagsQuery(library: KnowledgeLibrary) {
   return useQuery({
-    queryKey: [...queryKeys.knowledgeTags, library],
+    queryKey: queryKeys.knowledgeTags(library),
     queryFn: () => api.getKnowledgeTags(library)
   });
 }
 
 export function useKnowledgeQaQuery(library: KnowledgeLibrary) {
   return useQuery({
-    queryKey: ["knowledge-qa", library],
+    queryKey: queryKeys.knowledgeQa(library),
     queryFn: () => api.getKnowledgeQa(library)
   });
 }
@@ -84,7 +86,28 @@ export function useCreateKnowledgeTagMutation(library: KnowledgeLibrary) {
   return useMutation({
     mutationFn: (input: CreateTagInput) => api.createKnowledgeTag(library, input),
     onSuccess: async () => {
-      await client.invalidateQueries({ queryKey: [...queryKeys.knowledgeTags, library] });
+      await client.invalidateQueries({ queryKey: queryKeys.knowledgeTags(library) });
+    }
+  });
+}
+
+export function useUpdateKnowledgeTagMutation(library: KnowledgeLibrary) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: UpdateTagInput }) =>
+      api.updateKnowledgeTag(id, patch),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.knowledgeTags(library) });
+    }
+  });
+}
+
+export function useDeleteKnowledgeTagMutation(library: KnowledgeLibrary) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteKnowledgeTag(id),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.knowledgeTags(library) });
     }
   });
 }

@@ -48,3 +48,28 @@ export function clearDraft(key: string) {
 
   window.localStorage.removeItem(`${DRAFT_STATE_KEY}:${key}`);
 }
+
+export function readState<T>(key: string) {
+  if (!isBrowser()) {
+    return null;
+  }
+
+  const raw = window.localStorage.getItem(key);
+  return raw ? (JSON.parse(raw) as T) : null;
+}
+
+export function writeState<T>(key: string, value: T) {
+  if (!isBrowser()) {
+    return;
+  }
+
+  window.localStorage.setItem(key, JSON.stringify(value));
+}
+
+export function clearState(key: string) {
+  if (!isBrowser()) {
+    return;
+  }
+
+  window.localStorage.removeItem(key);
+}
