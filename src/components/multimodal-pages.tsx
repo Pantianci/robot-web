@@ -436,12 +436,13 @@ export function MultiModalEditorPage({
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
       <PageHeader
         eyebrow={`${meta.eyebrow} > ${mode === "edit" ? meta.editTitle : meta.createTitle}`}
         title={mode === "edit" ? meta.editTitle : meta.createTitle}
         description={meta.createDescription}
         badge={mode === "edit" ? "编辑页" : "新增页"}
+        className="mb-1"
         actions={
           <Button variant="outline" onClick={() => navigate({ to: meta.listPath })}>
             <ArrowLeft className="h-4 w-4" />
@@ -450,8 +451,9 @@ export function MultiModalEditorPage({
         }
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_360px]">
-        <div className="space-y-6">
+      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.35fr)_360px]">
+        <div className="flex min-h-0 flex-col gap-6">
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
           {meta.uploadSpec ? (
             <SectionCard title={`${meta.uploadTitle}上传`} description="当前原型用页面内交互模拟上传和文件名回填。">
               <div className="rounded-[1.5rem] border border-dashed border-primary/30 bg-primary/5 p-6">
@@ -661,16 +663,17 @@ export function MultiModalEditorPage({
               <CardContent className="p-4 text-sm text-rose-700">{errorMessage}</CardContent>
             </Card>
           ) : null}
+          </div>
 
-          <Card className="border-primary/15 bg-primary/5">
-            <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
-              <div>
+          <Card className="shrink-0 border-primary/15 bg-primary/5">
+            <CardContent className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
                 <p className="text-sm font-medium text-primary">当前页面支持草稿恢复</p>
-                <p className="mt-1 text-sm text-primary/80">
+                <p className="mt-1 line-clamp-2 text-xs text-primary/80">
                   草稿保存在本地浏览器 LocalStorage 中，再次进入页面可继续编辑。
                 </p>
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2">
                 <Button onClick={handleSubmit}>{mode === "edit" ? "提交更新" : "提交"}</Button>
                 <Button variant="secondary" onClick={saveDraft}>
                   保存草稿
@@ -683,48 +686,55 @@ export function MultiModalEditorPage({
           </Card>
         </div>
 
-        <div className="space-y-6">
-          <SectionCard title="录入检查">
-            <Checklist items={checklist} />
-          </SectionCard>
+        <div className="min-h-0 pt-1">
+          <Card className="flex h-full min-h-0 flex-col overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <CardTitle>录入辅助</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 min-h-0 space-y-5 overflow-y-auto p-5">
+              <SectionCard title="录入检查">
+                <Checklist items={checklist} />
+              </SectionCard>
 
-          <SectionCard title="可选标签">
-            <div className="flex flex-wrap gap-2">
-              {tags.map((tag) => (
-                <button
-                  key={tag.id}
-                  type="button"
-                  className="rounded-full border border-border/70 bg-white px-3 py-1 text-xs font-medium text-surface-700"
-                  onClick={() => {
-                    const current = parseTagText(draft.tags);
-                    if (current.includes(tag.name)) {
-                      return;
-                    }
-                    persist({ tags: [...current, tag.name].join("、") });
-                  }}
-                >
-                  {tag.name}
-                </button>
-              ))}
-            </div>
-          </SectionCard>
+              <SectionCard title="可选标签">
+                <div className="flex flex-wrap gap-2">
+                  {tags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      className="rounded-full border border-border/70 bg-white px-3 py-1 text-xs font-medium text-surface-700"
+                      onClick={() => {
+                        const current = parseTagText(draft.tags);
+                        if (current.includes(tag.name)) {
+                          return;
+                        }
+                        persist({ tags: [...current, tag.name].join("、") });
+                      }}
+                    >
+                      {tag.name}
+                    </button>
+                  ))}
+                </div>
+              </SectionCard>
 
-          <SectionCard title="页面说明">
-            <div className="space-y-3">
-              {meta.uploadSpec?.tips?.map((tip) => (
-                <div
-                  key={tip}
-                  className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3 text-sm text-muted-foreground"
-                >
-                  {tip}
+              <SectionCard title="页面说明">
+                <div className="space-y-3">
+                  {meta.uploadSpec?.tips?.map((tip) => (
+                    <div
+                      key={tip}
+                      className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3 text-sm text-muted-foreground"
+                    >
+                      {tip}
+                    </div>
+                  )) ?? (
+                    <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
+                      当前页内容会在提交后回流到对应列表页。
+                    </div>
+                  )}
                 </div>
-              )) ?? (
-                <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
-                  当前页内容会在提交后回流到对应列表页。
-                </div>
-              )}
-            </div>
-          </SectionCard>
+              </SectionCard>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
@@ -810,12 +820,13 @@ export function MultiModalExportPage({ library, navigate }: MultiModalExportProp
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
       <PageHeader
         eyebrow={`${meta.eyebrow} > ${meta.exportTitle}`}
         title={meta.exportTitle}
         description={meta.exportDescription}
         badge="导出页"
+        className="mb-1"
         actions={
           <Button variant="outline" onClick={() => navigate({ to: meta.listPath })}>
             <ArrowLeft className="h-4 w-4" />
@@ -824,8 +835,8 @@ export function MultiModalExportPage({ library, navigate }: MultiModalExportProp
         }
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_360px]">
-        <div className="space-y-6">
+      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.3fr)_360px]">
+        <div className="flex min-h-0 flex-col gap-6">
           <SectionCard title="导出配置">
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="导出对象">
@@ -905,8 +916,12 @@ export function MultiModalExportPage({ library, navigate }: MultiModalExportProp
             </Card>
           ) : null}
 
-          <SectionCard title="导出结果预览">
-            <Table>
+          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <CardTitle>导出结果预览</CardTitle>
+            </CardHeader>
+            <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+            <Table className="min-w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead>导出来源</TableHead>
@@ -930,45 +945,53 @@ export function MultiModalExportPage({ library, navigate }: MultiModalExportProp
                 </TableRow>
               </TableBody>
             </Table>
-          </SectionCard>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="space-y-6">
-          <SectionCard title="上下文摘要">
-            <div className="space-y-3 text-sm">
-              <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3">
-                当前筛选结果：{filteredItems.length} 条
-              </div>
-              <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3">
-                当前勾选结果：{selectedItems.length} 条
-              </div>
-            </div>
-          </SectionCard>
-
-          <SectionCard title="导出历史与下载记录">
-            <div className="space-y-3">
-              {history.length ? (
-                history.map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium text-surface-900">{item.fileName}</p>
-                      <Badge>{item.format}</Badge>
-                    </div>
-                    <p className="mt-2 text-xs leading-6 text-muted-foreground">
-                      {item.exportedCount} 条 · {formatDateTime(item.createdAt)}
-                    </p>
+        <div className="min-h-0 pt-1">
+          <Card className="flex h-full min-h-0 flex-col overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <CardTitle>导出上下文与历史</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 min-h-0 space-y-5 overflow-y-auto p-5">
+              <SectionCard title="上下文摘要">
+                <div className="space-y-3 text-sm">
+                  <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3">
+                    当前筛选结果：{filteredItems.length} 条
                   </div>
-                ))
-              ) : (
-                <div className="rounded-[1rem] border border-dashed border-border/70 bg-surface-50 px-4 py-6 text-sm text-muted-foreground">
-                  当前阶段先预留 UI，首次导出后会写入本地历史记录。
+                  <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3">
+                    当前勾选结果：{selectedItems.length} 条
+                  </div>
                 </div>
-              )}
-            </div>
-          </SectionCard>
+              </SectionCard>
+
+              <SectionCard title="导出历史与下载记录">
+                <div className="space-y-3">
+                  {history.length ? (
+                    history.map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-medium text-surface-900">{item.fileName}</p>
+                          <Badge>{item.format}</Badge>
+                        </div>
+                        <p className="mt-2 text-xs leading-6 text-muted-foreground">
+                          {item.exportedCount} 条 · {formatDateTime(item.createdAt)}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-[1rem] border border-dashed border-border/70 bg-surface-50 px-4 py-6 text-sm text-muted-foreground">
+                      当前阶段先预留 UI，首次导出后会写入本地历史记录。
+                    </div>
+                  )}
+                </div>
+              </SectionCard>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
@@ -1055,12 +1078,13 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
       <PageHeader
         eyebrow="多模态知识库 > 知识库问答"
         title="知识库问答"
         description="支持自由问答、定向问答、多轮对话和结构化答案卡片。"
         badge="问答页"
+        className="mb-1"
         actions={
           <Button variant="outline" onClick={() => navigate({ to: "/knowledge/library" })}>
             <ArrowLeft className="h-4 w-4" />
@@ -1069,8 +1093,8 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
         }
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_360px]">
-        <div className="space-y-6">
+      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.35fr)_360px]">
+        <div className="flex min-h-0 flex-col gap-4">
           <SectionCard title="知识源选择">
             <div className="flex flex-wrap gap-3">
               {qaLibraryOptions.map((item) => {
@@ -1097,14 +1121,18 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                 );
               })}
             </div>
-            <p className="mt-4 text-sm text-muted-foreground">
+            <p className="mt-3 text-xs text-muted-foreground">
               {selectedSources.length
                 ? `已选择 ${selectedSources.length} 个知识源，问答结果将优先基于所选范围生成。`
                 : "当前未选择知识源，默认处于自由问答模式。"}
             </p>
           </SectionCard>
 
-          <SectionCard title="多轮对话">
+          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <CardTitle>多轮对话</CardTitle>
+            </CardHeader>
+            <CardContent className="min-h-0 flex-1 overflow-y-auto p-5">
             <div className="space-y-4">
               {messages.length ? (
                 messages.map((message) => (
@@ -1179,17 +1207,20 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                 </div>
               )}
             </div>
-          </SectionCard>
+            </CardContent>
+          </Card>
 
-          <SectionCard title="输入区">
+          <Card className="shrink-0">
+            <CardContent className="p-4">
             <Field label="问题输入">
               <Textarea
                 value={question}
                 placeholder="请输入问题，支持连续追问和上下文承接"
+                className="min-h-[88px]"
                 onChange={(event) => setQuestion(event.target.value)}
               />
             </Field>
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-3 flex flex-wrap gap-2">
               <Button onClick={sendQuestion}>
                 <Send className="h-4 w-4" />
                 发送
@@ -1201,38 +1232,46 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                 重置会话
               </Button>
             </div>
-          </SectionCard>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="space-y-6">
-          <SectionCard title="热门与推荐问题">
-            <div className="space-y-3">
-              {promptPool.slice(0, 6).map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className="w-full rounded-[1rem] border border-border/70 bg-white px-4 py-3 text-left text-sm text-surface-900"
-                  onClick={() => setQuestion(item.question)}
-                >
-                  {item.question}
-                </button>
-              ))}
-            </div>
-          </SectionCard>
+        <div className="min-h-0 pt-1">
+          <Card className="flex h-full min-h-0 flex-col overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <CardTitle>推荐与技巧</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 min-h-0 space-y-5 overflow-y-auto p-5">
+              <SectionCard title="热门与推荐问题">
+                <div className="space-y-3">
+                  {promptPool.slice(0, 6).map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="w-full rounded-[1rem] border border-border/70 bg-white px-4 py-3 text-left text-sm text-surface-900"
+                      onClick={() => setQuestion(item.question)}
+                    >
+                      {item.question}
+                    </button>
+                  ))}
+                </div>
+              </SectionCard>
 
-          <SectionCard title="提问技巧">
-            <div className="space-y-3 text-sm text-muted-foreground">
-              <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3">
-                尽量包含患者阶段、动作名称、疼痛变化或训练目标。
-              </div>
-              <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3">
-                选择一个或多个知识源后，可获得更定向的回答结果。
-              </div>
-              <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3">
-                支持连续追问，系统会保留当前会话上下文。
-              </div>
-            </div>
-          </SectionCard>
+              <SectionCard title="提问技巧">
+                <div className="space-y-3 text-sm text-muted-foreground">
+                  <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3">
+                    尽量包含患者阶段、动作名称、疼痛变化或训练目标。
+                  </div>
+                  <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3">
+                    选择一个或多个知识源后，可获得更定向的回答结果。
+                  </div>
+                  <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3">
+                    支持连续追问，系统会保留当前会话上下文。
+                  </div>
+                </div>
+              </SectionCard>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

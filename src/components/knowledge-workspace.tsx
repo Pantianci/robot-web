@@ -616,24 +616,6 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
           <DetailPanel
             title={`${meta.title}详情`}
             className="h-full"
-            footer={
-              selectedItem ? (
-                <>
-                  <SectionCard title="最近操作">
-                    <p className="text-sm leading-7 text-muted-foreground">
-                      {selectedItem.lastAction ?? `${formatDateTime(selectedItem.updatedAt)} 更新`}
-                    </p>
-                  </SectionCard>
-                  {selectedItem.preview ? (
-                    <SectionCard title="内容预览">
-                      <p className="text-sm leading-7 text-muted-foreground">
-                        {selectedItem.preview}
-                      </p>
-                    </SectionCard>
-                  ) : null}
-                </>
-              ) : null
-            }
           >
             {selectedItem ? (
               <>
@@ -696,31 +678,45 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
                     />
                   </SectionCard>
                 ) : null}
+
+                <SectionCard title="最近操作">
+                  <p className="text-sm leading-7 text-muted-foreground">
+                    {selectedItem.lastAction ?? `${formatDateTime(selectedItem.updatedAt)} 更新`}
+                  </p>
+                </SectionCard>
+
+                {selectedItem.preview ? (
+                  <SectionCard title="内容预览">
+                    <p className="text-sm leading-7 text-muted-foreground">
+                      {selectedItem.preview}
+                    </p>
+                  </SectionCard>
+                ) : null}
+
+                <SectionCard title="知识问答上下文">
+                  <div className="space-y-3">
+                    {qaContexts.length ? (
+                      qaContexts.slice(0, 4).map((item) => (
+                        <div
+                          key={item.id}
+                          className="rounded-[1.25rem] border border-border/70 bg-white px-4 py-3"
+                        >
+                          <p className="font-medium text-surface-900">{item.question}</p>
+                          <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                            {item.answer}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <EmptyState title="暂无问答上下文" description="后续可从知识库问答页回流到这里。" />
+                    )}
+                  </div>
+                </SectionCard>
               </>
             ) : (
               <EmptyState title="请选择一条内容" description="点击列表中的记录后，在此查看右侧固定详情区。" />
             )}
           </DetailPanel>
-
-            <Card className="border-border/60 bg-surface-50/75 shadow-none">
-              <CardHeader className="border-b border-border/60">
-                <CardTitle>知识问答上下文</CardTitle>
-              </CardHeader>
-            <CardContent className="space-y-3 pt-6">
-              {qaContexts.length ? (
-                qaContexts.slice(0, 4).map((item) => (
-                  <div key={item.id} className="rounded-[1.25rem] border border-border/70 bg-white px-4 py-3">
-                    <p className="font-medium text-surface-900">{item.question}</p>
-                    <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                      {item.answer}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <EmptyState title="暂无问答上下文" description="后续可从知识库问答页回流到这里。" />
-              )}
-            </CardContent>
-          </Card>
         </div>
       </div>
 
