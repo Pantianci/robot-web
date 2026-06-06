@@ -2,11 +2,10 @@ import { Link } from "@tanstack/react-router";
 import { Download, FileOutput, PencilLine } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
-import { useReportsQuery, useReviewReportMutation } from "@/lib/hooks";
+import { useReportsQuery } from "@/lib/hooks";
+import { readState, writeState } from "@/lib/storage";
 import { formatDateTime } from "@/lib/utils";
-import type { Report } from "@/lib/types";
 import { DetailPanel } from "@/components/detail-panel";
-import { DialogFormShell } from "@/components/dialog-form-shell";
 import { EmptyState } from "@/components/empty-state";
 import { Field } from "@/components/field";
 import { FilterBar } from "@/components/filter-bar";
@@ -25,20 +24,19 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 
 const pageSize = 8;
+const reportWorkspaceContextKey = "robot-web-prototype::report-workspace";
 
 export function ReportManagement() {
   const { data: reports = [] } = useReportsQuery();
-  const reviewMutation = useReviewReportMutation();
-  const [selectedId, setSelectedId] = useState<string | null>(reports[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    readState<{ reportId: string }>(reportWorkspaceContextKey)?.reportId ?? reports[0]?.id ?? null
+  );
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("全部");
   const [page, setPage] = useState(1);
-  const [open, setOpen] = useState(false);
   const [exportMessage, setExportMessage] = useState("");
-  const [draft, setDraft] = useState<Partial<Report>>({});
 
   const filtered = useMemo(
     () =>
@@ -73,28 +71,6 @@ export function ReportManagement() {
   const safePage = Math.min(page, totalPages);
   const paged = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
 
-  const openReview = () => {
-    if (!selected) {
-      return;
-    }
-    setDraft(selected);
-    setOpen(true);
-  };
-
-  const handleReview = async () => {
-    if (!selected) {
-      return;
-    }
-    await reviewMutation.mutateAsync({
-      id: selected.id,
-      patch: {
-        ...draft,
-        status: "已完成"
-      }
-    });
-    setOpen(false);
-  };
-
   const handleExport = async () => {
     const result = await api.exportReports(filtered.length);
     setExportMessage(
@@ -109,6 +85,14 @@ export function ReportManagement() {
     setStatusFilter("全部");
     setPage(1);
   };
+
+  useEffect(() => {
+    if (!selected) {
+      return;
+    }
+
+    writeState(reportWorkspaceContextKey, { reportId: selected.id });
+  }, [selected]);
 
   const metrics = [
     {
@@ -142,9 +126,11 @@ export function ReportManagement() {
         className="mb-1"
         actions={
           <>
-            <Button onClick={openReview}>
-              <PencilLine className="h-4 w-4" />
-              医生评价
+            <Button asChild>
+              <Link to="/patients/reports/review">
+                <PencilLine className="h-4 w-4" />
+                医生评价
+              </Link>
             </Button>
             <Button asChild variant="outline">
               <Link to="/patients/reports/export">
@@ -251,18 +237,18 @@ export function ReportManagement() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setSelectedId(item.id);
-                              setTimeout(openReview, 0);
-                            }}
-                          >
-                            <PencilLine className="h-4 w-4" />
-                            编辑
+                          <Button asChild variant="ghost" size="sm">
+                            <Link
+                              to="/patients/reports/review"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                writeState(reportWorkspaceContextKey, { reportId: item.id });
+                                setSelectedId(item.id);
+                              }}
+                            >
+                              <PencilLine className="h-4 w-4" />
+                              编辑
+                            </Link>
                           </Button>
                           <Button type="button" variant="ghost" size="sm">
                             <Download className="h-4 w-4" />
@@ -358,54 +344,6 @@ export function ReportManagement() {
           </DetailPanel>
         </div>
       </div>
-
-      <DialogFormShell
-        open={open}
-        onOpenChange={setOpen}
-        title="审核评估报告"
-        description="支持确认完成率、关节活动度变化、疼痛评分，并补充护士与医生评价。"
-        onSubmit={handleReview}
-        submitLabel="提交审核"
-      >
-        <div className="grid gap-4 md:grid-cols-3">
-          <Field label="完成率">
-            <Textarea
-              value={draft.completionRate ?? ""}
-              onChange={(event) => setDraft((current) => ({ ...current, completionRate: event.target.value }))}
-            />
-          </Field>
-          <Field label="关节活动度变化">
-            <Textarea
-              value={draft.romChange ?? ""}
-              onChange={(event) => setDraft((current) => ({ ...current, romChange: event.target.value }))}
-            />
-          </Field>
-          <Field label="疼痛评分">
-            <Textarea
-              value={draft.painScore ?? ""}
-              onChange={(event) => setDraft((current) => ({ ...current, painScore: event.target.value }))}
-            />
-          </Field>
-        </div>
-        <Field label="护士评价">
-          <Textarea
-            value={draft.nurseComment ?? ""}
-            onChange={(event) => setDraft((current) => ({ ...current, nurseComment: event.target.value }))}
-          />
-        </Field>
-        <Field label="医生评价">
-          <Textarea
-            value={draft.doctorComment ?? ""}
-            onChange={(event) => setDraft((current) => ({ ...current, doctorComment: event.target.value }))}
-          />
-        </Field>
-        <Field label="评估报告备注">
-          <Textarea
-            value={draft.note ?? ""}
-            onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value }))}
-          />
-        </Field>
-      </DialogFormShell>
     </div>
   );
 }

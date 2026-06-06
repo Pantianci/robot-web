@@ -93,6 +93,12 @@ type ExportDraft = {
   format: string;
 };
 
+type ExportReturnTo =
+  | "/patients/prescriptions"
+  | "/patients/plans"
+  | "/patients/current"
+  | "/patients/reports";
+
 const patientCreateDraftKey = "patients:create-page";
 const planCreateDraftKey = "patients:plan-create-page";
 const prescriptionCreateDraftKey = "patients:prescription-create-page";
@@ -102,6 +108,7 @@ const reportExportDraftKey = "patients:report-export-page";
 const currentActionCreateDraftKey = "patients:current-action-create-page";
 const currentActionExportDraftKey = "patients:current-action-export-page";
 const planExportDraftKey = "patients:plan-export-page";
+const reportWorkspaceContextKey = "robot-web-prototype::report-workspace";
 
 function resolveWorkspacePatient(
   patients: Patient[],
@@ -833,6 +840,7 @@ function ExportSubPage({
   title,
   description,
   draftKey,
+  returnTo,
   detailTitle,
   initialDraft,
   exportHint,
@@ -842,6 +850,7 @@ function ExportSubPage({
   title: string;
   description: string;
   draftKey: string;
+  returnTo: ExportReturnTo;
   detailTitle: string;
   initialDraft: ExportDraft;
   exportHint: string;
@@ -864,7 +873,7 @@ function ExportSubPage({
 
   const cancel = () => {
     clearDraft(draftKey);
-    navigate({ to: title.includes("评估报告") ? "/patients/reports" : "/patients/prescriptions" });
+    navigate({ to: returnTo });
   };
 
   return (
@@ -952,6 +961,7 @@ export function PrescriptionExportPage() {
       title="导出运动处方"
       description="支持按当前筛选结果或选中记录导出，并配置导出时间范围、对象和条件。"
       draftKey={prescriptionExportDraftKey}
+      returnTo="/patients/prescriptions"
       detailTitle="导出任务摘要"
       initialDraft={{
         exportScope: "当前筛选结果",
@@ -976,6 +986,7 @@ export function PlanExportPage() {
       title="导出方案"
       description="支持当前筛选结果或张三当前方案导出，并配置时间范围、导出对象和条件。"
       draftKey={planExportDraftKey}
+      returnTo="/patients/plans"
       detailTitle="导出任务摘要"
       initialDraft={{
         exportScope: "张三当前筛选结果",
@@ -1000,6 +1011,7 @@ export function CurrentActionExportPage() {
       title="导出单体动作"
       description="支持导出张三当前单体动作列表，并配置导出时间范围、对象和条件。"
       draftKey={currentActionExportDraftKey}
+      returnTo="/patients/current"
       detailTitle="导出任务摘要"
       initialDraft={{
         exportScope: "张三当前单体动作",
@@ -1021,7 +1033,12 @@ export function ReportReviewPage() {
   const navigate = useNavigate();
   const { data: reports = [] } = useReportsQuery();
   const reviewMutation = useReviewReportMutation();
-  const report = reports.find((item) => item.patientId === defaultPatientWorkspace.patientId) ?? reports[0] ?? null;
+  const reportWorkspace = readState<{ reportId: string }>(reportWorkspaceContextKey);
+  const report =
+    reports.find((item) => item.id === reportWorkspace?.reportId) ??
+    reports.find((item) => item.patientId === defaultPatientWorkspace.patientId) ??
+    reports[0] ??
+    null;
   const [draft, setDraft] = useState<ReportReviewDraft>(
     readDraft<ReportReviewDraft>(reviewDraftKey) ?? {
       completionRate: report?.completionRate ?? "92%",
@@ -1164,6 +1181,7 @@ export function ReportExportPage() {
       title="导出评估报告"
       description="支持当前筛选结果或选中记录导出，并配置时间范围、导出对象和条件。"
       draftKey={reportExportDraftKey}
+      returnTo="/patients/reports"
       detailTitle="导出任务摘要"
       initialDraft={{
         exportScope: "当前筛选结果",

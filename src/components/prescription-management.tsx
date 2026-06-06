@@ -428,9 +428,11 @@ export function PrescriptionManagement({
           新增运动处方
         </Link>
       </Button>
-      <Button variant="outline" onClick={handleExport}>
-        <FileOutput className="h-4 w-4" />
-        导出运动处方
+      <Button asChild variant="outline">
+        <Link to="/patients/prescriptions/export">
+          <FileOutput className="h-4 w-4" />
+          导出运动处方
+        </Link>
       </Button>
     </>
   );

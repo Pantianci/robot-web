@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Pencil, Plus, Trash2 } from "lucide-react";
-import { useCreatePatientMutation, useDeletePatientMutation, usePatientsQuery, useUpdatePatientMutation } from "@/lib/hooks";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { useDeletePatientMutation, usePatientsQuery, useUpdatePatientMutation } from "@/lib/hooks";
 import { defaultPatientWorkspace, patientWorkspaceContextKey } from "@/lib/patient-context";
 import { clearDraft, readDraft, readState, writeDraft, writeState } from "@/lib/storage";
 import { formatDateTime } from "@/lib/utils";
@@ -45,7 +45,6 @@ const emptyDraft: PatientDraft = {
 
 export function PatientManagement() {
   const { data: patients = [] } = usePatientsQuery();
-  const createMutation = useCreatePatientMutation();
   const updateMutation = useUpdatePatientMutation();
   const deleteMutation = useDeletePatientMutation();
 
@@ -59,7 +58,6 @@ export function PatientManagement() {
       defaultPatientWorkspace.patientId
   );
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"create" | "edit">("create");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [draft, setDraft] = useState<PatientDraft>(readDraft<PatientDraft>(patientDraftKey) ?? emptyDraft);
@@ -145,18 +143,10 @@ export function PatientManagement() {
     clearDraft(patientDraftKey);
   };
 
-  const openCreate = () => {
-    setMode("create");
-    setOpen(true);
-    const saved = readDraft<PatientDraft>(patientDraftKey) ?? emptyDraft;
-    setDraft(saved);
-  };
-
   const openEdit = () => {
     if (!selected) {
       return;
     }
-    setMode("edit");
     setDraft({
       name: selected.name,
       age: selected.age,
@@ -176,10 +166,7 @@ export function PatientManagement() {
       return;
     }
 
-    if (mode === "create") {
-      await createMutation.mutateAsync(draft);
-      resetDraft();
-    } else if (selected) {
+    if (selected) {
       await updateMutation.mutateAsync({ id: selected.id, patch: draft });
     }
     setOpen(false);
@@ -211,18 +198,12 @@ export function PatientManagement() {
         description="支持患者档案检索、右侧详情预览、新增档案与编辑删除操作。"
         className="mb-1"
         actions={
-          <>
-            <Button asChild variant="outline">
-              <Link to="/patients/base/create">
-                <ArrowRight className="h-4 w-4" />
-                进入新建页
-              </Link>
-            </Button>
-            <Button onClick={openCreate}>
+          <Button asChild>
+            <Link to="/patients/base/create">
               <Plus className="h-4 w-4" />
               新增档案
-            </Button>
-          </>
+            </Link>
+          </Button>
         }
       />
 
@@ -411,8 +392,8 @@ export function PatientManagement() {
       <DialogFormShell
         open={open}
         onOpenChange={setOpen}
-        title={mode === "create" ? "新增档案" : "编辑档案"}
-        description="表单支持草稿保存，下次进入会恢复已保留内容。"
+        title="编辑档案"
+        description="支持修改姓名、病种、阶段、设备机器人ID、病床号等信息，并可临时保存草稿。"
         onSubmit={handleSubmit}
       >
         <div className="grid gap-4 md:grid-cols-2">
