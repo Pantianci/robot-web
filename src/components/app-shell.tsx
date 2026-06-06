@@ -1,9 +1,4 @@
 import type { ReactNode } from "react";
-import {
-  BookCopy,
-  FileBarChart2,
-  LayoutGrid
-} from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -21,7 +16,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   康
                 </div>
                 <div>
-                  <p className="text-lg font-semibold">智慧康复机器人后台</p>
+                  <p className="text-lg font-semibold">智慧康复机器人</p>
                   <p className="text-xs text-white/65">康复原型管理平台</p>
                 </div>
               </div>
@@ -90,18 +85,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </aside>
 
-        <main className="min-w-0 lg:h-screen lg:overflow-y-auto">
-          <header className="sticky top-0 z-20 border-b border-white/60 bg-white/70 backdrop-blur">
-            <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 lg:px-8">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-surface-500">
-                  Robot Web Prototype
-                </p>
-                <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                  <LayoutGrid className="h-4 w-4" />
-                  40 页面结构原型 · TanStack Start + shadcn/ui + MSW
-                </p>
-              </div>
+        <main className="min-w-0 lg:flex lg:h-screen lg:flex-col lg:overflow-hidden">
+          <header className="shrink-0 border-b border-white/60 bg-white/75 backdrop-blur">
+            <div className="flex flex-wrap items-center justify-end gap-4 px-5 py-4 lg:px-8">
               <div className="flex items-center gap-3">
                 <Badge>通知 6</Badge>
                 <Badge className="bg-primary/10 text-primary">账号 李琴</Badge>
@@ -110,7 +96,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </header>
 
-          <div className="px-5 py-6 lg:px-8 lg:py-8">{children}</div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-6 lg:px-8 lg:py-6">
+            {children}
+          </div>
         </main>
       </div>
     </div>

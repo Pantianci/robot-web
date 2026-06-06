@@ -64,11 +64,12 @@ export function ReportManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
       <PageHeader
         eyebrow="患者档案管理 > 评估报告管理"
         title="评估报告管理"
         description="评估报告独立于患者 ID 检索，支持审核、导出和 AI 参考信息展示。"
+        className="mb-1"
         actions={
           <>
             <Button onClick={openReview}>审核评估报告</Button>
@@ -86,13 +87,13 @@ export function ReportManagement() {
         </Card>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_360px]">
-        <Card>
+      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.8fr)_360px]">
+        <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <CardHeader className="border-b border-border/60">
             <CardTitle>评估报告列表</CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            <Table>
+          <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+            <Table className="min-w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead>患者</TableHead>
@@ -134,7 +135,7 @@ export function ReportManagement() {
           </CardContent>
         </Card>
 
-        <DetailPanel title="评估报告详情">
+        <DetailPanel title="评估报告详情" className="h-full pt-1">
           {selected ? (
             <>
               <PropertyList

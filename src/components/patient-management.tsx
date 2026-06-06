@@ -117,11 +117,12 @@ export function PatientManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
       <PageHeader
         eyebrow="患者档案管理 > 基础档案"
         title="基础档案"
         description="支持患者档案检索、右侧详情预览、新增档案与编辑删除操作。"
+        className="mb-1"
         actions={
           <Button onClick={openCreate}>
             <Plus className="h-4 w-4" />
@@ -159,8 +160,8 @@ export function PatientManagement() {
         </Field>
       </FilterBar>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_360px]">
-        <Card>
+      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.8fr)_360px]">
+        <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between border-b border-border/60">
             <CardTitle>患者列表</CardTitle>
             {selected ? (
@@ -175,9 +176,9 @@ export function PatientManagement() {
               </div>
             ) : null}
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="flex min-h-0 flex-1 flex-col p-0">
             {filtered.length ? (
-              <Table>
+              <Table className="min-w-full">
                 <TableHeader>
                   <TableRow>
                     <TableHead>患者ID</TableHead>
@@ -218,7 +219,7 @@ export function PatientManagement() {
           </CardContent>
         </Card>
 
-        <DetailPanel title="患者档案">
+        <DetailPanel title="患者档案" className="h-full pt-1">
           {selected ? (
             <>
               <PropertyList

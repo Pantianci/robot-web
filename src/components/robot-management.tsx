@@ -82,11 +82,12 @@ export function RobotManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
       <PageHeader
         eyebrow="机器人管理 > 机器人列表"
         title="机器人列表"
         description="管理机器人设备检索、概况卡片、列表和详情页预览。"
+        className="mb-1"
         actions={
           <Button onClick={() => setOpen(true)}>
             <Plus className="h-4 w-4" />
@@ -136,14 +137,14 @@ export function RobotManagement() {
         <MetricCard label="预警机器人" value={warningCount} hint="建议优先处理" />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_360px]">
-        <Card>
+      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.8fr)_360px]">
+        <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <CardHeader className="border-b border-border/60">
             <CardTitle>机器人列表</CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="flex min-h-0 flex-1 flex-col p-0">
             {filtered.length ? (
-              <Table>
+              <Table className="min-w-full">
                 <TableHeader>
                   <TableRow>
                     <TableHead>机器人ID</TableHead>
@@ -180,7 +181,7 @@ export function RobotManagement() {
           </CardContent>
         </Card>
 
-        <DetailPanel title="机器人概况">
+        <DetailPanel title="机器人概况" className="h-full pt-1">
           {selected ? (
             <>
               <PropertyList

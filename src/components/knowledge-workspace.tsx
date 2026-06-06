@@ -282,11 +282,12 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
   ).length;
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
       <PageHeader
         eyebrow={meta.eyebrow}
         title={meta.title}
         description={meta.listDescription}
+        className="mb-1"
         actions={
           <>
             {meta.aiActionLabel ? (
@@ -447,9 +448,9 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
         </Card>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.9fr)_400px]">
-        <div className="space-y-6">
-          <Card>
+      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.9fr)_400px]">
+        <div className="flex min-h-0 flex-col">
+          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between border-b border-border/60">
               <div>
                 <CardTitle>内容列表</CardTitle>
@@ -474,10 +475,10 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="flex min-h-0 flex-1 flex-col p-0">
               {pagedItems.length ? (
                 <>
-                  <Table>
+                  <Table className="min-w-full">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-12">选择</TableHead>
@@ -550,7 +551,7 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
                     </TableBody>
                   </Table>
 
-                  <div className="flex flex-col gap-3 border-t border-border/60 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="shrink-0 flex flex-col gap-3 border-t border-border/60 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
                     <div className="text-sm text-muted-foreground">
                       第 {safePage} / {totalPages} 页
                     </div>
@@ -611,9 +612,10 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
 
         </div>
 
-        <div className="space-y-6">
+        <div className="min-h-0 pt-1">
           <DetailPanel
-            title="内容详情"
+            title={`${meta.title}详情`}
+            className="h-full"
             footer={
               selectedItem ? (
                 <>
@@ -700,10 +702,10 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
             )}
           </DetailPanel>
 
-          <Card>
-            <CardHeader className="border-b border-border/60">
-              <CardTitle>知识问答上下文</CardTitle>
-            </CardHeader>
+            <Card className="border-border/60 bg-surface-50/75 shadow-none">
+              <CardHeader className="border-b border-border/60">
+                <CardTitle>知识问答上下文</CardTitle>
+              </CardHeader>
             <CardContent className="space-y-3 pt-6">
               {qaContexts.length ? (
                 qaContexts.slice(0, 4).map((item) => (

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 export function PageHeader({
@@ -6,16 +7,26 @@ export function PageHeader({
   title,
   description,
   actions,
-  badge
+  badge,
+  sticky = true,
+  className
 }: {
   eyebrow: string;
   title: string;
   description: string;
   actions?: ReactNode;
   badge?: string;
+  sticky?: boolean;
+  className?: string;
 }) {
   return (
-    <div className="rounded-[1.75rem] border border-white/80 bg-gradient-to-r from-surface-100 to-white px-6 py-6 shadow-soft">
+    <div
+      className={cn(
+        "rounded-[1.75rem] border border-white/85 bg-[linear-gradient(90deg,rgba(241,247,255,0.96),rgba(255,255,255,0.96))] px-6 py-6 shadow-soft backdrop-blur",
+        sticky && "sticky top-0 z-20 shrink-0",
+        className
+      )}
+    >
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
           <p className="text-sm font-medium text-surface-700">{eyebrow}</p>

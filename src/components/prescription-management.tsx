@@ -163,11 +163,12 @@ export function PrescriptionManagement({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
       <PageHeader
         eyebrow="患者档案管理 > 康复方案 / 处方列表"
         title="康复方案与运动处方"
         description="按文档要求还原康复方案列表、当前处方和运动处方新增流，并保留 AI 参考位。"
+        className="mb-1"
       />
 
       {exportMessage ? (
@@ -176,18 +177,19 @@ export function PrescriptionManagement({
         </Card>
       ) : null}
 
-      <Tabs defaultValue={initialTab}>
-        <TabsList>
+      <Tabs defaultValue={initialTab} className="flex min-h-0 flex-1 flex-col">
+        <TabsList className="shrink-0 self-start">
           <TabsTrigger value="plans">康复方案</TabsTrigger>
           <TabsTrigger value="current">当前处方</TabsTrigger>
           <TabsTrigger value="prescriptions">处方列表</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="plans" className="space-y-6">
+        <TabsContent value="plans" className="mt-6 flex min-h-0 flex-1 flex-col gap-6">
           <PageHeader
             eyebrow="患者档案管理 > 康复方案"
             title="康复方案"
             description="方案以最近操作时间排序，右侧显示详情和 AI 推荐文案。"
+            className="mb-1"
             actions={
               <>
                 <Button variant="secondary">
@@ -206,13 +208,13 @@ export function PrescriptionManagement({
             }
           />
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_360px]">
-            <Card>
+          <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.8fr)_360px]">
+            <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <CardHeader className="border-b border-border/60">
                 <CardTitle>方案列表</CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
-                <Table>
+              <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+                <Table className="min-w-full">
                   <TableHeader>
                     <TableRow>
                       <TableHead>患者</TableHead>
@@ -246,7 +248,7 @@ export function PrescriptionManagement({
               </CardContent>
             </Card>
 
-            <DetailPanel title="方案详情">
+            <DetailPanel title="方案详情" className="h-full pt-1">
               {selectedPlan ? (
                 <>
                   <PropertyList
@@ -277,15 +279,15 @@ export function PrescriptionManagement({
           </div>
         </TabsContent>
 
-        <TabsContent value="current">
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_360px]">
-            <Card>
+        <TabsContent value="current" className="mt-6 flex min-h-0 flex-1 flex-col">
+          <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.8fr)_360px]">
+            <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <CardHeader className="border-b border-border/60">
                 <CardTitle>当前处方动作列表</CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
+              <CardContent className="flex min-h-0 flex-1 flex-col p-0">
                 {linkedActions.length ? (
-                  <Table>
+                  <Table className="min-w-full">
                     <TableHeader>
                       <TableRow>
                         <TableHead>动作</TableHead>
@@ -315,7 +317,7 @@ export function PrescriptionManagement({
               </CardContent>
             </Card>
 
-            <DetailPanel title="当前处方详情">
+            <DetailPanel title="当前处方详情" className="h-full pt-1">
               {linkedActions[0] ? (
                 <PropertyList
                   items={[
@@ -332,11 +334,12 @@ export function PrescriptionManagement({
           </div>
         </TabsContent>
 
-        <TabsContent value="prescriptions" className="space-y-6">
+        <TabsContent value="prescriptions" className="mt-6 flex min-h-0 flex-1 flex-col gap-6">
           <PageHeader
             eyebrow="患者档案管理 > 处方列表管理"
             title="运动处方列表"
             description="支持 AI 生成处方、新增运动处方和导出处方，右侧详情包含动作参数和视频信息。"
+            className="mb-1"
             actions={
               <>
                 <Button variant="secondary">
@@ -355,13 +358,13 @@ export function PrescriptionManagement({
             }
           />
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_360px]">
-            <Card>
+          <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.8fr)_360px]">
+            <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <CardHeader className="border-b border-border/60">
                 <CardTitle>处方列表</CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
-                <Table>
+              <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+                <Table className="min-w-full">
                   <TableHeader>
                     <TableRow>
                       <TableHead>患者</TableHead>
@@ -403,7 +406,7 @@ export function PrescriptionManagement({
               </CardContent>
             </Card>
 
-            <DetailPanel title="当前处方详情">
+            <DetailPanel title="当前处方详情" className="h-full pt-1">
               {selectedPrescription ? (
                 <>
                   <PropertyList
