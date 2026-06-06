@@ -34,10 +34,24 @@ export function AppShell({ children }: { children: ReactNode }) {
 
                 return (
                   <div key={group.label} className="space-y-2">
-                    <div className="flex items-center gap-2 px-3 text-sm font-semibold text-white/92">
-                      <Icon className="h-4 w-4 text-white/72" />
-                      <span>{group.label}</span>
-                    </div>
+                    <Link
+                      to={group.to}
+                      className="block"
+                      activeOptions={{ exact: group.to === "/" }}
+                      activeProps={{ className: "block" }}
+                    >
+                      {({ isActive }) => (
+                        <div
+                          className={cn(
+                            "flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold text-white/92 transition hover:bg-white/8 hover:text-white",
+                            isActive && "bg-white/12 text-white"
+                          )}
+                        >
+                          <Icon className="h-4 w-4 text-white/72" />
+                          <span>{group.label}</span>
+                        </div>
+                      )}
+                    </Link>
                     <div className="space-y-1">
                       {group.items.map((item) => (
                         <Link

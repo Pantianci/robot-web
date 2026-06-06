@@ -3,6 +3,7 @@ import {
   ClipboardList,
   FileBarChart2,
   Home,
+  type LucideIcon,
   MessageSquareQuote,
   MonitorCog,
   NotebookTabs,
@@ -11,14 +12,28 @@ import {
   Users2
 } from "lucide-react";
 
+type NavigationItem = {
+  to: string;
+  label: string;
+};
+
+type NavigationGroup = {
+  label: string;
+  to: string;
+  icon: LucideIcon;
+  items: readonly NavigationItem[];
+};
+
 export const navigationGroups = [
   {
     label: "首页概览",
+    to: "/",
     icon: Home,
     items: [{ to: "/", label: "首页概览" }]
   },
   {
     label: "多模态知识库",
+    to: "/knowledge/library",
     icon: BookCopy,
     items: [
       { to: "/knowledge/qa", label: "知识库问答" },
@@ -30,6 +45,7 @@ export const navigationGroups = [
   },
   {
     label: "患者档案管理",
+    to: "/patients/base",
     icon: Users2,
     items: [
       { to: "/patients/base", label: "基础档案" },
@@ -41,6 +57,7 @@ export const navigationGroups = [
   },
   {
     label: "标签管理",
+    to: "/tags/knowledge",
     icon: Tags,
     items: [
       { to: "/tags/knowledge", label: "康复知识标签库" },
@@ -51,13 +68,14 @@ export const navigationGroups = [
   },
   {
     label: "机器人管理",
+    to: "/robots/list",
     icon: MonitorCog,
     items: [
       { to: "/robots/list", label: "机器人列表" },
       { to: "/robots/detail", label: "机器人详情" }
     ]
   }
-] as const;
+] as const satisfies readonly NavigationGroup[];
 
 export const quickLinks = [
   { to: "/knowledge/library/create", label: "新增康复知识", icon: NotebookTabs },
