@@ -253,7 +253,7 @@ export function PatientCreatePage() {
             <CardHeader className="border-b border-border/60">
               <CardTitle>基础表单字段</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 p-5 md:grid-cols-2">
+            <CardContent className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-5 md:grid-cols-2">
               <Field label="姓名" required>
                 <Input value={draft.name} onChange={(event) => persist({ name: event.target.value })} />
               </Field>
@@ -445,7 +445,7 @@ export function PatientEditPage() {
           <CardHeader className="border-b border-border/60">
             <CardTitle>基础表单字段</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 p-5 md:grid-cols-2">
+          <CardContent className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-5 md:grid-cols-2">
             <Field label="姓名" required>
               <Input value={draft.name} onChange={(event) => persist({ name: event.target.value })} />
             </Field>
@@ -637,7 +637,7 @@ export function PlanCreatePage() {
             <CardHeader className="border-b border-border/60">
               <CardTitle>方案表单字段</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 p-5 md:grid-cols-2">
+            <CardContent className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-5 md:grid-cols-2">
               <Field label="患者姓名">
                 <Input value={patient?.name ?? defaultPatientWorkspace.patientName} disabled />
               </Field>
@@ -784,7 +784,7 @@ export function PlanEditPage() {
             <CardHeader className="border-b border-border/60">
               <CardTitle>方案表单字段</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 p-5 md:grid-cols-2">
+            <CardContent className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-5 md:grid-cols-2">
               <Field label="患者姓名">
                 <Input value={patient?.name ?? defaultPatientWorkspace.patientName} disabled />
               </Field>
@@ -966,7 +966,7 @@ export function PrescriptionCreatePage() {
             <CardHeader className="border-b border-border/60">
               <CardTitle>处方表单字段</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 p-5 md:grid-cols-2">
+            <CardContent className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-5 md:grid-cols-2">
               <Field label="患者姓名">
                 <Input value={patient?.name ?? defaultPatientWorkspace.patientName} disabled />
               </Field>
@@ -998,11 +998,11 @@ export function PrescriptionCreatePage() {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-border/70 shadow-none">
+          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border-border/70 shadow-none">
             <CardHeader className="border-b border-border/60">
               <CardTitle>各动作详情编辑</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 p-5">
+            <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
               {draft.movements.map((movement, index) => (
                 <div key={movement.id} className="grid gap-4 rounded-[1rem] border border-border/70 bg-surface-50 p-4 md:grid-cols-4">
                   <Field label="动作名称">
@@ -1150,7 +1150,7 @@ export function PrescriptionEditPage() {
             <CardHeader className="border-b border-border/60">
               <CardTitle>处方表单字段</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 p-5 md:grid-cols-2">
+            <CardContent className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-5 md:grid-cols-2">
               <Field label="患者姓名">
                 <Input value={patient?.name ?? defaultPatientWorkspace.patientName} disabled />
               </Field>
@@ -1176,11 +1176,11 @@ export function PrescriptionEditPage() {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-border/70 shadow-none">
+          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border-border/70 shadow-none">
             <CardHeader className="border-b border-border/60">
               <CardTitle>各动作详情编辑</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 p-5">
+            <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
               {draft.movements.map((movement, index) => (
                 <div key={movement.id} className="grid gap-4 rounded-[1rem] border border-border/70 bg-surface-50 p-4 md:grid-cols-4">
                   <Field label="动作名称">
@@ -1287,7 +1287,7 @@ export function CurrentActionCreatePage() {
             <CardHeader className="border-b border-border/60">
               <CardTitle>单体动作字段</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 p-5 md:grid-cols-2">
+            <CardContent className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-5 md:grid-cols-2">
               <Field label="动作名称">
                 <Input value={draft.title} onChange={(event) => persist({ title: event.target.value })} />
               </Field>
@@ -1405,7 +1405,7 @@ function ExportSubPage({
           <CardHeader className="border-b border-border/60">
             <CardTitle>导出配置</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 p-5 md:grid-cols-2">
+          <CardContent className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-5 md:grid-cols-2">
             <Field label="导出对象">
               <Input value={draft.exportScope} onChange={(event) => persist({ exportScope: event.target.value })} />
             </Field>
@@ -1615,7 +1615,7 @@ export function ReportReviewPage() {
           <CardHeader className="border-b border-border/60">
             <CardTitle>审核表单字段</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 p-5">
+          <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
             <div className="grid gap-4 md:grid-cols-3">
               <Field label="姓名">
                 <Input value={report?.patientName ?? defaultPatientWorkspace.patientName} disabled />
