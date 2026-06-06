@@ -131,7 +131,7 @@ export function RobotManagement() {
         </Field>
       </FilterBar>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="shrink-0 grid gap-4 md:grid-cols-3">
         <MetricCard label="在线机器人" value={onlineCount} hint="正常运行" />
         <MetricCard label="正常机器人" value={normalCount} hint="需要继续排班" />
         <MetricCard label="预警机器人" value={warningCount} hint="建议优先处理" />
@@ -145,7 +145,7 @@ export function RobotManagement() {
           <CardContent className="flex min-h-0 flex-1 flex-col p-0">
             {filtered.length ? (
               <Table className="min-w-full">
-                <TableHeader>
+                <TableHeader className="sticky top-0 z-10 bg-white">
                   <TableRow>
                     <TableHead>机器人ID</TableHead>
                     <TableHead>状态</TableHead>

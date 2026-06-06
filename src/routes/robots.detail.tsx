@@ -17,7 +17,7 @@ function RobotDetailPage() {
   const robot = useMemo(() => robots[0] ?? null, [robots]);
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
       <PageHeader
         eyebrow="机器人管理 > 机器人详情"
         title="机器人详情"
@@ -25,9 +25,9 @@ function RobotDetailPage() {
         badge="详情页"
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_360px]">
-        <div className="space-y-6">
-          <SectionCard title="设备概览">
+      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_360px]">
+        <div className="flex min-h-0 flex-col gap-6">
+          <SectionCard title="设备概览" className="shrink-0">
             {robot ? (
               <PropertyList
                 items={[
@@ -44,19 +44,28 @@ function RobotDetailPage() {
             )}
           </SectionCard>
 
-          <SectionCard title="训练数据">
-            <div className="space-y-3 text-sm text-muted-foreground">
+          <SectionCard title="训练数据" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto text-sm text-muted-foreground">
               <div className="rounded-2xl border border-border/70 bg-surface-50 px-4 py-3">
                 今日执行时长：46 分钟，完成 3 轮标准训练。
               </div>
               <div className="rounded-2xl border border-border/70 bg-surface-50 px-4 py-3">
                 历史训练 7 日平均完成率：83%，患者配合度稳定。
               </div>
+              <div className="rounded-2xl border border-border/70 bg-surface-50 px-4 py-3">
+                训练任务排程：上午 09:00 被动活动训练，下午 15:00 主动跟随训练。
+              </div>
+              <div className="rounded-2xl border border-border/70 bg-surface-50 px-4 py-3">
+                传感器采样稳定，末次关节阻力波动处于可接受范围。
+              </div>
+              <div className="rounded-2xl border border-border/70 bg-surface-50 px-4 py-3">
+                患者最近 3 次训练平均完成度 86%，中断率低于病区均值。
+              </div>
             </div>
           </SectionCard>
         </div>
 
-        <DetailPanel title="异常与备注">
+        <DetailPanel title="异常与备注" className="h-full pt-1">
           {robot ? (
             <>
               <SectionCard title="异常记录">
