@@ -19,6 +19,10 @@ function KnowledgeQaPage() {
         data[0]?.answer ??
         "当前原型将根据康复知识库内容返回摘要答案，后续可接入真实问答服务。"
       }
+      qaPairs={data.map((item) => ({
+        question: item.question,
+        answer: item.answer
+      }))}
     />
   );
 }
