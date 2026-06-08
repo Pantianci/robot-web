@@ -38,10 +38,11 @@ import {
   type MultiModalQaMessage
 } from "@/lib/multimodal";
 import { clearDraft, readDraft, readState, writeDraft, writeState } from "@/lib/storage";
-import type { KnowledgeItem, KnowledgeLibrary } from "@/lib/types";
+import type { KnowledgeItem, KnowledgeLibrary, QaContext, TagItem } from "@/lib/types";
 import { formatDateTime, generateId } from "@/lib/utils";
 import { CollapsibleSidePanel, CollapsibleSplitLayout } from "@/components/collapsible-side-panel";
 import { Field } from "@/components/field";
+import { FilterBar } from "@/components/filter-bar";
 import { PageHeader } from "@/components/page-header";
 import { SectionCard } from "@/components/section-card";
 import { Badge } from "@/components/ui/badge";
@@ -145,8 +146,179 @@ const qaLibraryOptions: Array<{ label: string; value: KnowledgeLibrary }> = [
   { label: "标准动作库", value: "motion" },
   { label: "动作序列库", value: "sequence" }
 ];
+const qaLibraries = qaLibraryOptions.map((item) => item.value);
+
+type QaTagSelection = Record<KnowledgeLibrary, string[]>;
 
 type QaMediaItem = NonNullable<MultiModalQaMessage["media"]>[number];
+
+function createDefaultQaTagSelection(): QaTagSelection {
+  return {
+    knowledge: [],
+    voice: [],
+    motion: [],
+    sequence: []
+  };
+}
+
+function hasSelectedQaTags(value: QaTagSelection) {
+  return qaLibraries.some((library) => value[library].length > 0);
+}
+
+function getSelectedQaLibraries(value: QaTagSelection) {
+  return qaLibraries.filter((library) => value[library].length > 0);
+}
+
+function getQaTagNames(tags: TagItem[], items: KnowledgeItem[]) {
+  return Array.from(new Set([...tags.map((tag) => tag.name), ...items.flatMap((item) => item.tags)])).filter(Boolean);
+}
+
+function normalizeQaSearchText(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function createQaContextFromItem(item: KnowledgeItem): QaContext {
+  if (item.library === "voice") {
+    return {
+      id: `qa-item-${item.id}`,
+      library: item.library,
+      question: item.standardQuestion ?? item.title,
+      answer: item.replies?.length ? `可返回：${item.replies.join("；")}` : item.description
+    };
+  }
+
+  if (item.library === "motion") {
+    return {
+      id: `qa-item-${item.id}`,
+      library: item.library,
+      question: `${item.actionName ?? item.title}怎么执行？`,
+      answer: [
+        item.description,
+        item.preview,
+        item.angle ? `角度：${item.angle}` : "",
+        item.durationMinutes ? `建议时长：${item.durationMinutes} 分钟` : "",
+        item.indication ? `适应症：${item.indication}` : "",
+        item.contraindication ? `禁忌症：${item.contraindication}` : ""
+      ]
+        .filter(Boolean)
+        .join("；")
+    };
+  }
+
+  if (item.library === "sequence") {
+    return {
+      id: `qa-item-${item.id}`,
+      library: item.library,
+      question: `${item.title}如何安排？`,
+      answer: [
+        item.goal,
+        item.sequenceSteps?.length ? `动作顺序：${item.sequenceSteps.join(" → ")}` : "",
+        item.durationMinutes ? `总时长：${item.durationMinutes} 分钟` : "",
+        item.description
+      ]
+        .filter(Boolean)
+        .join("；")
+    };
+  }
+
+  return {
+    id: `qa-item-${item.id}`,
+    library: item.library,
+    question: `${item.title}的康复建议是什么？`,
+    answer: item.preview ?? item.description
+  };
+}
+
+function qaContextMatchesItem(context: QaContext, item: KnowledgeItem) {
+  const contextText = normalizeQaSearchText(`${context.question} ${context.answer}`);
+  const tokens = [
+    item.title,
+    item.fileName,
+    item.actionName,
+    item.stage,
+    item.goal,
+    item.part,
+    item.standardQuestion,
+    ...(item.similarQuestions ?? []),
+    ...(item.sequenceSteps ?? []),
+    ...item.tags
+  ]
+    .filter(Boolean)
+    .map((token) => normalizeQaSearchText(String(token)))
+    .filter((token) => token.length >= 2);
+
+  return tokens.some((token) => contextText.includes(token) || token.includes(contextText.slice(0, 6)));
+}
+
+function buildQaCandidates({
+  library,
+  contexts,
+  items,
+  selectedTags
+}: {
+  library: KnowledgeLibrary;
+  contexts: QaContext[];
+  items: KnowledgeItem[];
+  selectedTags: string[];
+}) {
+  const scopedItems = selectedTags.length
+    ? items.filter((item) => selectedTags.some((tag) => item.tags.includes(tag)))
+    : items;
+  const scopedContexts = selectedTags.length
+    ? contexts.filter((context) => scopedItems.some((item) => qaContextMatchesItem(context, item)))
+    : contexts;
+  const merged = [...scopedContexts, ...scopedItems.map(createQaContextFromItem)];
+  const seen = new Set<string>();
+
+  return merged.filter((item) => {
+    const key = `${library}:${item.question}:${item.answer}`;
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
+function QaLibraryTagPicker({
+  label,
+  tags,
+  value,
+  onChange
+}: {
+  label: string;
+  tags: string[];
+  value: string[];
+  onChange: (nextValue: string[]) => void;
+}) {
+  const selectedTitle = value.length ? value.join("、") : "全部标签";
+
+  return (
+    <Field label={label}>
+      <select
+        className="native-select"
+        value=""
+        title={selectedTitle}
+        onChange={(event) => {
+          const tag = event.target.value;
+          if (!tag) {
+            return;
+          }
+
+          onChange(value.includes(tag) ? value.filter((item) => item !== tag) : [...value, tag]);
+        }}
+      >
+        <option value="">{tags.length ? (value.length ? `已选 ${value.length} 个标签` : "全部标签") : "暂无标签"}</option>
+        {tags.map((tag) => (
+          <option key={tag} value={tag}>
+            {value.includes(tag) ? `取消 ${tag}` : `选择 ${tag}`}
+          </option>
+        ))}
+      </select>
+    </Field>
+  );
+}
 
 const qaImageMediaExample: QaMediaItem = {
   id: "qa-media-image-shoulder",
@@ -1271,24 +1443,72 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
   const { data: voiceQa = [] } = useKnowledgeQaQuery("voice");
   const { data: motionQa = [] } = useKnowledgeQaQuery("motion");
   const { data: sequenceQa = [] } = useKnowledgeQaQuery("sequence");
+  const { data: knowledgeItems = [] } = useKnowledgeQuery("knowledge");
+  const { data: voiceItems = [] } = useKnowledgeQuery("voice");
+  const { data: motionItems = [] } = useKnowledgeQuery("motion");
+  const { data: sequenceItems = [] } = useKnowledgeQuery("sequence");
+  const { data: knowledgeTags = [] } = useKnowledgeTagsQuery("knowledge");
+  const { data: voiceTags = [] } = useKnowledgeTagsQuery("voice");
+  const { data: motionTags = [] } = useKnowledgeTagsQuery("motion");
+  const { data: sequenceTags = [] } = useKnowledgeTagsQuery("sequence");
   const [messages, setMessages] = useState<MultiModalQaMessage[]>(
     () => normalizeQaMessagesWithMediaExample(readState<MultiModalQaMessage[]>(qaStateKey))
   );
   const [question, setQuestion] = useState("");
-  const [selectedSources, setSelectedSources] = useState<KnowledgeLibrary[]>([]);
+  const [selectedQaTags, setSelectedQaTags] = useState<QaTagSelection>(() => createDefaultQaTagSelection());
   const [previewMedia, setPreviewMedia] = useState<QaMediaItem | null>(null);
 
-  const sourceMap = {
-    knowledge: knowledgeQa,
-    voice: voiceQa,
-    motion: motionQa,
-    sequence: sequenceQa
-  };
+  const qaTagOptionsByLibrary = useMemo(
+    () => ({
+      knowledge: getQaTagNames(knowledgeTags, knowledgeItems),
+      voice: getQaTagNames(voiceTags, voiceItems),
+      motion: getQaTagNames(motionTags, motionItems),
+      sequence: getQaTagNames(sequenceTags, sequenceItems)
+    }),
+    [knowledgeItems, knowledgeTags, motionItems, motionTags, sequenceItems, sequenceTags, voiceItems, voiceTags]
+  );
+
+  const qaCandidatesByLibrary = useMemo(
+    () => ({
+      knowledge: buildQaCandidates({
+        library: "knowledge",
+        contexts: knowledgeQa,
+        items: knowledgeItems,
+        selectedTags: selectedQaTags.knowledge
+      }),
+      voice: buildQaCandidates({
+        library: "voice",
+        contexts: voiceQa,
+        items: voiceItems,
+        selectedTags: selectedQaTags.voice
+      }),
+      motion: buildQaCandidates({
+        library: "motion",
+        contexts: motionQa,
+        items: motionItems,
+        selectedTags: selectedQaTags.motion
+      }),
+      sequence: buildQaCandidates({
+        library: "sequence",
+        contexts: sequenceQa,
+        items: sequenceItems,
+        selectedTags: selectedQaTags.sequence
+      })
+    }),
+    [knowledgeItems, knowledgeQa, motionItems, motionQa, selectedQaTags, sequenceItems, sequenceQa, voiceItems, voiceQa]
+  );
+
+  const hasTagFilters = hasSelectedQaTags(selectedQaTags);
+  const selectedTagCount = qaLibraries.reduce((count, library) => count + selectedQaTags[library].length, 0);
+  const selectedLibraries = hasTagFilters ? getSelectedQaLibraries(selectedQaTags) : [];
 
   const promptPool = useMemo(() => {
-    const pools = selectedSources.length ? selectedSources : qaLibraryOptions.map((item) => item.value);
-    return pools.flatMap((source) => sourceMap[source]).slice(0, 8);
-  }, [knowledgeQa, motionQa, selectedSources, sequenceQa, voiceQa]);
+    return qaLibraries
+      .flatMap((library) =>
+        hasTagFilters && selectedQaTags[library].length === 0 ? [] : qaCandidatesByLibrary[library]
+      )
+      .slice(0, 8);
+  }, [hasTagFilters, qaCandidatesByLibrary, selectedQaTags]);
 
   useEffect(() => {
     writeState(qaStateKey, messages);
@@ -1300,9 +1520,10 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
       return;
     }
 
-    const sources = selectedSources.length ? selectedSources : [];
-    const matchedAnswers = (selectedSources.length ? selectedSources : qaLibraryOptions.map((item) => item.value))
-      .flatMap((source) => sourceMap[source])
+    const activeLibraries = hasTagFilters ? selectedLibraries : qaLibraries;
+    const sources = hasTagFilters ? selectedLibraries : [];
+    const matchedAnswers = activeLibraries
+      .flatMap((library) => qaCandidatesByLibrary[library])
       .filter((item) => trimmed.includes(item.question.slice(0, 6)) || item.question.includes(trimmed.slice(0, 4)));
 
     const generatedMedia = getRequestedQaMedia(trimmed, matchedAnswers);
@@ -1310,7 +1531,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
       matchedAnswers[0]?.answer ??
       (generatedMedia.length
         ? "已根据当前项目里的患者处方场景理解生成需求，下面将按图片、视频分别返回 AI 生成结果。"
-        : "当前为自由问答模式，建议进一步限定知识源或补充患者阶段、动作名称等上下文信息。");
+        : "当前为自由问答模式，建议进一步限定库内标签或补充患者阶段、动作名称等上下文信息。");
 
     const assistantMessages: MultiModalQaMessage[] = generatedMedia.length
       ? [
@@ -1336,9 +1557,9 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
             createdAt: new Date().toISOString(),
             summary: matchedAnswers[0]?.answer ?? "基于当前问法给出摘要结论。",
             suggestion:
-              selectedSources.length > 0
-                ? "已优先基于所选知识源回答，可继续追问执行细节。"
-                : "当前未限定知识源，建议选择一个或多个知识库提高准确性。",
+              selectedTagCount > 0
+                ? "已按所选库标签限定数据范围，可继续追问执行细节。"
+                : "当前未限定标签，建议先选择库内标签提高准确性。",
             expertOpinion: "专家意见区用于沉淀标准建议和临床边界。",
             relatedResources: matchedAnswers.map((item) => item.question).slice(0, 3),
             feedback: null
@@ -1388,38 +1609,35 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
         sideWidthClassName="w-full xl:w-[360px]"
         main={
           <div className="flex min-h-0 flex-col gap-2">
-            <Card className="shrink-0 overflow-hidden">
-              <CardContent className="flex flex-wrap items-center gap-2 p-3">
-                <div className="flex min-w-0 flex-1 flex-wrap gap-2">
-                  {qaLibraryOptions.map((item) => {
-                    const active = selectedSources.includes(item.value);
-                    return (
-                      <button
-                        key={item.value}
-                        type="button"
-                        className={
-                          active
-                            ? "rounded-full bg-primary px-4 py-2 text-sm font-medium text-white"
-                            : "rounded-full border border-border/70 bg-white px-4 py-2 text-sm font-medium text-surface-700"
-                        }
-                        onClick={() =>
-                          setSelectedSources((current) =>
-                            current.includes(item.value)
-                              ? current.filter((value) => value !== item.value)
-                              : [...current, item.value]
-                          )
-                        }
-                      >
-                        {item.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <Button size="sm" variant="outline" onClick={() => setSelectedSources([])}>
-                  重置
-                </Button>
-              </CardContent>
-            </Card>
+            <FilterBar
+              singleLine
+              actions={
+                <>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setSelectedQaTags(createDefaultQaTagSelection())}
+                  >
+                    重置
+                  </Button>
+                  <Button>查询</Button>
+                </>
+              }
+            >
+              {qaLibraryOptions.map((item) => (
+                <QaLibraryTagPicker
+                  key={item.value}
+                  label={item.label}
+                  tags={qaTagOptionsByLibrary[item.value]}
+                  value={selectedQaTags[item.value]}
+                  onChange={(nextValue) =>
+                    setSelectedQaTags((current) => ({
+                      ...current,
+                      [item.value]: nextValue
+                    }))
+                  }
+                />
+              ))}
+            </FilterBar>
 
             <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <CardHeader className="shrink-0 border-b border-border/60 px-4 py-3">
@@ -1567,7 +1785,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                     尽量包含患者阶段、动作名称、疼痛变化或训练目标。
                   </div>
                   <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3">
-                    选择一个或多个知识源后，可获得更定向的回答结果。
+                    选择一个或多个库内标签后，可获得更定向的回答结果。
                   </div>
                   <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3">
                     支持连续追问，系统会保留当前会话上下文。
