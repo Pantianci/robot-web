@@ -1093,20 +1093,11 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
         }
       />
 
-      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.42fr)_360px]">
-        <div className="flex min-h-0 flex-col gap-3">
+      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1.42fr)_360px]">
+        <div className="flex min-h-0 flex-col gap-2">
           <Card className="shrink-0 overflow-hidden">
-            <CardContent className="space-y-3 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="text-sm font-semibold text-surface-900">知识源选择</p>
-                  <p className="text-xs text-muted-foreground">按知识源缩小问答范围，优先生成定向答案。</p>
-                </div>
-                <div className="rounded-full bg-surface-50 px-3 py-1 text-xs text-muted-foreground">
-                  {selectedSources.length ? `已选择 ${selectedSources.length} 个知识源` : "当前为自由问答模式"}
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
+            <CardContent className="flex flex-wrap items-center gap-2 p-3">
+              <div className="flex min-w-0 flex-1 flex-wrap gap-2">
                 {qaLibraryOptions.map((item) => {
                   const active = selectedSources.includes(item.value);
                   return (
@@ -1131,14 +1122,17 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                   );
                 })}
               </div>
+              <Button size="sm" variant="outline" onClick={() => setSelectedSources([])}>
+                重置
+              </Button>
             </CardContent>
           </Card>
 
           <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <CardHeader className="shrink-0 border-b border-border/60 px-5 py-4">
+            <CardHeader className="shrink-0 border-b border-border/60 px-4 py-3">
               <CardTitle>我要提问</CardTitle>
             </CardHeader>
-            <CardContent className="min-h-0 flex-1 overflow-y-auto p-4">
+            <CardContent className="min-h-0 flex-1 overflow-y-auto p-3">
               <div className="flex min-h-full flex-col gap-4">
                 {messages.length ? (
                   messages.map((message) => (
@@ -1219,26 +1213,26 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
           </Card>
 
           <Card className="shrink-0">
-            <CardContent className="space-y-3 p-3">
-              <Field label="问题输入">
+            <CardContent className="p-2">
+              <div className="relative">
                 <Textarea
                   value={question}
                   placeholder="请输入问题，支持连续追问和上下文承接"
-                  className="min-h-[68px] resize-none"
+                  className="min-h-[94px] resize-none rounded-[1.25rem] border-border/70 bg-white pb-14 pr-[15.5rem] pt-3"
                   onChange={(event) => setQuestion(event.target.value)}
                 />
-              </Field>
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" onClick={sendQuestion}>
-                  <Send className="h-4 w-4" />
-                  发送
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setQuestion("")}>
-                  清空输入
-                </Button>
-                <Button size="sm" variant="secondary" onClick={resetConversation}>
-                  重置会话
-                </Button>
+                <div className="absolute bottom-3 right-3 flex flex-wrap items-center justify-end gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setQuestion("")}>
+                    清空
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={resetConversation}>
+                    重置
+                  </Button>
+                  <Button size="sm" onClick={sendQuestion}>
+                    <Send className="h-4 w-4" />
+                    发送
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
