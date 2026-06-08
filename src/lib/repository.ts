@@ -10,6 +10,7 @@ import { readAppState, writeAppState } from "@/lib/storage";
 import type {
   AppDatabase,
   CarePathSeed,
+  CurrentAction,
   DashboardSeed,
   DashboardSummary,
   ExportResult,
@@ -35,6 +36,25 @@ const fallbackDatabase: AppDatabase = {
 
 const fallbackDashboard = dashboardSeed as DashboardSeed;
 
+function normalizeDatabase(database: AppDatabase): AppDatabase {
+  const next = structuredClone(database);
+
+  next.knowledge.items ??= fallbackDatabase.knowledge.items;
+  next.knowledge.tags ??= fallbackDatabase.knowledge.tags;
+  next.knowledge.qaContexts ??= fallbackDatabase.knowledge.qaContexts;
+  next.patients.items ??= fallbackDatabase.patients.items;
+  next.carePath.plans ??= fallbackDatabase.carePath.plans;
+  next.carePath.prescriptions ??= fallbackDatabase.carePath.prescriptions;
+  next.carePath.reports ??= fallbackDatabase.carePath.reports;
+  next.robots.items ??= fallbackDatabase.robots.items;
+
+  if (!Array.isArray(next.carePath.currentActions) || next.carePath.currentActions.length === 0) {
+    next.carePath.currentActions = fallbackDatabase.carePath.currentActions;
+  }
+
+  return next;
+}
+
 async function loadSeedFromApi<T>(endpoint: string, fallback: T) {
   if (!isDevelopment || typeof window === "undefined") {
     return fallback;
@@ -51,7 +71,9 @@ async function loadSeedFromApi<T>(endpoint: string, fallback: T) {
 async function ensureDatabase() {
   const stored = readAppState();
   if (stored) {
-    return stored;
+    const normalized = normalizeDatabase(stored);
+    writeAppState(normalized);
+    return normalized;
   }
 
   const [knowledge, patients, carePath, robots] = await Promise.all([
@@ -68,8 +90,9 @@ async function ensureDatabase() {
     robots
   };
 
-  writeAppState(seededDatabase);
-  return seededDatabase;
+  const normalized = normalizeDatabase(seededDatabase);
+  writeAppState(normalized);
+  return normalized;
 }
 
 async function updateDatabase(mutator: (database: AppDatabase) => AppDatabase) {
@@ -264,6 +287,21 @@ export async function updateRehabPlan(id: string, patch: Partial<RehabPlan>) {
 export async function getCurrentActions() {
   const database = await ensureDatabase();
   return database.carePath.currentActions;
+}
+
+export async function createCurrentAction(
+  input: Omit<CurrentAction, "id" | "updatedAt">
+) {
+  const next = await updateDatabase((database) => {
+    database.carePath.currentActions.unshift({
+      ...input,
+      id: generateId("action"),
+      updatedAt: new Date().toISOString()
+    });
+    return database;
+  });
+
+  return next.carePath.currentActions[0];
 }
 
 export async function getPrescriptions() {

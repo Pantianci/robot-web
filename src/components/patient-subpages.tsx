@@ -3,6 +3,7 @@ import { FileOutput, Save, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import {
+  useCreateCurrentActionMutation,
   useCreatePatientMutation,
   useCreatePlanMutation,
   useCreatePrescriptionMutation,
@@ -22,7 +23,7 @@ import {
   planWorkspaceContextKey,
   prescriptionWorkspaceContextKey
 } from "@/lib/patient-context";
-import { clearDraft, readDraft, readState, writeDraft } from "@/lib/storage";
+import { clearDraft, readDraft, readState, writeDraft, writeState } from "@/lib/storage";
 import { formatDateTime, generateId } from "@/lib/utils";
 import type {
   CurrentAction,
@@ -611,6 +612,11 @@ export function PlanCreatePage() {
       aiReference: draft.aiReference,
       status: "待同步"
     });
+    writeState(patientWorkspaceContextKey, {
+      selectedId: patient.id,
+      patientId: patient.id,
+      patientName: patient.name
+    });
     clearDraft(planCreateDraftKey);
     navigate({ to: "/patients/plans" });
   };
@@ -866,15 +872,25 @@ function PatientSummaryCard({
 
   return (
     <Card className="border-border/70 bg-white shadow-none">
-      <CardContent className="grid gap-4 p-5 md:grid-cols-5 xl:grid-cols-9">
-        {summary.map((item, index) => (
-          <div key={`${item.label}-${index}`} className={index === 0 ? "md:col-span-2 xl:col-span-2" : ""}>
-            <p className="text-xs text-muted-foreground">{item.label}</p>
-            <p className={index === 0 ? "mt-2 text-xl font-semibold text-surface-900" : "mt-2 text-sm font-medium text-surface-900"}>
-              {item.value}
-            </p>
-          </div>
-        ))}
+      <CardContent className="overflow-x-auto p-5">
+        <div className="flex min-w-max items-start gap-6 whitespace-nowrap">
+          {summary.map((item, index) => (
+            <div key={`${item.label}-${index}`} className="shrink-0">
+              <p className="text-xs text-muted-foreground">{item.label}</p>
+              <p
+                className={
+                  index === 0
+                    ? "mt-1 text-xl font-semibold text-surface-900"
+                    : index === 1
+                      ? "mt-1 text-base font-semibold text-surface-900"
+                      : "mt-1 text-sm font-medium text-surface-900"
+                    }
+              >
+                {item.value}
+              </p>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
@@ -939,6 +955,11 @@ export function PrescriptionCreatePage() {
       videoDuration: "15分30秒",
       frequency: draft.frequency,
       movements: draft.movements
+    });
+    writeState(patientWorkspaceContextKey, {
+      selectedId: patient.id,
+      patientId: patient.id,
+      patientName: patient.name
     });
     clearDraft(prescriptionCreateDraftKey);
     navigate({ to: "/patients/prescriptions" });
@@ -1244,6 +1265,7 @@ export function CurrentActionCreatePage() {
   const { data: plans = [] } = usePlansQuery();
   const patient = resolveWorkspacePatient(patients, plans) ?? patients[0] ?? null;
   const summaryPlan = plans.find((item) => item.patientId === patient?.id) ?? null;
+  const createMutation = useCreateCurrentActionMutation();
   const [draft, setDraft] = useState<CurrentActionCreateDraft>(
     readDraft<CurrentActionCreateDraft>(currentActionCreateDraftKey) ?? {
       title: "肩外展训练",
@@ -1253,6 +1275,7 @@ export function CurrentActionCreatePage() {
       note: "动作幅度控制 30-60 度，避免代偿"
     }
   );
+  const [errorMessage, setErrorMessage] = useState("");
 
   const persist = (patch: Partial<CurrentActionCreateDraft>) => {
     const next = { ...draft, ...patch };
@@ -1265,10 +1288,41 @@ export function CurrentActionCreatePage() {
     navigate({ to: "/patients/current" });
   };
 
-  const submit = () => {
+  const submit = async () => {
+    if (!patient || !draft.title || !draft.part || !draft.duration || !draft.intensity) {
+      setErrorMessage("无法提交，请补全动作名称、部位、时间和强度。");
+      return;
+    }
+
+    await createMutation.mutateAsync({
+      patientId: patient.id,
+      title: draft.title,
+      part: draft.part,
+      duration: draft.duration,
+      intensity: draft.intensity,
+      note: draft.note
+    });
+    writeState(patientWorkspaceContextKey, {
+      selectedId: patient.id,
+      patientId: patient.id,
+      patientName: patient.name
+    });
     clearDraft(currentActionCreateDraftKey);
     navigate({ to: "/patients/current" });
   };
+
+  const previewAction: CurrentAction | null = patient
+    ? {
+        id: "action-preview",
+        patientId: patient.id,
+        title: draft.title || "肩外展训练",
+        part: draft.part || "肩关节",
+        duration: draft.duration || "06:00",
+        intensity: draft.intensity || "中等",
+        note: draft.note || "动作幅度控制 30-60 度，避免代偿",
+        updatedAt: new Date().toISOString()
+      }
+    : null;
 
   return (
     <SubPageLayout
@@ -1281,7 +1335,7 @@ export function CurrentActionCreatePage() {
             patient={patient}
             plan={summaryPlan}
             prescription={null}
-            currentAction={null}
+            currentAction={previewAction}
           />
           <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <CardHeader className="border-b border-border/60">
@@ -1336,7 +1390,11 @@ export function CurrentActionCreatePage() {
       bottom={
         <>
           <div>
-            <p className="text-sm text-primary">原型阶段先保留页面结构和字段编辑，不额外落本地动作数据。</p>
+            {errorMessage ? (
+              <p className="text-sm text-rose-700">{errorMessage}</p>
+            ) : (
+              <p className="text-sm text-primary">提交后会回到当前处方列表，并展示刚新增的动作。</p>
+            )}
           </div>
           <div className="flex gap-3">
             <Button variant="secondary" onClick={() => writeDraft(currentActionCreateDraftKey, draft)}>

@@ -1,6 +1,7 @@
 import {
   buildDashboard,
   createExportResult,
+  createCurrentAction,
   createKnowledgeItem,
   createKnowledgeTag,
   deleteKnowledgeTag,
@@ -27,6 +28,7 @@ import {
   updateRehabPlan
 } from "@/lib/repository";
 import type {
+  CurrentAction,
   KnowledgeItem,
   KnowledgeLibrary,
   Patient,
@@ -58,6 +60,7 @@ export const api = {
   createRehabPlan,
   updateRehabPlan,
   getCurrentActions,
+  createCurrentAction,
   getPrescriptions,
   createPrescription,
   updatePrescription,
@@ -79,6 +82,7 @@ export type CreateTagInput = Omit<TagItem, "id" | "library" | "updatedAt">;
 export type UpdateTagInput = Partial<TagItem>;
 export type CreatePatientInput = Omit<Patient, "id" | "createdAt">;
 export type CreatePlanInput = Omit<RehabPlan, "id" | "updatedAt">;
+export type CreateCurrentActionInput = Omit<CurrentAction, "id" | "updatedAt">;
 export type CreatePrescriptionInput = Omit<Prescription, "id" | "issuedAt">;
 export type ReviewReportInput = Partial<Report>;
 export type CreateRobotInput = Omit<Robot, "lastWorkAt">;

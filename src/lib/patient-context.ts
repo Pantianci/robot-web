@@ -35,13 +35,13 @@ export function buildPatientSummary(
 ) {
   return [
     { label: "患者姓名", value: patient?.name ?? defaultPatientWorkspace.patientName },
+    { label: "当前动作", value: currentAction?.title ?? "肩外展训练" },
     { label: "患者ID", value: patient?.id ?? defaultPatientWorkspace.patientId },
     { label: "阶段", value: patient?.stage ?? plan?.stage ?? prescription?.stage ?? "术后早期" },
     { label: "病种", value: patient?.diagnosis ?? plan?.type ?? "肩袖损伤" },
     { label: "设备", value: patient?.robotId ?? plan?.deviceId ?? "设备012" },
     { label: "病床号", value: patient?.bedNo ?? "12床" },
     { label: "护士", value: plan?.nurse ?? "周宁" },
-    { label: "医生", value: plan?.doctor ?? prescription?.doctor ?? "李明" },
-    { label: "当前动作", value: currentAction?.title ?? "肩外展训练" }
+    { label: "医生", value: plan?.doctor ?? prescription?.doctor ?? "李明" }
   ];
 }

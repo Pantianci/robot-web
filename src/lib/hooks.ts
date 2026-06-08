@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import type {
+  CreateCurrentActionInput,
   CreateKnowledgeInput,
   CreatePatientInput,
   CreatePlanInput,
@@ -183,6 +184,16 @@ export function useCurrentActionsQuery() {
   return useQuery({
     queryKey: queryKeys.currentActions,
     queryFn: api.getCurrentActions
+  });
+}
+
+export function useCreateCurrentActionMutation() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateCurrentActionInput) => api.createCurrentAction(input),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.currentActions });
+    }
   });
 }
 

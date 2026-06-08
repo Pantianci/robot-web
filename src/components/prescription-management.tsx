@@ -59,6 +59,23 @@ function resolveWorkspacePatient(
   );
 }
 
+function buildExampleActionsFromPrescription(prescription: Prescription | null): CurrentAction[] {
+  if (!prescription) {
+    return [];
+  }
+
+  return prescription.movements.map((movement, index) => ({
+    id: `example-${prescription.id}-${movement.id}`,
+    patientId: prescription.patientId,
+    title: movement.name,
+    part: movement.name.includes("肩") ? "肩关节" : "训练部位",
+    duration: movement.duration,
+    intensity: index === 0 ? "中等" : "低",
+    note: `示例动作：${movement.name}，角度 ${movement.angle}，次数 ${movement.repetitions}。`,
+    updatedAt: prescription.issuedAt
+  }));
+}
+
 function PatientSummaryCard({
   patient,
   plan,
@@ -74,15 +91,25 @@ function PatientSummaryCard({
 
   return (
     <Card className="border-border/70 bg-white shadow-none">
-      <CardContent className="grid gap-4 p-5 md:grid-cols-5 xl:grid-cols-9">
-        {summary.map((item, index) => (
-          <div key={`${item.label}-${index}`} className={index === 0 ? "md:col-span-2 xl:col-span-2" : ""}>
-            <p className="text-xs text-muted-foreground">{item.label}</p>
-            <p className={index === 0 ? "mt-2 text-xl font-semibold text-surface-900" : "mt-2 text-sm font-medium text-surface-900"}>
-              {item.value}
-            </p>
-          </div>
-        ))}
+      <CardContent className="overflow-x-auto p-5">
+        <div className="flex min-w-max items-start gap-6 whitespace-nowrap">
+          {summary.map((item, index) => (
+            <div key={`${item.label}-${index}`} className="shrink-0">
+              <p className="text-xs text-muted-foreground">{item.label}</p>
+              <p
+                className={
+                  index === 0
+                    ? "mt-1 text-xl font-semibold text-surface-900"
+                    : index === 1
+                      ? "mt-1 text-base font-semibold text-surface-900"
+                      : "mt-1 text-sm font-medium text-surface-900"
+                    }
+              >
+                {item.value}
+              </p>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
@@ -150,13 +177,6 @@ export function PrescriptionManagement({
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
     [patient?.id, plans]
   );
-  const patientActions = useMemo(
-    () =>
-      currentActions
-        .filter((item) => item.patientId === patient?.id)
-        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
-    [currentActions, patient?.id]
-  );
   const patientPrescriptions = useMemo(
     () =>
       prescriptions
@@ -164,6 +184,17 @@ export function PrescriptionManagement({
         .sort((a, b) => new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime()),
     [patient?.id, prescriptions]
   );
+  const patientActions = useMemo(() => {
+    const records = currentActions
+      .filter((item) => item.patientId === patient?.id)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+    if (records.length) {
+      return records;
+    }
+
+    return buildExampleActionsFromPrescription(patientPrescriptions[0] ?? null);
+  }, [currentActions, patient?.id, patientPrescriptions]);
 
   const [keyword, setKeyword] = useState("");
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(patientPlans[0]?.id ?? null);
