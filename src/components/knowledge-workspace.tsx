@@ -322,6 +322,7 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
       />
 
       <FilterBar
+        singleLine
         actions={
           <>
             <Button

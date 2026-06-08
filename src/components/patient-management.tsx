@@ -167,6 +167,7 @@ export function PatientManagement() {
       />
 
       <FilterBar
+        singleLine
         actions={
           <>
             <Button variant="secondary" onClick={resetFilters}>
