@@ -19,20 +19,19 @@ export function CollapsibleSidePanel({
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
   return (
-    <div className={cn("flex min-h-0 h-full items-stretch gap-3", className)}>
+    <div className={cn("relative min-h-0", className)}>
       <Button
         type="button"
         variant="outline"
-        className="flex h-full w-11 shrink-0 flex-col items-center justify-center gap-3 rounded-[1.25rem] border-border/70 bg-white px-2 py-4 text-surface-600 shadow-none hover:bg-surface-50"
+        size="icon"
+        aria-label={collapsed ? `展开${label}` : `折叠${label}`}
+        className="absolute right-2 top-2 z-20 h-8 w-8 rounded-full border-border/70 bg-white text-surface-600 shadow-sm hover:bg-surface-50"
         onClick={() => setCollapsed((current) => !current)}
       >
         {collapsed ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-        <span className="-rotate-90 whitespace-nowrap text-[11px] font-medium tracking-[0.2em] text-muted-foreground">
-          {label}
-        </span>
       </Button>
 
-      {!collapsed ? <div className={cn("min-h-0 flex-1", widthClassName)}>{children}</div> : null}
+      {!collapsed ? <div className={cn("min-h-0 [&>*]:h-full [&>*]:min-h-0", widthClassName)}>{children}</div> : null}
     </div>
   );
 }
@@ -54,16 +53,41 @@ export function CollapsibleSplitLayout({
   sideWidthClassName?: string;
   defaultCollapsed?: boolean;
 }) {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
+
   return (
-    <div className={cn("grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_auto]", className)}>
-      <div className={cn("min-h-0", mainClassName)}>{main}</div>
-      <CollapsibleSidePanel
-        label={label}
-        widthClassName={sideWidthClassName}
-        defaultCollapsed={defaultCollapsed}
+    <div className={cn("relative min-h-0 flex-1", className)}>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        aria-label={collapsed ? `展开${label}` : `折叠${label}`}
+        className="absolute right-2 top-2 z-20 h-8 w-8 rounded-full border-border/70 bg-white text-surface-600 shadow-sm hover:bg-surface-50"
+        onClick={() => setCollapsed((current) => !current)}
       >
-        {side}
-      </CollapsibleSidePanel>
+        {collapsed ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+      </Button>
+
+      <div className="flex min-h-0 h-full flex-col gap-4 xl:flex-row">
+        <div
+          className={cn(
+            "min-h-0 min-w-0 flex-1 [&>*]:h-full [&>*]:min-h-0",
+            mainClassName
+          )}
+        >
+          {main}
+        </div>
+        {!collapsed ? (
+          <div
+            className={cn(
+              "min-h-0 shrink-0 [&>*]:h-full [&>*]:min-h-0",
+              sideWidthClassName
+            )}
+          >
+            {side}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
