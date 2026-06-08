@@ -48,6 +48,13 @@ export type MultiModalQaMessage = {
   summary?: string;
   suggestion?: string;
   expertOpinion?: string;
+  media?: Array<{
+    id: string;
+    type: "image" | "video";
+    title: string;
+    description: string;
+    meta: string;
+  }>;
   relatedResources?: string[];
   feedback?: "up" | "down" | null;
 };

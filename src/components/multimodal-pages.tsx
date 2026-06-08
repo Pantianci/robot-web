@@ -4,7 +4,9 @@ import {
   CheckCircle2,
   FileUp,
   GripVertical,
+  ImageIcon,
   MessageSquareDashed,
+  PlayCircle,
   Plus,
   Send,
   ThumbsDown,
@@ -136,6 +138,126 @@ const qaLibraryOptions: Array<{ label: string; value: KnowledgeLibrary }> = [
   { label: "标准动作库", value: "motion" },
   { label: "动作序列库", value: "sequence" }
 ];
+
+const qaMediaExampleItems: NonNullable<MultiModalQaMessage["media"]> = [
+  {
+    id: "qa-media-image-shoulder",
+    type: "image",
+    title: "肩外展角度标注图",
+    description: "AI 回复可以把动作角度、发力方向和风险点整理成图片预览。",
+    meta: "图片回复示例 · PNG · 1280 x 720"
+  },
+  {
+    id: "qa-media-video-ankle",
+    type: "video",
+    title: "踝泵训练标准动作视频",
+    description: "AI 回复可以返回动作教学视频，展示节奏、次数和安全提示。",
+    meta: "视频回复示例 · MP4 · 00:42"
+  }
+];
+
+const defaultQaMessages: MultiModalQaMessage[] = [
+  {
+    id: "qa-example-user-media",
+    role: "user",
+    text: "AI 回复可以返回图片和视频吗？",
+    sources: ["knowledge", "motion"],
+    createdAt: "2026-06-08T08:00:00.000+08:00"
+  },
+  {
+    id: "qa-example-assistant-media",
+    role: "assistant",
+    text: "可以。输入框当前只支持文本提问，但 AI 回复可以根据知识库返回图片、视频和结构化说明。下面是示例：",
+    sources: ["knowledge", "motion"],
+    createdAt: "2026-06-08T08:00:04.000+08:00",
+    summary: "已关联康复知识库与标准动作库，回复内容包含动作说明、图片标注和视频演示。",
+    suggestion: "图片适合展示姿势和角度，视频适合展示动作节奏、次数和安全边界。",
+    expertOpinion: "媒体回复仅作为训练辅助，正式处方仍需医生结合患者疼痛、活动度和禁忌症确认。",
+    media: qaMediaExampleItems,
+    relatedResources: ["肩外展训练视频", "踝泵训练视频", "术后早期活动度训练"],
+    feedback: null
+  }
+];
+
+function normalizeQaMessagesWithMediaExample(messages: MultiModalQaMessage[] | null) {
+  if (!messages?.length) {
+    return defaultQaMessages;
+  }
+
+  if (messages.some((message) => message.media?.length)) {
+    return messages;
+  }
+
+  return [...defaultQaMessages, ...messages];
+}
+
+function shouldAttachQaMedia(question: string, matchedAnswers: Array<{ library: KnowledgeLibrary }>) {
+  return (
+    /图片|图像|视频|影像|动作|训练|演示|标准/.test(question) ||
+    matchedAnswers.some((item) => item.library === "motion")
+  );
+}
+
+function QaMediaAttachment({ item }: { item: NonNullable<MultiModalQaMessage["media"]>[number] }) {
+  const isVideo = item.type === "video";
+
+  return (
+    <div className="overflow-hidden rounded-[1rem] border border-border/70 bg-white">
+      <div
+        className={
+          isVideo
+            ? "relative aspect-video bg-surface-900 text-white"
+            : "relative aspect-video bg-gradient-to-br from-sky-50 via-white to-emerald-50"
+        }
+      >
+        {isVideo ? (
+          <>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_25%,rgba(96,165,250,0.42),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(30,41,59,0.92))]" />
+            <div className="absolute left-5 top-5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
+              标准动作演示
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 shadow-soft backdrop-blur">
+                <PlayCircle className="h-10 w-10" />
+              </div>
+            </div>
+            <div className="absolute bottom-4 left-5 right-5">
+              <div className="h-1.5 overflow-hidden rounded-full bg-white/20">
+                <div className="h-full w-[42%] rounded-full bg-white" />
+              </div>
+              <div className="mt-2 flex items-center justify-between text-xs text-white/80">
+                <span>00:18</span>
+                <span>00:42</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="absolute left-[12%] top-[18%] rounded-full border border-primary/25 bg-white/85 px-3 py-1 text-xs font-medium text-primary">
+              角度 90°
+            </div>
+            <div className="absolute left-[22%] top-[38%] h-14 w-14 rounded-full border-4 border-primary/60 bg-primary/10" />
+            <div className="absolute left-[35%] top-[46%] h-3 w-[34%] rotate-[-15deg] rounded-full bg-primary/70" />
+            <div className="absolute left-[52%] top-[36%] h-3 w-[24%] rotate-[22deg] rounded-full bg-emerald-500/70" />
+            <div className="absolute bottom-[20%] left-[18%] right-[18%] h-2 rounded-full bg-surface-300" />
+            <div className="absolute bottom-[28%] right-[14%] rounded-full border border-emerald-200 bg-white/90 px-3 py-1 text-xs font-medium text-emerald-700">
+              发力方向
+            </div>
+            <ImageIcon className="absolute right-5 top-5 h-6 w-6 text-surface-400" />
+          </>
+        )}
+      </div>
+      <div className="px-4 py-3">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <p className="text-sm font-semibold text-surface-900">{item.title}</p>
+          <Badge className="bg-surface-50 text-surface-700">{isVideo ? "视频" : "图片"}</Badge>
+        </div>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
+        <p className="mt-2 text-xs text-surface-500">{item.meta}</p>
+      </div>
+    </div>
+  );
+}
 
 function parseTagText(value: string) {
   return value
@@ -1019,7 +1141,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
   const { data: motionQa = [] } = useKnowledgeQaQuery("motion");
   const { data: sequenceQa = [] } = useKnowledgeQaQuery("sequence");
   const [messages, setMessages] = useState<MultiModalQaMessage[]>(
-    () => readState<MultiModalQaMessage[]>(qaStateKey) ?? []
+    () => normalizeQaMessagesWithMediaExample(readState<MultiModalQaMessage[]>(qaStateKey))
   );
   const [question, setQuestion] = useState("");
   const [selectedSources, setSelectedSources] = useState<KnowledgeLibrary[]>([]);
@@ -1054,6 +1176,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
     const answerText =
       matchedAnswers[0]?.answer ??
       "当前为自由问答模式，建议进一步限定知识源或补充患者阶段、动作名称等上下文信息。";
+    const media = shouldAttachQaMedia(trimmed, matchedAnswers) ? qaMediaExampleItems : undefined;
 
     const nextMessages: MultiModalQaMessage[] = [
       ...messages,
@@ -1076,6 +1199,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
             ? "已优先基于所选知识源回答，可继续追问执行细节。"
             : "当前未限定知识源，建议选择一个或多个知识库提高准确性。",
         expertOpinion: "专家意见区用于沉淀标准建议和临床边界。",
+        media,
         relatedResources: matchedAnswers.map((item) => item.question).slice(0, 3),
         feedback: null
       }
@@ -1086,9 +1210,9 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
   };
 
   const resetConversation = () => {
-    setMessages([]);
+    setMessages(defaultQaMessages);
     setQuestion("");
-    writeState(qaStateKey, []);
+    writeState(qaStateKey, defaultQaMessages);
   };
 
   return (
@@ -1170,6 +1294,13 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                               <p className="font-medium text-surface-900">关联资源摘要</p>
                               <p className="mt-2 leading-7">{message.summary}</p>
                             </div>
+                            {message.media?.length ? (
+                              <div className="grid gap-3 md:grid-cols-2">
+                                {message.media.map((item) => (
+                                  <QaMediaAttachment key={item.id} item={item} />
+                                ))}
+                              </div>
+                            ) : null}
                             <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
                               <p className="font-medium text-surface-900">建议方案</p>
                               <p className="mt-2 leading-7">{message.suggestion}</p>
