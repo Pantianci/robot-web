@@ -35,7 +35,7 @@ export const navigationGroups = [
       { to: "/knowledge/library", label: "康复知识库" },
       { to: "/knowledge/motion", label: "标准动作库" },
       { to: "/knowledge/sequence", label: "动作序列库" },
-      { to: "/knowledge/voice", label: "语音交互库" }
+      { to: "/knowledge/voice", label: "问答对管理" }
     ]
   },
   {
@@ -56,7 +56,7 @@ export const navigationGroups = [
     icon: Tags,
     items: [
       { to: "/tags/knowledge", label: "康复知识标签库" },
-      { to: "/tags/voice", label: "语音交互标签库" },
+      { to: "/tags/voice", label: "问答对标签库" },
       { to: "/tags/motion", label: "标准动作标签库" },
       { to: "/tags/sequence", label: "动作序列标签库" }
     ]

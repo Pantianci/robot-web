@@ -238,7 +238,7 @@ export function PatientCreatePage() {
       gender: draft.gender,
       diagnosis: draft.diagnosis,
       stage: draft.stage,
-      robotId: draft.robotId,
+      robotId: "",
       bedNo: draft.bedNo,
       createdBy: draft.createdBy,
       note: draft.note
@@ -288,9 +288,6 @@ export function PatientCreatePage() {
               </Field>
               <Field label="阶段">
                 <Input value={draft.stage} onChange={(event) => persist({ stage: event.target.value })} />
-              </Field>
-              <Field label="设备机器人ID">
-                <Input value={draft.robotId} onChange={(event) => persist({ robotId: event.target.value })} />
               </Field>
               <Field label="病床号">
                 <Input value={draft.bedNo} onChange={(event) => persist({ bedNo: event.target.value })} />
@@ -430,7 +427,6 @@ export function PatientEditPage() {
         gender: draft.gender,
         diagnosis: draft.diagnosis,
         stage: draft.stage,
-        robotId: draft.robotId,
         bedNo: draft.bedNo,
         createdBy: draft.createdBy,
         note: draft.note
@@ -477,9 +473,6 @@ export function PatientEditPage() {
             </Field>
             <Field label="阶段">
               <Input value={draft.stage} onChange={(event) => persist({ stage: event.target.value })} />
-            </Field>
-            <Field label="设备机器人ID">
-              <Input value={draft.robotId} onChange={(event) => persist({ robotId: event.target.value })} />
             </Field>
             <Field label="病床号">
               <Input value={draft.bedNo} onChange={(event) => persist({ bedNo: event.target.value })} />
@@ -882,17 +875,17 @@ function PatientSummaryCard({
   return (
     <Card className="border-border/70 bg-white shadow-none">
       <CardContent className="overflow-x-auto p-5">
-        <div className="flex min-w-max items-start gap-6 whitespace-nowrap">
+        <div className="grid min-w-[1180px] grid-cols-[minmax(180px,1.5fr)_minmax(180px,1.35fr)_repeat(7,minmax(92px,1fr))] items-center gap-6 whitespace-nowrap">
           {summary.map((item, index) => (
-            <div key={`${item.label}-${index}`} className="shrink-0">
+            <div key={`${item.label}-${index}`} className="min-w-0">
               <p className="text-xs text-muted-foreground">{item.label}</p>
               <p
                 className={
                   index === 0
-                    ? "mt-1 text-xl font-semibold text-surface-900"
+                    ? "mt-1 truncate text-2xl font-semibold text-surface-900"
                     : index === 1
-                      ? "mt-1 text-base font-semibold text-surface-900"
-                      : "mt-1 text-sm font-medium text-surface-900"
+                      ? "mt-1 truncate text-lg font-semibold text-primary"
+                      : "mt-1 truncate text-sm font-medium text-surface-900"
                     }
               >
                 {item.value}

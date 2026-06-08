@@ -11,9 +11,9 @@ function VoiceTagsPage() {
 
   return (
     <TagManagementPage
-      eyebrow="标签管理 > 语音交互标签库"
-      title="语音交互标签库"
-      description="用于管理语音数据标签及标签层级、状态和关联关系。"
+      eyebrow="标签管理 > 问答对标签库"
+      title="问答对标签库"
+      description="用于管理问答对标签及标签层级、状态和关联关系。"
       tags={data}
       library="voice"
     />

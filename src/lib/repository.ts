@@ -52,6 +52,39 @@ function normalizeDatabase(database: AppDatabase): AppDatabase {
     next.carePath.currentActions = fallbackDatabase.carePath.currentActions;
   }
 
+  const fallbackVoiceItems = fallbackDatabase.knowledge.items.filter((item) => item.library === "voice");
+  const fallbackVoiceTags = fallbackDatabase.knowledge.tags.filter((tag) => tag.library === "voice");
+
+  next.knowledge.items = next.knowledge.items.map((item) =>
+    item.library === "voice"
+      ? {
+          ...item,
+          category: item.category || "正向激励"
+        }
+      : item
+  );
+
+  for (const item of fallbackVoiceItems) {
+    if (!next.knowledge.items.some((record) => record.id === item.id)) {
+      next.knowledge.items.push(item);
+    }
+  }
+
+  next.knowledge.tags = next.knowledge.tags.map((tag) =>
+    tag.library === "voice" && tag.parent === "语音交互"
+      ? {
+          ...tag,
+          parent: "问答对"
+        }
+      : tag
+  );
+
+  for (const tag of fallbackVoiceTags) {
+    if (!next.knowledge.tags.some((record) => record.id === tag.id)) {
+      next.knowledge.tags.push(tag);
+    }
+  }
+
   return next;
 }
 

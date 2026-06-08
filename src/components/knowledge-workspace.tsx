@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import {
   ChevronLeft,
   ChevronRight,
-  Eye,
   FileOutput,
   PencilLine,
   Plus,
@@ -22,6 +21,7 @@ import {
   isInDateRange,
   knowledgeLibraryMeta,
   multiModalPageSizeOptions,
+  voiceCategoryOptions,
   type MultiModalListContext,
   type MultiModalListFilters
 } from "@/lib/multimodal";
@@ -49,7 +49,6 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 
 function statusBadgeClass(status: string) {
   if (status === "生效") {
@@ -120,7 +119,7 @@ function paginate<T>(items: T[], page: number, pageSize: number) {
 
 function listColumnsForLibrary(library: KnowledgeLibrary) {
   if (library === "voice") {
-    return ["标题", "分类", "标签", "状态", "时间", "操作"] as const;
+    return ["标准问题", "分类", "标签", "状态", "时间", "操作"] as const;
   }
 
   if (library === "motion") {
@@ -131,7 +130,7 @@ function listColumnsForLibrary(library: KnowledgeLibrary) {
     return ["序列名称", "阶段", "目标", "动作顺序", "总时长", "状态", "操作"] as const;
   }
 
-  return ["标题", "分类", "格式", "文件大小", "标签", "状态", "时间", "操作"] as const;
+  return ["标题", "格式", "文件大小", "标签", "状态", "时间", "操作"] as const;
 }
 
 function libraryTableRow(
@@ -140,7 +139,7 @@ function libraryTableRow(
 ) {
   if (library === "voice") {
     return [
-      item.title,
+      item.standardQuestion ?? item.title,
       item.category,
       item.tags.join("、"),
       item.status,
@@ -176,13 +175,28 @@ function libraryTableRow(
 
   return [
     item.title,
-    item.category,
     item.format,
     item.size,
     item.tags.join("、"),
     item.status,
     formatDateTime(item.updatedAt)
   ];
+}
+
+function statusColumnIndexForLibrary(library: KnowledgeLibrary) {
+  if (library === "voice") {
+    return 3;
+  }
+
+  if (library === "motion") {
+    return 9;
+  }
+
+  if (library === "sequence") {
+    return 5;
+  }
+
+  return 4;
 }
 
 export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
@@ -192,7 +206,6 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
     () => readState<MultiModalListContext>(contextKey) ?? createDefaultListContext()
   );
   const [deleteTarget, setDeleteTarget] = useState<KnowledgeItem | null>(null);
-  const [exportMessage, setExportMessage] = useState("");
 
   const { data: items = [] } = useKnowledgeQuery(library);
   const { data: tags = [] } = useKnowledgeTagsQuery(library);
@@ -205,10 +218,14 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
 
   const sortedItems = useMemo(() => sortKnowledgeItems(items), [items]);
   const categories = useMemo(
-    () => Array.from(new Set(sortedItems.map((item) => item.category))).filter(Boolean),
-    [sortedItems]
+    () =>
+      library === "voice"
+        ? Array.from(new Set([...voiceCategoryOptions, ...sortedItems.map((item) => item.category)])).filter(Boolean)
+        : [],
+    [library, sortedItems]
   );
   const tagNames = useMemo(() => tags.map((tag) => tag.name), [tags]);
+  const statusColumnIndex = statusColumnIndexForLibrary(library);
 
   const filteredItems = useMemo(() => {
     return sortedItems.filter((item) => {
@@ -216,7 +233,9 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
         !context.filters.keyword ||
         normalizeKeywordFields(item).includes(context.filters.keyword.toLowerCase());
       const matchesCategory =
-        !context.filters.category || item.category === context.filters.category;
+        library !== "voice" ||
+        !context.filters.category ||
+        item.category === context.filters.category;
       const matchesTag =
         !context.filters.tag || item.tags.includes(context.filters.tag);
       const matchesStatus =
@@ -235,7 +254,7 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
         matchesDate
       );
     });
-  }, [context.filters, sortedItems]);
+  }, [context.filters, library, sortedItems]);
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / context.pageSize));
   const safePage = Math.min(context.page, totalPages);
@@ -355,26 +374,28 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
             }
           />
         </Field>
-        <Field label="分类">
-          <select
-            className="native-select"
-            value={context.filters.category}
-            onChange={(event) =>
-              setContext((current) => ({
-                ...current,
-                filters: { ...current.filters, category: event.target.value },
-                page: 1
-              }))
-            }
-          >
-            <option value="">全部</option>
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {library === "voice" ? (
+          <Field label="分类">
+            <select
+              className="native-select"
+              value={context.filters.category}
+              onChange={(event) =>
+                setContext((current) => ({
+                  ...current,
+                  filters: { ...current.filters, category: event.target.value },
+                  page: 1
+                }))
+              }
+            >
+              <option value="">全部</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </Field>
+        ) : null}
         <Field label="标签">
           <select
             className="native-select"
@@ -444,39 +465,17 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
         </Field>
       </FilterBar>
 
-      {exportMessage ? (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="p-4 text-sm text-primary">{exportMessage}</CardContent>
-        </Card>
-      ) : null}
-
       <CollapsibleSplitLayout
         label="详情"
         sideWidthClassName="w-full xl:w-[400px]"
         main={
           <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-border/60">
+            <CardHeader className="border-b border-border/60">
               <div>
                 <CardTitle>内容列表</CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
                   共 {filteredItems.length} 条结果，已勾选 {selectedCount} 条
                 </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setExportMessage(
-                      selectedCount
-                        ? `已选择 ${selectedCount} 条内容，进入导出页后将优先导出勾选结果。`
-                        : "当前未勾选内容，导出页将默认导出筛选结果。"
-                    )
-                  }
-                >
-                  <Eye className="h-4 w-4" />
-                  查看导出上下文
-                </Button>
               </div>
             </CardHeader>
             <CardContent className="flex min-h-0 flex-1 flex-col p-0">
@@ -516,11 +515,7 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
                             </TableCell>
                             {rowValues.map((value, index) => (
                               <TableCell key={`${item.id}-${index}`} className={index === 0 ? "font-medium" : ""}>
-                                {index === rowValues.length - 1 &&
-                                (library === "voice" ||
-                                  library === "motion" ||
-                                  library === "sequence" ||
-                                  library === "knowledge") ? (
+                                {index === statusColumnIndex ? (
                                   <Badge className={statusBadgeClass(String(value))}>{value}</Badge>
                                 ) : (
                                   value
@@ -618,8 +613,13 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
               <>
                 <PropertyList
                   items={[
-                    { label: "标题", value: selectedItem.title },
-                    { label: "分类", value: selectedItem.category },
+                    {
+                      label: library === "voice" ? "标准问题" : "标题",
+                      value: library === "voice" ? selectedItem.standardQuestion ?? selectedItem.title : selectedItem.title
+                    },
+                    ...(library === "voice"
+                      ? [{ label: "分类", value: selectedItem.category }]
+                      : []),
                     { label: "格式", value: selectedItem.format },
                     { label: "文件大小", value: selectedItem.size },
                     { label: "标签", value: selectedItem.tags },
@@ -663,7 +663,7 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
                   </SectionCard>
                 ) : null}
                 {library === "voice" ? (
-                  <SectionCard title="语音详情">
+                  <SectionCard title="问答对详情">
                     <PropertyList
                       items={[
                         { label: "标准问题", value: selectedItem.standardQuestion },

@@ -249,7 +249,6 @@ export function PatientManagement() {
                       <TableHead>姓名</TableHead>
                       <TableHead>病种</TableHead>
                       <TableHead>阶段</TableHead>
-                      <TableHead>设备ID</TableHead>
                       <TableHead>病床号</TableHead>
                       <TableHead>建档人</TableHead>
                       <TableHead>建档时间</TableHead>
@@ -268,7 +267,6 @@ export function PatientManagement() {
                         <TableCell className="font-medium">{item.name}</TableCell>
                         <TableCell>{item.diagnosis}</TableCell>
                         <TableCell>{item.stage}</TableCell>
-                        <TableCell>{item.robotId}</TableCell>
                         <TableCell>{item.bedNo}</TableCell>
                         <TableCell>{item.createdBy}</TableCell>
                         <TableCell>{formatDateTime(item.createdAt)}</TableCell>
@@ -347,7 +345,6 @@ export function PatientManagement() {
                     { label: "年龄", value: selected.age },
                     { label: "性别", value: selected.gender },
                     { label: "病种", value: selected.diagnosis },
-                    { label: "设备ID", value: selected.robotId },
                     { label: "病床号", value: selected.bedNo },
                     { label: "建档人", value: selected.createdBy },
                     { label: "建档时间", value: formatDateTime(selected.createdAt) }

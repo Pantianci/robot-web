@@ -62,6 +62,7 @@ export const defaultMultiModalListFilters: MultiModalListFilters = {
 };
 
 export const multiModalPageSizeOptions = [5, 10, 20];
+export const voiceCategoryOptions = ["正向激励", "语音指令"] as const;
 
 export const knowledgeLibraryMeta: Record<
   KnowledgeLibrary,
@@ -107,7 +108,7 @@ export const knowledgeLibraryMeta: Record<
     exportTitle: "导出康复知识",
     uploadTitle: "知识文件",
     listDescription: "维护康复知识文件、标签与说明，支持筛选、分页、详情查看和操作记录展示。",
-    createDescription: "支持上传康复知识文件并录入标题、分类、标签、说明，提交后进入康复知识库。",
+    createDescription: "支持上传康复知识文件并录入标题、标签、说明，提交后进入康复知识库。",
     exportDescription: "支持基于当前筛选结果或勾选结果生成导出任务，并保留导出历史记录。",
     defaultFormat: "PDF",
     exportFormats: ["PDF", "XLSX", "DOCX"],
@@ -118,22 +119,22 @@ export const knowledgeLibraryMeta: Record<
     }
   },
   voice: {
-    title: "语音交互库",
-    eyebrow: "多模态知识库 > 语音交互库",
+    title: "问答对管理",
+    eyebrow: "多模态知识库 > 问答对管理",
     listPath: "/knowledge/voice",
     createPath: "/knowledge/voice/create",
     editPath: "/knowledge/voice/edit",
     exportPath: "/knowledge/voice/export",
     tagPath: "/tags/voice",
     tagCreatePath: "/tags/voice/create",
-    tagTitle: "语音交互标签库",
-    createTitle: "新增语音数据",
-    editTitle: "修改语音数据",
-    exportTitle: "导出语音数据",
-    uploadTitle: "语音问答内容",
-    listDescription: "维护标准问题、相似问题、回复内容和标签，用于语音交互与知识问答。",
-    createDescription: "支持管理多组相似问题和回复内容，形成可复用的语音交互数据。",
-    exportDescription: "支持导出语音问答数据、标签和筛选结果，方便同步语音服务。",
+    tagTitle: "问答对标签库",
+    createTitle: "新增问答对",
+    editTitle: "修改问答对",
+    exportTitle: "导出问答对",
+    uploadTitle: "问答对内容",
+    listDescription: "维护标准问题、相似问题、回复内容和标签，用于问答对管理与知识问答。",
+    createDescription: "支持管理多组相似问题和回复内容，形成可复用的问答对。",
+    exportDescription: "支持导出问答对、标签和筛选结果，方便同步问答服务。",
     defaultFormat: "JSON",
     exportFormats: ["JSON", "XLSX", "DOCX"]
   },

@@ -29,6 +29,7 @@ import {
   defaultMultiModalListFilters,
   formatBytesToText,
   knowledgeLibraryMeta,
+  voiceCategoryOptions,
   type MultiModalExportDraft,
   type MultiModalExportHistoryItem,
   type MultiModalListContext,
@@ -131,7 +132,7 @@ const defaultExportDraft: MultiModalExportDraft = {
 
 const qaLibraryOptions: Array<{ label: string; value: KnowledgeLibrary }> = [
   { label: "康复知识库", value: "knowledge" },
-  { label: "语音交互库", value: "voice" },
+  { label: "问答对管理", value: "voice" },
   { label: "标准动作库", value: "motion" },
   { label: "动作序列库", value: "sequence" }
 ];
@@ -177,7 +178,10 @@ function buildKnowledgePatch(
   return {
     title: library === "voice" ? draft.standardQuestion || draft.title : draft.title,
     fileName: draft.fileName || undefined,
-    category: draft.category || "自定义",
+    category:
+      library === "voice"
+        ? draft.category || voiceCategoryOptions[0]
+        : "",
     format: draft.format || (knowledgeLibraryMeta[library].defaultFormat ?? "TXT"),
     size: draft.size || "0.20 MB",
     tags: parseTagText(draft.tags),
@@ -346,17 +350,17 @@ export function MultiModalEditorPage({
 
   const validate = () => {
     if (library === "voice") {
-      if (!draft.standardQuestion || !draft.tags || !draft.replies.filter(Boolean).length) {
-        return "无法提交，请补全标准问题、标签和至少一条回复内容。";
+      if (!draft.standardQuestion || !draft.category || !draft.tags || !draft.replies.filter(Boolean).length) {
+        return "无法提交，请补全标准问题、分类、标签和至少一条回复内容。";
       }
 
       return "";
     }
 
-    if (!draft.title || !draft.category || !draft.tags) {
+    if (!draft.title || !draft.tags) {
       return mode === "edit"
-        ? "无法更新，请补全标题、分类和标签。"
-        : "无法上传，请补全标题、分类和标签。";
+        ? "无法更新，请补全标题和标签。"
+        : "无法上传，请补全标题和标签。";
     }
 
     if (library === "sequence" && !draft.sequenceSteps.filter(Boolean).length) {
@@ -423,7 +427,7 @@ export function MultiModalEditorPage({
 
   const checklist = [
     { label: library === "voice" ? "录入标准问题" : "填写标题或文件名称", done: Boolean(draft.title || draft.standardQuestion) },
-    { label: "完成分类配置", done: Boolean(draft.category) },
+    ...(library === "voice" ? [{ label: "完成分类配置", done: Boolean(draft.category) }] : []),
     { label: "配置标签信息", done: Boolean(draft.tags) },
     {
       label: library === "sequence" ? "编排动作序列" : library === "motion" ? "补全动作参数" : "补充说明",
@@ -530,13 +534,22 @@ export function MultiModalEditorPage({
                 </>
               )}
 
-              <Field label="分类" required>
-                <Input
-                  value={draft.category}
-                  placeholder="请输入分类"
-                  onChange={(event) => persist({ category: event.target.value })}
-                />
-              </Field>
+              {library === "voice" ? (
+                <Field label="分类" required>
+                  <select
+                    className="native-select"
+                    value={draft.category}
+                    onChange={(event) => persist({ category: event.target.value })}
+                  >
+                    <option value="">请选择分类</option>
+                    {voiceCategoryOptions.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              ) : null}
               <Field label="标签" required>
                 <Input
                   value={draft.tags}
