@@ -57,6 +57,7 @@ import { Route as PatientsPlansExportRouteImport } from './routes/patients.plans
 import { Route as PatientsPlansEditRouteImport } from './routes/patients.plans.edit'
 import { Route as PatientsPlansCreateRouteImport } from './routes/patients.plans.create'
 import { Route as PatientsCurrentExportRouteImport } from './routes/patients.current.export'
+import { Route as PatientsCurrentEditRouteImport } from './routes/patients.current.edit'
 import { Route as PatientsCurrentCreateRouteImport } from './routes/patients.current.create'
 import { Route as PatientsBaseExportRouteImport } from './routes/patients.base.export'
 import { Route as PatientsBaseEditRouteImport } from './routes/patients.base.edit'
@@ -318,6 +319,11 @@ const PatientsCurrentExportRoute = PatientsCurrentExportRouteImport.update({
   path: '/export',
   getParentRoute: () => PatientsCurrentRoute,
 } as any)
+const PatientsCurrentEditRoute = PatientsCurrentEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => PatientsCurrentRoute,
+} as any)
 const PatientsCurrentCreateRoute = PatientsCurrentCreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -442,6 +448,7 @@ export interface FileRoutesByFullPath {
   '/patients/base/edit': typeof PatientsBaseEditRoute
   '/patients/base/export': typeof PatientsBaseExportRoute
   '/patients/current/create': typeof PatientsCurrentCreateRoute
+  '/patients/current/edit': typeof PatientsCurrentEditRoute
   '/patients/current/export': typeof PatientsCurrentExportRoute
   '/patients/plans/create': typeof PatientsPlansCreateRoute
   '/patients/plans/edit': typeof PatientsPlansEditRoute
@@ -496,6 +503,7 @@ export interface FileRoutesByTo {
   '/patients/base/edit': typeof PatientsBaseEditRoute
   '/patients/base/export': typeof PatientsBaseExportRoute
   '/patients/current/create': typeof PatientsCurrentCreateRoute
+  '/patients/current/edit': typeof PatientsCurrentEditRoute
   '/patients/current/export': typeof PatientsCurrentExportRoute
   '/patients/plans/create': typeof PatientsPlansCreateRoute
   '/patients/plans/edit': typeof PatientsPlansEditRoute
@@ -563,6 +571,7 @@ export interface FileRoutesById {
   '/patients/base/edit': typeof PatientsBaseEditRoute
   '/patients/base/export': typeof PatientsBaseExportRoute
   '/patients/current/create': typeof PatientsCurrentCreateRoute
+  '/patients/current/edit': typeof PatientsCurrentEditRoute
   '/patients/current/export': typeof PatientsCurrentExportRoute
   '/patients/plans/create': typeof PatientsPlansCreateRoute
   '/patients/plans/edit': typeof PatientsPlansEditRoute
@@ -631,6 +640,7 @@ export interface FileRouteTypes {
     | '/patients/base/edit'
     | '/patients/base/export'
     | '/patients/current/create'
+    | '/patients/current/edit'
     | '/patients/current/export'
     | '/patients/plans/create'
     | '/patients/plans/edit'
@@ -685,6 +695,7 @@ export interface FileRouteTypes {
     | '/patients/base/edit'
     | '/patients/base/export'
     | '/patients/current/create'
+    | '/patients/current/edit'
     | '/patients/current/export'
     | '/patients/plans/create'
     | '/patients/plans/edit'
@@ -751,6 +762,7 @@ export interface FileRouteTypes {
     | '/patients/base/edit'
     | '/patients/base/export'
     | '/patients/current/create'
+    | '/patients/current/edit'
     | '/patients/current/export'
     | '/patients/plans/create'
     | '/patients/plans/edit'
@@ -1126,6 +1138,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatientsCurrentExportRouteImport
       parentRoute: typeof PatientsCurrentRoute
     }
+    '/patients/current/edit': {
+      id: '/patients/current/edit'
+      path: '/edit'
+      fullPath: '/patients/current/edit'
+      preLoaderRoute: typeof PatientsCurrentEditRouteImport
+      parentRoute: typeof PatientsCurrentRoute
+    }
     '/patients/current/create': {
       id: '/patients/current/create'
       path: '/create'
@@ -1353,12 +1372,14 @@ const PatientsBaseRouteWithChildren = PatientsBaseRoute._addFileChildren(
 
 interface PatientsCurrentRouteChildren {
   PatientsCurrentCreateRoute: typeof PatientsCurrentCreateRoute
+  PatientsCurrentEditRoute: typeof PatientsCurrentEditRoute
   PatientsCurrentExportRoute: typeof PatientsCurrentExportRoute
   PatientsCurrentIndexRoute: typeof PatientsCurrentIndexRoute
 }
 
 const PatientsCurrentRouteChildren: PatientsCurrentRouteChildren = {
   PatientsCurrentCreateRoute: PatientsCurrentCreateRoute,
+  PatientsCurrentEditRoute: PatientsCurrentEditRoute,
   PatientsCurrentExportRoute: PatientsCurrentExportRoute,
   PatientsCurrentIndexRoute: PatientsCurrentIndexRoute,
 }

@@ -10,6 +10,7 @@ import type {
   CreateRobotInput,
   CreateTagInput,
   ReviewReportInput,
+  UpdateCurrentActionInput,
   UpdateTagInput
 } from "@/lib/api";
 import type {
@@ -180,6 +181,16 @@ export function useUpdatePlanMutation() {
   });
 }
 
+export function useDeletePlanMutation() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteRehabPlan(id),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.plans });
+    }
+  });
+}
+
 export function useCurrentActionsQuery() {
   return useQuery({
     queryKey: queryKeys.currentActions,
@@ -191,6 +202,27 @@ export function useCreateCurrentActionMutation() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateCurrentActionInput) => api.createCurrentAction(input),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.currentActions });
+    }
+  });
+}
+
+export function useUpdateCurrentActionMutation() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: UpdateCurrentActionInput }) =>
+      api.updateCurrentAction(id, patch),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.currentActions });
+    }
+  });
+}
+
+export function useDeleteCurrentActionMutation() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteCurrentAction(id),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: queryKeys.currentActions });
     }
@@ -225,6 +257,16 @@ export function useUpdatePrescriptionMutation() {
   });
 }
 
+export function useDeletePrescriptionMutation() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deletePrescription(id),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.prescriptions });
+    }
+  });
+}
+
 export function useReportsQuery() {
   return useQuery({
     queryKey: queryKeys.reports,
@@ -237,6 +279,16 @@ export function useReviewReportMutation() {
   return useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: ReviewReportInput }) =>
       api.reviewReport(id, patch),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.reports });
+    }
+  });
+}
+
+export function useDeleteReportMutation() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteReport(id),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: queryKeys.reports });
     }

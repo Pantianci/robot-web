@@ -96,7 +96,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </header>
 
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-6 lg:px-8 lg:py-6">
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4 lg:px-4 lg:py-4">
             {children}
           </div>
         </main>

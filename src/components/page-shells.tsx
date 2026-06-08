@@ -19,6 +19,7 @@ import {
   type LucideIcon
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { CollapsibleSplitLayout } from "@/components/collapsible-side-panel";
 import { DetailPanel } from "@/components/detail-panel";
 import { DialogFormShell } from "@/components/dialog-form-shell";
 import { EmptyState } from "@/components/empty-state";
@@ -853,17 +854,19 @@ export function SubPageScaffold({
   title,
   description,
   status = "高保真页",
+  actions,
   children
 }: {
   eyebrow: string;
   title: string;
   description: string;
   status?: string;
+  actions?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-6">
-      <PageHeader eyebrow={eyebrow} title={title} description={description} badge={status} />
+    <div className="space-y-4">
+      <PageHeader eyebrow={eyebrow} title={title} description={description} badge={status} actions={actions} />
       {children}
     </div>
   );
@@ -1256,8 +1259,11 @@ export function ActionFormPage({
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_360px]">
-        <div className="space-y-6">
+      <CollapsibleSplitLayout
+        label="摘要"
+        sideWidthClassName="w-full xl:w-[360px]"
+        main={
+          <div className="space-y-4">
           <SectionCard title="核心配置" description="对齐 Figma 子页结构，左侧主表单承载核心录入字段。">
             <div className="grid gap-4 md:grid-cols-2">
               {baseFields.map((field) => {
@@ -1341,9 +1347,10 @@ export function ActionFormPage({
               </div>
             </CardContent>
           </Card>
-        </div>
-
-        <div className="space-y-6">
+          </div>
+        }
+        side={
+          <div className="space-y-4">
           <DetailPanel title="页面摘要">
             <PropertyList items={summaryItems} />
           </DetailPanel>
@@ -1375,8 +1382,9 @@ export function ActionFormPage({
               ))}
             </div>
           </SectionCard>
-        </div>
-      </div>
+          </div>
+        }
+      />
     </SubPageScaffold>
   );
 }
@@ -1451,8 +1459,11 @@ export function ExportPage({
         </Card>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_360px]">
-        <div className="space-y-6">
+      <CollapsibleSplitLayout
+        label="摘要"
+        sideWidthClassName="w-full xl:w-[360px]"
+        main={
+          <div className="space-y-4">
           <SectionCard title="导出配置" description="左侧主区承接范围、格式和内容项设置。">
             <div className="grid gap-4 md:grid-cols-2">
               {options.map((option) => (
@@ -1517,9 +1528,10 @@ export function ExportPage({
               ))}
             </div>
           </SectionCard>
-        </div>
-
-        <div className="space-y-6">
+          </div>
+        }
+        side={
+          <div className="space-y-4">
           <DetailPanel title="任务摘要">
             <PropertyList
               items={[
@@ -1552,8 +1564,9 @@ export function ExportPage({
           <SectionCard title="导出说明">
             <p className="text-sm leading-7 text-muted-foreground">{exportHint}</p>
           </SectionCard>
-        </div>
-      </div>
+          </div>
+        }
+      />
     </SubPageScaffold>
   );
 }
@@ -1613,8 +1626,11 @@ export function QaPage({
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_360px]">
-        <div className="space-y-6">
+      <CollapsibleSplitLayout
+        label="问答"
+        sideWidthClassName="w-full xl:w-[360px]"
+        main={
+          <div className="space-y-4">
           <SectionCard title="知识问答输入台" description="主输入区补成更接近 Figma 的问答工作台。">
             <Field label="输入问题" required>
               <Textarea value={question} onChange={(event) => setQuestion(event.target.value)} />
@@ -1648,9 +1664,10 @@ export function QaPage({
               <p className="text-sm leading-7 text-muted-foreground">{displayAnswer}</p>
             </div>
           </SectionCard>
-        </div>
-
-        <div className="space-y-6">
+          </div>
+        }
+        side={
+          <div className="space-y-4">
           <DetailPanel title="推荐问题">
             <div className="space-y-3">
               {prompts.map((prompt) => (
@@ -1677,8 +1694,9 @@ export function QaPage({
               ))}
             </div>
           </SectionCard>
-        </div>
-      </div>
+          </div>
+        }
+      />
     </SubPageScaffold>
   );
 }
@@ -1864,17 +1882,25 @@ export function TagManagementPage({
   };
 
   return (
-    <SubPageScaffold eyebrow={eyebrow} title={title} description={description} status="管理页">
+    <SubPageScaffold
+      eyebrow={eyebrow}
+      title={title}
+      description={description}
+      status="管理页"
+      actions={
+        <Button onClick={openCreateDialog}>
+          <Plus className="h-4 w-4" />
+          新建标签
+        </Button>
+      }
+    >
       <FilterBar
         actions={
           <>
             <Button variant="secondary" onClick={resetFilters}>
               重置
             </Button>
-            <Button onClick={openCreateDialog}>
-              <Plus className="h-4 w-4" />
-              新建标签
-            </Button>
+            <Button>查询</Button>
           </>
         }
       >
@@ -1924,85 +1950,88 @@ export function TagManagementPage({
         </Field>
       </FilterBar>
 
-      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.55fr)_360px]">
-        <Card className="flex min-h-0 flex-col overflow-hidden">
-          <CardHeader className="border-b border-border/60">
-            <CardTitle>标签列表</CardTitle>
-          </CardHeader>
-          <CardContent className="flex min-h-0 flex-1 flex-col p-0">
-            {filtered.length ? (
-              <Table className="min-w-full">
-                <TableHeader className="sticky top-0 z-10 bg-white">
-                  <TableRow>
-                    <TableHead className="min-w-[140px]">标签名称</TableHead>
-                    <TableHead className="min-w-[220px]">标签说明</TableHead>
-                    <TableHead className="min-w-[120px]">上级标签</TableHead>
-                    <TableHead className="min-w-[100px]">标签状态</TableHead>
-                    <TableHead className="min-w-[110px]">最近操作人</TableHead>
-                    <TableHead className="min-w-[150px]">更新时间</TableHead>
-                    <TableHead className="min-w-[140px]">操作</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((tag) => (
-                    <TableRow
-                      key={tag.id}
-                      className="cursor-pointer"
-                      data-state={selected?.id === tag.id ? "selected" : undefined}
-                      onClick={() => setSelectedId(tag.id)}
-                    >
-                      <TableCell className="font-medium">{tag.name}</TableCell>
-                      <TableCell className="max-w-[280px] text-muted-foreground">
-                        <p className="line-clamp-2">{tag.description || "暂无说明"}</p>
-                      </TableCell>
-                      <TableCell>{tag.parent}</TableCell>
-                      <TableCell>
-                        <Badge>{resolveTagStatus(tag)}</Badge>
-                      </TableCell>
-                      <TableCell>{tag.operator}</TableCell>
-                      <TableCell>{formatDateTime(tag.updatedAt)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              openEditDialog(tag);
-                            }}
-                          >
-                            <SquarePen className="h-4 w-4" />
-                            编辑
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-rose-600 hover:text-rose-700"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setDeletingTag(tag);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            删除
-                          </Button>
-                        </div>
-                      </TableCell>
+      <CollapsibleSplitLayout
+        label="标签"
+        sideWidthClassName="w-full xl:w-[360px]"
+        main={
+          <Card className="flex min-h-0 flex-col overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <CardTitle>标签列表</CardTitle>
+            </CardHeader>
+            <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+              {filtered.length ? (
+                <Table className="min-w-full">
+                  <TableHeader className="sticky top-0 z-10 bg-white">
+                    <TableRow>
+                      <TableHead className="min-w-[140px]">标签名称</TableHead>
+                      <TableHead className="min-w-[220px]">标签说明</TableHead>
+                      <TableHead className="min-w-[120px]">上级标签</TableHead>
+                      <TableHead className="min-w-[100px]">标签状态</TableHead>
+                      <TableHead className="min-w-[110px]">最近操作人</TableHead>
+                      <TableHead className="min-w-[150px]">更新时间</TableHead>
+                      <TableHead className="min-w-[140px]">操作</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="p-6">
-                <EmptyState title="暂无匹配标签" />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <div className="min-h-0 pt-1">
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((tag) => (
+                      <TableRow
+                        key={tag.id}
+                        className="cursor-pointer"
+                        data-state={selected?.id === tag.id ? "selected" : undefined}
+                        onClick={() => setSelectedId(tag.id)}
+                      >
+                        <TableCell className="font-medium">{tag.name}</TableCell>
+                        <TableCell className="max-w-[280px] text-muted-foreground">
+                          <p className="line-clamp-2">{tag.description || "暂无说明"}</p>
+                        </TableCell>
+                        <TableCell>{tag.parent}</TableCell>
+                        <TableCell>
+                          <Badge>{resolveTagStatus(tag)}</Badge>
+                        </TableCell>
+                        <TableCell>{tag.operator}</TableCell>
+                        <TableCell>{formatDateTime(tag.updatedAt)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openEditDialog(tag);
+                              }}
+                            >
+                              <SquarePen className="h-4 w-4" />
+                              编辑
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="text-rose-600 hover:text-rose-700"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setDeletingTag(tag);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              删除
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="p-6">
+                  <EmptyState title="暂无匹配标签" />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        }
+        side={
           <DetailPanel title="标签详情" className="h-full">
             {selected ? (
               <>
@@ -2054,8 +2083,8 @@ export function TagManagementPage({
               <EmptyState title="请选择一个标签" />
             )}
           </DetailPanel>
-        </div>
-      </div>
+        }
+      />
 
       <DialogFormShell
         open={createOpen}

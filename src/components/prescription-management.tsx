@@ -1,7 +1,10 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { FileOutput, Pencil, PlayCircle, Plus, Sparkles } from "lucide-react";
+import { FileOutput, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
+  useDeleteCurrentActionMutation,
+  useDeletePlanMutation,
+  useDeletePrescriptionMutation,
   useCurrentActionsQuery,
   usePatientsQuery,
   usePlansQuery,
@@ -9,6 +12,7 @@ import {
 } from "@/lib/hooks";
 import {
   buildPatientSummary,
+  currentActionWorkspaceContextKey,
   defaultPatientWorkspace,
   patientWorkspaceContextKey,
   planWorkspaceContextKey,
@@ -17,7 +21,9 @@ import {
 import { readState, writeState } from "@/lib/storage";
 import { formatDateTime } from "@/lib/utils";
 import type { CurrentAction, Patient, Prescription, RehabPlan } from "@/lib/types";
+import { CollapsibleSplitLayout } from "@/components/collapsible-side-panel";
 import { DetailPanel } from "@/components/detail-panel";
+import { DialogFormShell } from "@/components/dialog-form-shell";
 import { EmptyState } from "@/components/empty-state";
 import { Field } from "@/components/field";
 import { FilterBar } from "@/components/filter-bar";
@@ -167,6 +173,9 @@ export function PrescriptionManagement({
   const { data: plans = [] } = usePlansQuery();
   const { data: currentActions = [] } = useCurrentActionsQuery();
   const { data: prescriptions = [] } = usePrescriptionsQuery();
+  const deletePlanMutation = useDeletePlanMutation();
+  const deleteCurrentActionMutation = useDeleteCurrentActionMutation();
+  const deletePrescriptionMutation = useDeletePrescriptionMutation();
 
   const workspace = readState<WorkspaceContext>(patientWorkspaceContextKey);
   const patient = resolveWorkspacePatient(patients, workspace);
@@ -205,6 +214,9 @@ export function PrescriptionManagement({
   const [planPage, setPlanPage] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [prescriptionPage, setPrescriptionPage] = useState(1);
+  const [deletePlanTarget, setDeletePlanTarget] = useState<RehabPlan | null>(null);
+  const [deleteActionTarget, setDeleteActionTarget] = useState<CurrentAction | null>(null);
+  const [deletePrescriptionTarget, setDeletePrescriptionTarget] = useState<Prescription | null>(null);
 
   useEffect(() => {
     if (patient) {
@@ -309,6 +321,33 @@ export function PrescriptionManagement({
     setPrescriptionPage(1);
   };
 
+  const handleDeletePlan = async () => {
+    if (!deletePlanTarget) {
+      return;
+    }
+
+    await deletePlanMutation.mutateAsync(deletePlanTarget.id);
+    setDeletePlanTarget(null);
+  };
+
+  const handleDeleteAction = async () => {
+    if (!deleteActionTarget) {
+      return;
+    }
+
+    await deleteCurrentActionMutation.mutateAsync(deleteActionTarget.id);
+    setDeleteActionTarget(null);
+  };
+
+  const handleDeletePrescription = async () => {
+    if (!deletePrescriptionTarget) {
+      return;
+    }
+
+    await deletePrescriptionMutation.mutateAsync(deletePrescriptionTarget.id);
+    setDeletePrescriptionTarget(null);
+  };
+
   const summaryPlan = selectedPlan ?? patientPlans[0] ?? null;
   const summaryPrescription = selectedPrescription ?? patientPrescriptions[0] ?? null;
   const summaryAction = selectedAction ?? patientActions[0] ?? null;
@@ -373,7 +412,7 @@ export function PrescriptionManagement({
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <PageHeader
         eyebrow={`患者档案管理 > ${view === "plans" ? "康复方案" : view === "current" ? "当前处方" : "处方列表"}`}
         title={view === "plans" ? "康复方案" : view === "current" ? "当前处方" : "运动处方列表"}
@@ -423,78 +462,96 @@ export function PrescriptionManagement({
       </FilterBar>
 
       {view === "plans" ? (
-        <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.55fr)_360px]">
-          <Card className="flex min-h-0 flex-col overflow-hidden">
-            <CardHeader className="border-b border-border/60">
-              <CardTitle>方案列表</CardTitle>
-            </CardHeader>
-            <CardContent className="flex min-h-0 flex-1 flex-col p-0">
-              {filteredPlans.length ? (
-                <Table className="min-w-full">
-                  <TableHeader className="sticky top-0 z-10 bg-white">
-                    <TableRow>
-                      <TableHead>方案编号</TableHead>
-                      <TableHead>确认医生</TableHead>
-                      <TableHead>处方数</TableHead>
-                      <TableHead>采纳状态</TableHead>
-                      <TableHead>类型</TableHead>
-                      <TableHead>创建时间</TableHead>
-                      <TableHead>风险</TableHead>
-                      <TableHead>操作</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pagedPlans.map((item) => {
-                      const prescriptionCount = patientPrescriptions.filter(
-                        (prescription) => prescription.patientId === item.patientId
-                      ).length;
-                      return (
-                        <TableRow
-                          key={item.id}
-                          className="cursor-pointer"
-                          data-state={selectedPlan?.id === item.id ? "selected" : undefined}
-                          onClick={() => setSelectedPlanId(item.id)}
-                        >
-                          <TableCell className="font-medium">{item.id}</TableCell>
-                          <TableCell>{item.doctor}</TableCell>
-                          <TableCell>{prescriptionCount}</TableCell>
-                          <TableCell>
-                            <Badge>{item.status === "已同步" ? "已采纳" : "待采纳"}</Badge>
-                          </TableCell>
-                          <TableCell>{item.type}</TableCell>
-                          <TableCell>{formatDateTime(item.updatedAt)}</TableCell>
-                          <TableCell>{item.risk}</TableCell>
-                          <TableCell>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                writeState(planWorkspaceContextKey, { planId: item.id });
-                                setSelectedPlanId(item.id);
-                                navigate({ to: "/patients/plans/edit" });
-                              }}
-                            >
-                              <Pencil className="h-4 w-4" />
-                              编辑
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="p-6">
-                  <EmptyState title="暂无康复方案" />
-                </div>
-              )}
-            </CardContent>
-            <PaginationBar total={filteredPlans.length} page={planPage} totalPages={planPages} onPageChange={setPlanPage} />
-          </Card>
-
-          <div className="min-h-0 pt-1">
+        <CollapsibleSplitLayout
+          label="方案"
+          sideWidthClassName="w-full xl:w-[360px]"
+          main={
+            <Card className="flex min-h-0 flex-col overflow-hidden">
+              <CardHeader className="border-b border-border/60">
+                <CardTitle>方案列表</CardTitle>
+              </CardHeader>
+              <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+                {filteredPlans.length ? (
+                  <Table className="min-w-full">
+                    <TableHeader className="sticky top-0 z-10 bg-white">
+                      <TableRow>
+                        <TableHead>方案编号</TableHead>
+                        <TableHead>确认医生</TableHead>
+                        <TableHead>处方数</TableHead>
+                        <TableHead>采纳状态</TableHead>
+                        <TableHead>类型</TableHead>
+                        <TableHead>创建时间</TableHead>
+                        <TableHead>风险</TableHead>
+                        <TableHead>操作</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pagedPlans.map((item) => {
+                        const prescriptionCount = patientPrescriptions.filter(
+                          (prescription) => prescription.patientId === item.patientId
+                        ).length;
+                        return (
+                          <TableRow
+                            key={item.id}
+                            className="cursor-pointer"
+                            data-state={selectedPlan?.id === item.id ? "selected" : undefined}
+                            onClick={() => setSelectedPlanId(item.id)}
+                          >
+                            <TableCell className="font-medium">{item.id}</TableCell>
+                            <TableCell>{item.doctor}</TableCell>
+                            <TableCell>{prescriptionCount}</TableCell>
+                            <TableCell>
+                              <Badge>{item.status === "已同步" ? "已采纳" : "待采纳"}</Badge>
+                            </TableCell>
+                            <TableCell>{item.type}</TableCell>
+                            <TableCell>{formatDateTime(item.updatedAt)}</TableCell>
+                            <TableCell>{item.risk}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    writeState(planWorkspaceContextKey, { planId: item.id });
+                                    setSelectedPlanId(item.id);
+                                    navigate({ to: "/patients/plans/edit" });
+                                  }}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                  编辑
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-rose-600 hover:text-rose-700"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setDeletePlanTarget(item);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  删除
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="p-6">
+                    <EmptyState title="暂无康复方案" />
+                  </div>
+                )}
+              </CardContent>
+              <PaginationBar total={filteredPlans.length} page={planPage} totalPages={planPages} onPageChange={setPlanPage} />
+            </Card>
+          }
+          side={
             <DetailPanel title="智能推荐康复方案" className="h-full">
               {selectedPlan ? (
                 <>
@@ -533,66 +590,92 @@ export function PrescriptionManagement({
                 <EmptyState title="请选择方案" />
               )}
             </DetailPanel>
-          </div>
-        </div>
+          }
+        />
       ) : null}
 
       {view === "current" ? (
-        <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.55fr)_360px]">
-          <Card className="flex min-h-0 flex-col overflow-hidden">
-            <CardHeader className="border-b border-border/60">
-              <CardTitle>当前标准动作处方列表</CardTitle>
-            </CardHeader>
-            <CardContent className="flex min-h-0 flex-1 flex-col p-0">
-              {filteredActions.length ? (
-                <Table className="min-w-full">
-                  <TableHeader className="sticky top-0 z-10 bg-white">
-                    <TableRow>
-                      <TableHead>顺序号</TableHead>
-                      <TableHead>动作</TableHead>
-                      <TableHead>时间</TableHead>
-                      <TableHead>次数</TableHead>
-                      <TableHead>方向</TableHead>
-                      <TableHead>角度</TableHead>
-                      <TableHead>风险</TableHead>
-                      <TableHead>操作</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pagedActions.map((item, index) => (
-                      <TableRow
-                        key={item.id}
-                        className="cursor-pointer"
-                        data-state={selectedAction?.id === item.id ? "selected" : undefined}
-                        onClick={() => setSelectedActionId(item.id)}
-                      >
-                        <TableCell>{(currentPage - 1) * pageSize + index + 1}</TableCell>
-                        <TableCell className="font-medium">{item.title}</TableCell>
-                        <TableCell>{item.duration}</TableCell>
-                        <TableCell>{item.intensity === "中等" ? "8 次" : "10 次"}</TableCell>
-                        <TableCell>{item.part === "肩带" ? "稳定" : "外展"}</TableCell>
-                        <TableCell>{item.title.includes("外展") ? "30-60 度" : "10-20 度"}</TableCell>
-                        <TableCell>{item.intensity === "中等" ? "中风险" : "低风险"}</TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="sm">
-                            <PlayCircle className="h-4 w-4" />
-                            查看视频
-                          </Button>
-                        </TableCell>
+        <CollapsibleSplitLayout
+          label="动作"
+          sideWidthClassName="w-full xl:w-[360px]"
+          main={
+            <Card className="flex min-h-0 flex-col overflow-hidden">
+              <CardHeader className="border-b border-border/60">
+                <CardTitle>当前标准动作处方列表</CardTitle>
+              </CardHeader>
+              <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+                {filteredActions.length ? (
+                  <Table className="min-w-full">
+                    <TableHeader className="sticky top-0 z-10 bg-white">
+                      <TableRow>
+                        <TableHead>顺序号</TableHead>
+                        <TableHead>动作</TableHead>
+                        <TableHead>时间</TableHead>
+                        <TableHead>次数</TableHead>
+                        <TableHead>方向</TableHead>
+                        <TableHead>角度</TableHead>
+                        <TableHead>风险</TableHead>
+                        <TableHead>操作</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="p-6">
-                  <EmptyState title="暂无当前处方动作" />
-                </div>
-              )}
-            </CardContent>
-            <PaginationBar total={filteredActions.length} page={currentPage} totalPages={currentPages} onPageChange={setCurrentPage} />
-          </Card>
-
-          <div className="min-h-0 pt-1">
+                    </TableHeader>
+                    <TableBody>
+                      {pagedActions.map((item, index) => (
+                        <TableRow
+                          key={item.id}
+                          className="cursor-pointer"
+                          data-state={selectedAction?.id === item.id ? "selected" : undefined}
+                          onClick={() => setSelectedActionId(item.id)}
+                        >
+                          <TableCell>{(currentPage - 1) * pageSize + index + 1}</TableCell>
+                          <TableCell className="font-medium">{item.title}</TableCell>
+                          <TableCell>{item.duration}</TableCell>
+                          <TableCell>{item.intensity === "中等" ? "8 次" : "10 次"}</TableCell>
+                          <TableCell>{item.part === "肩带" ? "稳定" : "外展"}</TableCell>
+                          <TableCell>{item.title.includes("外展") ? "30-60 度" : "10-20 度"}</TableCell>
+                          <TableCell>{item.intensity === "中等" ? "中风险" : "低风险"}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  writeState(currentActionWorkspaceContextKey, { currentActionId: item.id });
+                                  setSelectedActionId(item.id);
+                                  navigate({ to: "/patients/current/edit" });
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                                编辑
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-rose-600 hover:text-rose-700"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setDeleteActionTarget(item);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                删除
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="p-6">
+                    <EmptyState title="暂无当前处方动作" />
+                  </div>
+                )}
+              </CardContent>
+              <PaginationBar total={filteredActions.length} page={currentPage} totalPages={currentPages} onPageChange={setCurrentPage} />
+            </Card>
+          }
+          side={
             <DetailPanel title="动作详情与视频预览" className="h-full">
               {selectedAction ? (
                 <>
@@ -628,80 +711,98 @@ export function PrescriptionManagement({
                 <EmptyState title="请选择一个动作" />
               )}
             </DetailPanel>
-          </div>
-        </div>
+          }
+        />
       ) : null}
 
       {view === "prescriptions" ? (
-        <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.55fr)_360px]">
-          <Card className="flex min-h-0 flex-col overflow-hidden">
-            <CardHeader className="border-b border-border/60">
-              <CardTitle>处方列表</CardTitle>
-            </CardHeader>
-            <CardContent className="flex min-h-0 flex-1 flex-col p-0">
-              {filteredPrescriptions.length ? (
-                <Table className="min-w-full">
-                  <TableHeader className="sticky top-0 z-10 bg-white">
-                    <TableRow>
-                      <TableHead>处方ID</TableHead>
-                      <TableHead>确认医生</TableHead>
-                      <TableHead>包含动作数</TableHead>
-                      <TableHead>采纳状态</TableHead>
-                      <TableHead>阶段</TableHead>
-                      <TableHead>创建时间</TableHead>
-                      <TableHead>训练数据查看</TableHead>
-                      <TableHead>操作</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pagedPrescriptions.map((item) => (
-                      <TableRow
-                        key={item.id}
-                        className="cursor-pointer"
-                        data-state={selectedPrescription?.id === item.id ? "selected" : undefined}
-                        onClick={() => setSelectedPrescriptionId(item.id)}
-                      >
-                        <TableCell className="font-medium">{item.id}</TableCell>
-                        <TableCell>{item.doctor}</TableCell>
-                        <TableCell>{item.movements.length}</TableCell>
-                        <TableCell>
-                          <Badge>{item.status === "已完成" ? "已采纳" : "待采纳"}</Badge>
-                        </TableCell>
-                        <TableCell>{item.stage}</TableCell>
-                        <TableCell>{formatDateTime(item.issuedAt)}</TableCell>
-                        <TableCell>{item.goal}</TableCell>
-                        <TableCell>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              writeState(prescriptionWorkspaceContextKey, {
-                                prescriptionId: item.id
-                              });
-                              setSelectedPrescriptionId(item.id);
-                              navigate({ to: "/patients/prescriptions/edit" });
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                            编辑
-                          </Button>
-                        </TableCell>
+        <CollapsibleSplitLayout
+          label="处方"
+          sideWidthClassName="w-full xl:w-[360px]"
+          main={
+            <Card className="flex min-h-0 flex-col overflow-hidden">
+              <CardHeader className="border-b border-border/60">
+                <CardTitle>处方列表</CardTitle>
+              </CardHeader>
+              <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+                {filteredPrescriptions.length ? (
+                  <Table className="min-w-full">
+                    <TableHeader className="sticky top-0 z-10 bg-white">
+                      <TableRow>
+                        <TableHead>处方ID</TableHead>
+                        <TableHead>确认医生</TableHead>
+                        <TableHead>包含动作数</TableHead>
+                        <TableHead>采纳状态</TableHead>
+                        <TableHead>阶段</TableHead>
+                        <TableHead>创建时间</TableHead>
+                        <TableHead>训练数据查看</TableHead>
+                        <TableHead>操作</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="p-6">
-                  <EmptyState title="暂无运动处方" />
-                </div>
-              )}
-            </CardContent>
-            <PaginationBar total={filteredPrescriptions.length} page={prescriptionPage} totalPages={prescriptionPages} onPageChange={setPrescriptionPage} />
-          </Card>
-
-          <div className="min-h-0 pt-1">
+                    </TableHeader>
+                    <TableBody>
+                      {pagedPrescriptions.map((item) => (
+                        <TableRow
+                          key={item.id}
+                          className="cursor-pointer"
+                          data-state={selectedPrescription?.id === item.id ? "selected" : undefined}
+                          onClick={() => setSelectedPrescriptionId(item.id)}
+                        >
+                          <TableCell className="font-medium">{item.id}</TableCell>
+                          <TableCell>{item.doctor}</TableCell>
+                          <TableCell>{item.movements.length}</TableCell>
+                          <TableCell>
+                            <Badge>{item.status === "已完成" ? "已采纳" : "待采纳"}</Badge>
+                          </TableCell>
+                          <TableCell>{item.stage}</TableCell>
+                          <TableCell>{formatDateTime(item.issuedAt)}</TableCell>
+                          <TableCell>{item.goal}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  writeState(prescriptionWorkspaceContextKey, {
+                                    prescriptionId: item.id
+                                  });
+                                  setSelectedPrescriptionId(item.id);
+                                  navigate({ to: "/patients/prescriptions/edit" });
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                                编辑
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="text-rose-600 hover:text-rose-700"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setDeletePrescriptionTarget(item);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                删除
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="p-6">
+                    <EmptyState title="暂无运动处方" />
+                  </div>
+                )}
+              </CardContent>
+              <PaginationBar total={filteredPrescriptions.length} page={prescriptionPage} totalPages={prescriptionPages} onPageChange={setPrescriptionPage} />
+            </Card>
+          }
+          side={
             <DetailPanel title="当前处方详情" className="h-full">
               {selectedPrescription ? (
                 <>
@@ -743,9 +844,54 @@ export function PrescriptionManagement({
                 <EmptyState title="请选择一条处方" />
               )}
             </DetailPanel>
-          </div>
-        </div>
+          }
+        />
       ) : null}
+
+      <DialogFormShell
+        open={Boolean(deletePlanTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletePlanTarget(null);
+          }
+        }}
+        title="删除康复方案"
+        description={`确认删除“${deletePlanTarget?.id ?? ""}”后，列表会立即刷新。`}
+        onSubmit={handleDeletePlan}
+        submitLabel="确认删除"
+      >
+        <p className="text-sm leading-7 text-muted-foreground">当前原型会直接从本地列表中移除该康复方案。</p>
+      </DialogFormShell>
+
+      <DialogFormShell
+        open={Boolean(deleteActionTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteActionTarget(null);
+          }
+        }}
+        title="删除当前处方动作"
+        description={`确认删除“${deleteActionTarget?.title ?? ""}”后，列表会立即刷新。`}
+        onSubmit={handleDeleteAction}
+        submitLabel="确认删除"
+      >
+        <p className="text-sm leading-7 text-muted-foreground">当前原型会直接从本地列表中移除该动作。</p>
+      </DialogFormShell>
+
+      <DialogFormShell
+        open={Boolean(deletePrescriptionTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletePrescriptionTarget(null);
+          }
+        }}
+        title="删除运动处方"
+        description={`确认删除“${deletePrescriptionTarget?.id ?? ""}”后，列表会立即刷新。`}
+        onSubmit={handleDeletePrescription}
+        submitLabel="确认删除"
+      >
+        <p className="text-sm leading-7 text-muted-foreground">当前原型会直接从本地列表中移除该运动处方。</p>
+      </DialogFormShell>
 
     </div>
   );

@@ -16,7 +16,7 @@ export function DashboardOverview() {
   const summary = data?.summary;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         eyebrow="首页概览"
         title="智慧康复机器人后台"
@@ -31,7 +31,7 @@ export function DashboardOverview() {
         <MetricCard label="知识资产" value={summary?.knowledgeAssets ?? 0} hint="康复知识库有效内容" />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <Card>
           <CardHeader>
             <CardTitle>本周训练趋势</CardTitle>
@@ -72,7 +72,7 @@ export function DashboardOverview() {
         </Card>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid gap-4 xl:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>工作待办</CardTitle>

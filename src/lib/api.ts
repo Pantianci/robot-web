@@ -4,13 +4,17 @@ import {
   createCurrentAction,
   createKnowledgeItem,
   createKnowledgeTag,
-  deleteKnowledgeTag,
   createPatient,
   createPrescription,
   createRehabPlan,
   createRobot,
+  deleteCurrentAction,
   deleteKnowledgeItem,
+  deleteKnowledgeTag,
   deletePatient,
+  deletePrescription,
+  deleteRehabPlan,
+  deleteReport,
   getCurrentActions,
   getKnowledgeItems,
   getKnowledgeQa,
@@ -21,6 +25,7 @@ import {
   getReports,
   getRobots,
   reviewReport,
+  updateCurrentAction,
   updateKnowledgeItem,
   updateKnowledgeTag,
   updatePatient,
@@ -59,15 +64,20 @@ export const api = {
   getRehabPlans,
   createRehabPlan,
   updateRehabPlan,
+  deleteRehabPlan,
   getCurrentActions,
   createCurrentAction,
+  updateCurrentAction,
+  deleteCurrentAction,
   getPrescriptions,
   createPrescription,
   updatePrescription,
+  deletePrescription,
   exportPrescriptions: async (count: number) =>
     createExportResult(`prescriptions-${Date.now()}.pdf`, count),
   getReports,
   reviewReport,
+  deleteReport,
   exportReports: async (count: number) =>
     createExportResult(`reports-${Date.now()}.pdf`, count),
   getRobots,
@@ -83,6 +93,7 @@ export type UpdateTagInput = Partial<TagItem>;
 export type CreatePatientInput = Omit<Patient, "id" | "createdAt">;
 export type CreatePlanInput = Omit<RehabPlan, "id" | "updatedAt">;
 export type CreateCurrentActionInput = Omit<CurrentAction, "id" | "updatedAt">;
+export type UpdateCurrentActionInput = Partial<CurrentAction>;
 export type CreatePrescriptionInput = Omit<Prescription, "id" | "issuedAt">;
 export type ReviewReportInput = Partial<Report>;
 export type CreateRobotInput = Omit<Robot, "lastWorkAt">;

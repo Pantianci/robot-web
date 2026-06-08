@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { useCreateRobotMutation, useRobotsQuery } from "@/lib/hooks";
 import { formatDateTime } from "@/lib/utils";
 import type { RobotStatus } from "@/lib/types";
+import { CollapsibleSplitLayout } from "@/components/collapsible-side-panel";
 import { DetailPanel } from "@/components/detail-panel";
 import { DialogFormShell } from "@/components/dialog-form-shell";
 import { EmptyState } from "@/components/empty-state";
@@ -82,7 +83,7 @@ export function RobotManagement() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <PageHeader
         eyebrow="机器人管理 > 机器人列表"
         title="机器人列表"
@@ -137,77 +138,82 @@ export function RobotManagement() {
         <MetricCard label="预警机器人" value={warningCount} hint="建议优先处理" />
       </div>
 
-      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.8fr)_360px]">
-        <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <CardHeader className="border-b border-border/60">
-            <CardTitle>机器人列表</CardTitle>
-          </CardHeader>
-          <CardContent className="flex min-h-0 flex-1 flex-col p-0">
-            {filtered.length ? (
-              <Table className="min-w-full">
-                <TableHeader className="sticky top-0 z-10 bg-white">
-                  <TableRow>
-                    <TableHead>机器人ID</TableHead>
-                    <TableHead>状态</TableHead>
-                    <TableHead>患者</TableHead>
-                    <TableHead>电量</TableHead>
-                    <TableHead>病床</TableHead>
-                    <TableHead>训练状态</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      data-state={selected?.id === item.id ? "selected" : undefined}
-                      className="cursor-pointer"
-                      onClick={() => setSelectedId(item.id)}
-                    >
-                      <TableCell className="font-medium">{item.id}</TableCell>
-                      <TableCell>{item.status}</TableCell>
-                      <TableCell>{item.patientName}</TableCell>
-                      <TableCell>{item.battery}%</TableCell>
-                      <TableCell>{item.bedNo}</TableCell>
-                      <TableCell>{item.trainingStatus}</TableCell>
+      <CollapsibleSplitLayout
+        label="概况"
+        sideWidthClassName="w-full xl:w-[360px]"
+        main={
+          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <CardTitle>机器人列表</CardTitle>
+            </CardHeader>
+            <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+              {filtered.length ? (
+                <Table className="min-w-full">
+                  <TableHeader className="sticky top-0 z-10 bg-white">
+                    <TableRow>
+                      <TableHead>机器人ID</TableHead>
+                      <TableHead>状态</TableHead>
+                      <TableHead>患者</TableHead>
+                      <TableHead>电量</TableHead>
+                      <TableHead>病床</TableHead>
+                      <TableHead>训练状态</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((item) => (
+                      <TableRow
+                        key={item.id}
+                        data-state={selected?.id === item.id ? "selected" : undefined}
+                        className="cursor-pointer"
+                        onClick={() => setSelectedId(item.id)}
+                      >
+                        <TableCell className="font-medium">{item.id}</TableCell>
+                        <TableCell>{item.status}</TableCell>
+                        <TableCell>{item.patientName}</TableCell>
+                        <TableCell>{item.battery}%</TableCell>
+                        <TableCell>{item.bedNo}</TableCell>
+                        <TableCell>{item.trainingStatus}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="p-6">
+                  <EmptyState title="暂无机器人记录" />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        }
+        side={
+          <DetailPanel title="机器人概况" className="h-full">
+            {selected ? (
+              <>
+                <PropertyList
+                  items={[
+                    { label: "机器人ID", value: selected.id },
+                    { label: "状态", value: selected.status },
+                    { label: "患者", value: selected.patientName },
+                    { label: "电量", value: `${selected.battery}%` },
+                    { label: "病床", value: selected.bedNo },
+                    { label: "最近工作", value: formatDateTime(selected.lastWorkAt) }
+                  ]}
+                />
+                <Card className="border-border/60 bg-surface-50 shadow-none">
+                  <CardHeader>
+                    <CardTitle className="text-base">处理记录</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0 text-sm leading-7 text-muted-foreground">
+                    {selected.note}
+                  </CardContent>
+                </Card>
+              </>
             ) : (
-              <div className="p-6">
-                <EmptyState title="暂无机器人记录" />
-              </div>
+              <EmptyState title="请选择一台机器人" />
             )}
-          </CardContent>
-        </Card>
-
-        <DetailPanel title="机器人概况" className="h-full pt-1">
-          {selected ? (
-            <>
-              <PropertyList
-                items={[
-                  { label: "机器人ID", value: selected.id },
-                  { label: "状态", value: selected.status },
-                  { label: "患者", value: selected.patientName },
-                  { label: "电量", value: `${selected.battery}%` },
-                  { label: "病床", value: selected.bedNo },
-                  { label: "最近工作", value: formatDateTime(selected.lastWorkAt) }
-                ]}
-              />
-              <Card className="border-border/60 bg-surface-50 shadow-none">
-                <CardHeader>
-                  <CardTitle className="text-base">处理记录</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 text-sm leading-7 text-muted-foreground">
-                  {selected.note}
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <EmptyState title="请选择一台机器人" />
-          )}
-        </DetailPanel>
-      </div>
+          </DetailPanel>
+        }
+      />
 
       <DialogFormShell
         open={open}

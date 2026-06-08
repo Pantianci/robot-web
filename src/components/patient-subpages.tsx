@@ -1,12 +1,14 @@
 import { useNavigate } from "@tanstack/react-router";
 import { FileOutput, Save, Sparkles } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import {
   useCreateCurrentActionMutation,
   useCreatePatientMutation,
   useCreatePlanMutation,
   useCreatePrescriptionMutation,
+  useCurrentActionsQuery,
+  useUpdateCurrentActionMutation,
   usePatientsQuery,
   usePlansQuery,
   usePrescriptionsQuery,
@@ -18,10 +20,12 @@ import {
 } from "@/lib/hooks";
 import {
   buildPatientSummary,
+  currentActionWorkspaceContextKey,
   defaultPatientWorkspace,
   patientWorkspaceContextKey,
   planWorkspaceContextKey,
-  prescriptionWorkspaceContextKey
+  prescriptionWorkspaceContextKey,
+  reportWorkspaceContextKey
 } from "@/lib/patient-context";
 import { clearDraft, readDraft, readState, writeDraft, writeState } from "@/lib/storage";
 import { formatDateTime, generateId } from "@/lib/utils";
@@ -33,6 +37,7 @@ import type {
   RehabPlan,
   Report
 } from "@/lib/types";
+import { CollapsibleSplitLayout } from "@/components/collapsible-side-panel";
 import { Field } from "@/components/field";
 import { PageHeader } from "@/components/page-header";
 import { PropertyList } from "@/components/property-list";
@@ -113,9 +118,9 @@ const reviewDraftKey = "patients:report-review-page";
 const prescriptionExportDraftKey = "patients:prescription-export-page";
 const reportExportDraftKey = "patients:report-export-page";
 const currentActionCreateDraftKey = "patients:current-action-create-page";
+const currentActionEditDraftKey = "patients:current-action-edit-page";
 const currentActionExportDraftKey = "patients:current-action-export-page";
 const planExportDraftKey = "patients:plan-export-page";
-const reportWorkspaceContextKey = "robot-web-prototype::report-workspace";
 const patientEditDraftKey = "patients:edit-page";
 const patientExportDraftKey = "patients:base-export-page";
 const planEditDraftKey = "patients:plan-edit-page";
@@ -156,7 +161,7 @@ function SubPageLayout({
   bottom: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <PageHeader
         eyebrow={eyebrow}
         title={title}
@@ -165,17 +170,21 @@ function SubPageLayout({
         className="mb-1"
         actions={actions}
       />
-      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.55fr)_360px]">
-        <div className="flex min-h-0 flex-col gap-6">
-          {left}
-          <Card className="shrink-0 border-primary/15 bg-primary/5">
-            <CardContent className="flex items-center justify-between gap-4 p-5">
-              {bottom}
-            </CardContent>
-          </Card>
-        </div>
-        <div className="min-h-0 pt-1">{right}</div>
-      </div>
+      <CollapsibleSplitLayout
+        label="摘要"
+        sideWidthClassName="w-full xl:w-[360px]"
+        main={
+          <div className="flex min-h-0 flex-col gap-4">
+            {left}
+            <Card className="shrink-0 border-primary/15 bg-primary/5">
+              <CardContent className="flex items-center justify-between gap-4 p-5">
+                {bottom}
+              </CardContent>
+            </Card>
+          </div>
+        }
+        side={right}
+      />
     </div>
   );
 }
@@ -1405,6 +1414,221 @@ export function CurrentActionCreatePage() {
               取消
             </Button>
             <Button onClick={submit}>提交</Button>
+          </div>
+        </>
+      }
+    />
+  );
+}
+
+export function CurrentActionEditPage() {
+  const navigate = useNavigate();
+  const { data: patients = [] } = usePatientsQuery();
+  const { data: plans = [] } = usePlansQuery();
+  const { data: prescriptions = [] } = usePrescriptionsQuery();
+  const { data: currentActions = [] } = useCurrentActionsQuery();
+  const patient = resolveWorkspacePatient(patients, plans, prescriptions) ?? patients[0] ?? null;
+  const summaryPlan = plans.find((item) => item.patientId === patient?.id) ?? null;
+  const summaryPrescription =
+    prescriptions.find(
+      (item) => item.id === readState<{ prescriptionId: string }>(prescriptionWorkspaceContextKey)?.prescriptionId
+    ) ??
+    prescriptions.find((item) => item.patientId === patient?.id) ??
+    null;
+  const actionWorkspace = readState<{ currentActionId: string }>(currentActionWorkspaceContextKey);
+  const persistedAction =
+    currentActions.find((item) => item.id === actionWorkspace?.currentActionId) ??
+    currentActions.find((item) => item.patientId === patient?.id) ??
+    null;
+  const exampleMovement =
+    actionWorkspace?.currentActionId && actionWorkspace.currentActionId.startsWith("example-")
+      ? summaryPrescription?.movements.find((item) =>
+          actionWorkspace.currentActionId.includes(item.id)
+        ) ?? summaryPrescription?.movements[0]
+      : summaryPrescription?.movements[0];
+  const fallbackAction: CurrentAction | null =
+    !persistedAction && patient && exampleMovement
+      ? {
+          id: actionWorkspace?.currentActionId ?? "action-preview",
+          patientId: patient.id,
+          title: exampleMovement.name,
+          part: exampleMovement.name.includes("肩") ? "肩关节" : "训练部位",
+          duration: exampleMovement.duration,
+          intensity: "中等",
+          note: `示例动作：${exampleMovement.name}，角度 ${exampleMovement.angle}，次数 ${exampleMovement.repetitions}。`,
+          updatedAt: summaryPrescription?.issuedAt ?? new Date().toISOString()
+        }
+      : null;
+  const summaryAction = persistedAction ?? fallbackAction;
+  const createMutation = useCreateCurrentActionMutation();
+  const updateMutation = useUpdateCurrentActionMutation();
+  const initialDraft = useMemo<CurrentActionCreateDraft>(
+    () =>
+      readDraft<CurrentActionCreateDraft>(currentActionEditDraftKey) ?? {
+        title: summaryAction?.title ?? "肩外展训练",
+        part: summaryAction?.part ?? "肩关节",
+        duration: summaryAction?.duration ?? "06:00",
+        intensity: summaryAction?.intensity ?? "中等",
+        note: summaryAction?.note ?? "动作幅度控制 30-60 度，避免代偿"
+      },
+    [summaryAction]
+  );
+  const [draft, setDraft] = useState<CurrentActionCreateDraft>(initialDraft);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    setDraft(initialDraft);
+  }, [initialDraft]);
+
+  const persist = (patch: Partial<CurrentActionCreateDraft>) => {
+    const next = { ...draft, ...patch };
+    setDraft(next);
+    writeDraft(currentActionEditDraftKey, next);
+  };
+
+  const cancel = () => {
+    clearDraft(currentActionEditDraftKey);
+    navigate({ to: "/patients/current" });
+  };
+
+  const submit = async () => {
+    if (!patient || !draft.title || !draft.part || !draft.duration || !draft.intensity) {
+      setErrorMessage("无法提交，请补全动作名称、部位、时间和强度。");
+      return;
+    }
+
+    if (persistedAction) {
+      await updateMutation.mutateAsync({
+        id: persistedAction.id,
+        patch: {
+          title: draft.title,
+          part: draft.part,
+          duration: draft.duration,
+          intensity: draft.intensity,
+          note: draft.note
+        }
+      });
+      writeState(currentActionWorkspaceContextKey, { currentActionId: persistedAction.id });
+    } else {
+      const created = await createMutation.mutateAsync({
+        patientId: patient.id,
+        title: draft.title,
+        part: draft.part,
+        duration: draft.duration,
+        intensity: draft.intensity,
+        note: draft.note
+      });
+      writeState(currentActionWorkspaceContextKey, { currentActionId: created.id });
+    }
+
+    writeState(patientWorkspaceContextKey, {
+      selectedId: patient.id,
+      patientId: patient.id,
+      patientName: patient.name
+    });
+    clearDraft(currentActionEditDraftKey);
+    navigate({ to: "/patients/current" });
+  };
+
+  const previewAction: CurrentAction | null = patient
+    ? {
+        id: summaryAction?.id ?? "action-preview",
+        patientId: patient.id,
+        title: draft.title || "肩外展训练",
+        part: draft.part || "肩关节",
+        duration: draft.duration || "06:00",
+        intensity: draft.intensity || "中等",
+        note: draft.note || "动作幅度控制 30-60 度，避免代偿",
+        updatedAt: summaryAction?.updatedAt ?? new Date().toISOString()
+      }
+    : null;
+
+  return (
+    <SubPageLayout
+      eyebrow="患者档案管理 > 当前处方 > 修改单体动作"
+      title="修改单体动作"
+      description="默认加载当前选中的单体动作，支持修改动作字段并保持右侧视频预览。"
+      left={
+        <>
+          <PatientSummaryCard
+            patient={patient}
+            plan={summaryPlan}
+            prescription={summaryPrescription}
+            currentAction={previewAction}
+          />
+          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <CardTitle>单体动作字段</CardTitle>
+            </CardHeader>
+            <CardContent className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-5 md:grid-cols-2">
+              <Field label="动作名称">
+                <Input value={draft.title} onChange={(event) => persist({ title: event.target.value })} />
+              </Field>
+              <Field label="部位">
+                <Input value={draft.part} onChange={(event) => persist({ part: event.target.value })} />
+              </Field>
+              <Field label="时间">
+                <Input value={draft.duration} onChange={(event) => persist({ duration: event.target.value })} />
+              </Field>
+              <Field label="强度">
+                <Input value={draft.intensity} onChange={(event) => persist({ intensity: event.target.value })} />
+              </Field>
+              <div className="md:col-span-2">
+                <Field label="动作说明">
+                  <Textarea value={draft.note} onChange={(event) => persist({ note: event.target.value })} />
+                </Field>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      }
+      right={
+        <Card className="flex h-full min-h-0 flex-col overflow-hidden">
+          <CardHeader className="border-b border-border/60">
+            <CardTitle>视频与说明侧栏</CardTitle>
+          </CardHeader>
+          <CardContent className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-5">
+            <SectionCard title="视频预览位">
+              <div className="rounded-[1.25rem] border border-border/70 bg-surface-950 px-4 py-5 text-white">
+                <p className="text-base font-semibold">
+                  {summaryPrescription?.videoTitle ?? "康复训练教学视频"}
+                </p>
+                <p className="mt-2 text-sm text-white/70">
+                  {summaryPrescription?.videoTitle
+                    ? `时长：${summaryPrescription.videoDuration} | 难度：初级`
+                    : "核心稳定性训练 - 基础动作教学"}
+                </p>
+              </div>
+            </SectionCard>
+            <PropertyList
+              items={[
+                { label: "动作名称", value: draft.title },
+                { label: "动作部位", value: draft.part },
+                { label: "执行时间", value: draft.duration },
+                { label: "执行强度", value: draft.intensity }
+              ]}
+            />
+          </CardContent>
+        </Card>
+      }
+      bottom={
+        <>
+          <div>
+            {errorMessage ? (
+              <p className="text-sm text-rose-700">{errorMessage}</p>
+            ) : (
+              <p className="text-sm text-primary">修改完成后会返回当前处方列表，并更新右侧详情。</p>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => writeDraft(currentActionEditDraftKey, draft)}>
+              <Save className="h-4 w-4" />
+              草稿保存
+            </Button>
+            <Button variant="outline" onClick={cancel}>
+              取消
+            </Button>
+            <Button onClick={submit}>提交修改</Button>
           </div>
         </>
       }

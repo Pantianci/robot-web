@@ -6,6 +6,7 @@ import { defaultPatientWorkspace, patientWorkspaceContextKey } from "@/lib/patie
 import { readState, writeState } from "@/lib/storage";
 import { formatDateTime } from "@/lib/utils";
 import type { Patient } from "@/lib/types";
+import { CollapsibleSplitLayout } from "@/components/collapsible-side-panel";
 import { DetailPanel } from "@/components/detail-panel";
 import { DialogFormShell } from "@/components/dialog-form-shell";
 import { EmptyState } from "@/components/empty-state";
@@ -43,7 +44,7 @@ export function PatientManagement() {
     readState<{ selectedId: string }>(patientWorkspaceContextKey)?.selectedId ??
       defaultPatientWorkspace.patientId
   );
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Patient | null>(null);
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -116,14 +117,14 @@ export function PatientManagement() {
     });
   }, [selected]);
 
-  const openEditPage = () => {
-    if (!selected) {
+  const openEditPage = (patient: Patient | null) => {
+    if (!patient) {
       return;
     }
     writeState(patientWorkspaceContextKey, {
-      selectedId: selected.id,
-      patientId: selected.id,
-      patientName: selected.name
+      selectedId: patient.id,
+      patientId: patient.id,
+      patientName: patient.name
     });
     navigate({ to: "/patients/base/edit" });
   };
@@ -138,31 +139,36 @@ export function PatientManagement() {
   };
 
   const handleDelete = async () => {
-    if (!selected) {
+    if (!deleteTarget) {
       return;
     }
 
-    await deleteMutation.mutateAsync(selected.id);
-    setDeleteOpen(false);
+    await deleteMutation.mutateAsync(deleteTarget.id);
+    setDeleteTarget(null);
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <PageHeader
         eyebrow="患者档案管理 > 基础档案"
         title="基础档案"
         description="支持患者档案检索、右侧详情预览、新增档案与编辑删除操作。"
         className="mb-1"
         actions={
-          <Button
-            type="button"
-            onClick={() => {
-              navigate({ to: "/patients/base/create" });
-            }}
-          >
+          <>
+            <Button
+              type="button"
+              onClick={() => {
+                navigate({ to: "/patients/base/create" });
+              }}
+            >
               <Plus className="h-4 w-4" />
               新增档案
-          </Button>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/patients/base/export">导出</Link>
+            </Button>
+          </>
         }
       />
 
@@ -226,137 +232,160 @@ export function PatientManagement() {
         </Field>
       </FilterBar>
 
-      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.8fr)_360px]">
-        <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-border/60">
-            <CardTitle>患者列表</CardTitle>
-            {selected ? (
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={openEditPage}>
-                  <Pencil className="h-4 w-4" />
-                  编辑
-                </Button>
-                <Button asChild variant="ghost" size="sm">
-                  <Link to="/patients/base/export">导出</Link>
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setDeleteOpen(true)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+      <CollapsibleSplitLayout
+        label="档案"
+        sideWidthClassName="w-full xl:w-[360px]"
+        main={
+          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <CardTitle>患者列表</CardTitle>
+            </CardHeader>
+            <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+              {filtered.length ? (
+                <Table className="min-w-full">
+                  <TableHeader className="sticky top-0 z-10 bg-white">
+                    <TableRow>
+                      <TableHead>患者ID</TableHead>
+                      <TableHead>姓名</TableHead>
+                      <TableHead>病种</TableHead>
+                      <TableHead>阶段</TableHead>
+                      <TableHead>设备ID</TableHead>
+                      <TableHead>病床号</TableHead>
+                      <TableHead>建档人</TableHead>
+                      <TableHead>建档时间</TableHead>
+                      <TableHead>操作</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paged.map((item) => (
+                      <TableRow
+                        key={item.id}
+                        data-state={selected?.id === item.id ? "selected" : undefined}
+                        className="cursor-pointer"
+                        onClick={() => setSelectedId(item.id)}
+                      >
+                        <TableCell>{item.id}</TableCell>
+                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell>{item.diagnosis}</TableCell>
+                        <TableCell>{item.stage}</TableCell>
+                        <TableCell>{item.robotId}</TableCell>
+                        <TableCell>{item.bedNo}</TableCell>
+                        <TableCell>{item.createdBy}</TableCell>
+                        <TableCell>{formatDateTime(item.createdAt)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openEditPage(item);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                              编辑
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-rose-600 hover:text-rose-700"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setDeleteTarget(item);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              删除
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="p-6">
+                  <EmptyState title="暂无患者档案" />
+                </div>
+              )}
+            </CardContent>
+            {filtered.length ? (
+              <div className="flex items-center justify-between border-t border-border/60 px-5 py-4 text-sm text-muted-foreground">
+                <span>
+                  共 {filtered.length} 条，当前第 {safePage} / {totalPages} 页
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={safePage <= 1}
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  >
+                    上一页
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={safePage >= totalPages}
+                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                  >
+                    下一页
+                  </Button>
+                </div>
               </div>
             ) : null}
-          </CardHeader>
-          <CardContent className="flex min-h-0 flex-1 flex-col p-0">
-            {filtered.length ? (
-              <Table className="min-w-full">
-                <TableHeader className="sticky top-0 z-10 bg-white">
-                  <TableRow>
-                    <TableHead>患者ID</TableHead>
-                    <TableHead>姓名</TableHead>
-                    <TableHead>病种</TableHead>
-                    <TableHead>阶段</TableHead>
-                    <TableHead>设备ID</TableHead>
-                    <TableHead>病床号</TableHead>
-                    <TableHead>建档人</TableHead>
-                    <TableHead>建档时间</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paged.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      data-state={selected?.id === item.id ? "selected" : undefined}
-                      className="cursor-pointer"
-                      onClick={() => setSelectedId(item.id)}
-                    >
-                      <TableCell>{item.id}</TableCell>
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell>{item.diagnosis}</TableCell>
-                      <TableCell>{item.stage}</TableCell>
-                      <TableCell>{item.robotId}</TableCell>
-                      <TableCell>{item.bedNo}</TableCell>
-                      <TableCell>{item.createdBy}</TableCell>
-                      <TableCell>{formatDateTime(item.createdAt)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+          </Card>
+        }
+        side={
+          <DetailPanel title="患者档案" className="h-full">
+            {selected ? (
+              <>
+                <PropertyList
+                  items={[
+                    { label: "患者", value: selected.name },
+                    { label: "患者ID", value: selected.id },
+                    { label: "年龄", value: selected.age },
+                    { label: "性别", value: selected.gender },
+                    { label: "病种", value: selected.diagnosis },
+                    { label: "设备ID", value: selected.robotId },
+                    { label: "病床号", value: selected.bedNo },
+                    { label: "建档人", value: selected.createdBy },
+                    { label: "建档时间", value: formatDateTime(selected.createdAt) }
+                  ]}
+                />
+                <Card className="border-border/60 bg-surface-50 shadow-none">
+                  <CardHeader>
+                    <CardTitle className="text-base">患者备注</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0 text-sm leading-7 text-muted-foreground">
+                    {selected.note}
+                  </CardContent>
+                </Card>
+                <Card className="border-border/60 bg-surface-50 shadow-none">
+                  <CardHeader>
+                    <CardTitle className="text-base">最近操作</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0 text-sm leading-7 text-muted-foreground">
+                    {`${selected.createdBy} 于 ${formatDateTime(selected.createdAt)} 完成建档，当前患者已同步为后续康复方案与处方页上下文。`}
+                  </CardContent>
+                </Card>
+              </>
             ) : (
-              <div className="p-6">
-                <EmptyState title="暂无患者档案" />
-              </div>
+              <EmptyState title="请选择一位患者" />
             )}
-          </CardContent>
-          {filtered.length ? (
-            <div className="flex items-center justify-between border-t border-border/60 px-5 py-4 text-sm text-muted-foreground">
-              <span>
-                共 {filtered.length} 条，当前第 {safePage} / {totalPages} 页
-              </span>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={safePage <= 1}
-                  onClick={() => setPage((current) => Math.max(1, current - 1))}
-                >
-                  上一页
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={safePage >= totalPages}
-                  onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-                >
-                  下一页
-                </Button>
-              </div>
-            </div>
-          ) : null}
-        </Card>
-
-        <DetailPanel title="患者档案" className="h-full pt-1">
-          {selected ? (
-            <>
-              <PropertyList
-                items={[
-                  { label: "患者", value: selected.name },
-                  { label: "患者ID", value: selected.id },
-                  { label: "年龄", value: selected.age },
-                  { label: "性别", value: selected.gender },
-                  { label: "病种", value: selected.diagnosis },
-                  { label: "设备ID", value: selected.robotId },
-                  { label: "病床号", value: selected.bedNo },
-                  { label: "建档人", value: selected.createdBy },
-                  { label: "建档时间", value: formatDateTime(selected.createdAt) }
-                ]}
-              />
-              <Card className="border-border/60 bg-surface-50 shadow-none">
-                <CardHeader>
-                  <CardTitle className="text-base">患者备注</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 text-sm leading-7 text-muted-foreground">
-                  {selected.note}
-                </CardContent>
-              </Card>
-              <Card className="border-border/60 bg-surface-50 shadow-none">
-                <CardHeader>
-                  <CardTitle className="text-base">最近操作</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 text-sm leading-7 text-muted-foreground">
-                  {`${selected.createdBy} 于 ${formatDateTime(selected.createdAt)} 完成建档，当前患者已同步为后续康复方案与处方页上下文。`}
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <EmptyState title="请选择一位患者" />
-          )}
-        </DetailPanel>
-      </div>
+          </DetailPanel>
+        }
+      />
 
       <DialogFormShell
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null);
+          }
+        }}
         title="删除患者档案"
-        description={`确认删除“${selected?.name ?? ""}”后，列表会立即刷新，并记录最近处理日志。`}
+        description={`确认删除“${deleteTarget?.name ?? ""}”后，列表会立即刷新，并记录最近处理日志。`}
         onSubmit={handleDelete}
         submitLabel="确认删除"
       >

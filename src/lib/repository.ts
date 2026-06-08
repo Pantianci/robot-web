@@ -284,6 +284,13 @@ export async function updateRehabPlan(id: string, patch: Partial<RehabPlan>) {
   return next.carePath.plans.find((item) => item.id === id) ?? null;
 }
 
+export async function deleteRehabPlan(id: string) {
+  await updateDatabase((database) => {
+    database.carePath.plans = database.carePath.plans.filter((item) => item.id !== id);
+    return database;
+  });
+}
+
 export async function getCurrentActions() {
   const database = await ensureDatabase();
   return database.carePath.currentActions;
@@ -302,6 +309,24 @@ export async function createCurrentAction(
   });
 
   return next.carePath.currentActions[0];
+}
+
+export async function updateCurrentAction(id: string, patch: Partial<CurrentAction>) {
+  const next = await updateDatabase((database) => {
+    database.carePath.currentActions = database.carePath.currentActions.map((item) =>
+      item.id === id ? { ...item, ...patch, updatedAt: new Date().toISOString() } : item
+    );
+    return database;
+  });
+
+  return next.carePath.currentActions.find((item) => item.id === id) ?? null;
+}
+
+export async function deleteCurrentAction(id: string) {
+  await updateDatabase((database) => {
+    database.carePath.currentActions = database.carePath.currentActions.filter((item) => item.id !== id);
+    return database;
+  });
 }
 
 export async function getPrescriptions() {
@@ -338,6 +363,13 @@ export async function updatePrescription(
   return next.carePath.prescriptions.find((item) => item.id === id) ?? null;
 }
 
+export async function deletePrescription(id: string) {
+  await updateDatabase((database) => {
+    database.carePath.prescriptions = database.carePath.prescriptions.filter((item) => item.id !== id);
+    return database;
+  });
+}
+
 export async function getReports() {
   const database = await ensureDatabase();
   return database.carePath.reports;
@@ -352,6 +384,13 @@ export async function reviewReport(id: string, patch: Partial<Report>) {
   });
 
   return next.carePath.reports.find((item) => item.id === id) ?? null;
+}
+
+export async function deleteReport(id: string) {
+  await updateDatabase((database) => {
+    database.carePath.reports = database.carePath.reports.filter((item) => item.id !== id);
+    return database;
+  });
 }
 
 export async function getRobots() {

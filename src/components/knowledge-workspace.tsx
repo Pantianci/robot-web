@@ -28,6 +28,7 @@ import {
 import { readState, writeState } from "@/lib/storage";
 import type { KnowledgeItem, KnowledgeLibrary } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
+import { CollapsibleSplitLayout } from "@/components/collapsible-side-panel";
 import { DetailPanel } from "@/components/detail-panel";
 import { DialogFormShell } from "@/components/dialog-form-shell";
 import { EmptyState } from "@/components/empty-state";
@@ -282,7 +283,7 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
   ).length;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <PageHeader
         eyebrow={meta.eyebrow}
         title={meta.title}
@@ -449,8 +450,10 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
         </Card>
       ) : null}
 
-      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.9fr)_400px]">
-        <div className="flex min-h-0 flex-col">
+      <CollapsibleSplitLayout
+        label="详情"
+        sideWidthClassName="w-full xl:w-[400px]"
+        main={
           <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between border-b border-border/60">
               <div>
@@ -513,7 +516,11 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
                             </TableCell>
                             {rowValues.map((value, index) => (
                               <TableCell key={`${item.id}-${index}`} className={index === 0 ? "font-medium" : ""}>
-                                {index === rowValues.length - 1 && (library === "voice" || library === "motion" || library === "sequence" || library === "knowledge") ? (
+                                {index === rowValues.length - 1 &&
+                                (library === "voice" ||
+                                  library === "motion" ||
+                                  library === "sequence" ||
+                                  library === "knowledge") ? (
                                   <Badge className={statusBadgeClass(String(value))}>{value}</Badge>
                                 ) : (
                                   value
@@ -537,11 +544,7 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
                                     <PencilLine className="h-4 w-4" />
                                   </Link>
                                 </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setDeleteTarget(item)}
-                                >
+                                <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(item)}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
@@ -553,9 +556,7 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
                   </Table>
 
                   <div className="shrink-0 flex flex-col gap-3 border-t border-border/60 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="text-sm text-muted-foreground">
-                      第 {safePage} / {totalPages} 页
-                    </div>
+                    <div className="text-sm text-muted-foreground">第 {safePage} / {totalPages} 页</div>
                     <div className="flex flex-wrap items-center gap-2">
                       <select
                         className="native-select h-9 w-[110px]"
@@ -610,14 +611,9 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
               )}
             </CardContent>
           </Card>
-
-        </div>
-
-        <div className="min-h-0 pt-1">
-          <DetailPanel
-            title={`${meta.title}详情`}
-            className="h-full"
-          >
+        }
+        side={
+          <DetailPanel title={`${meta.title}详情`} className="h-full">
             {selectedItem ? (
               <>
                 <PropertyList
@@ -633,9 +629,7 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
                   ]}
                 />
                 <SectionCard title="文件说明">
-                  <p className="text-sm leading-7 text-muted-foreground">
-                    {selectedItem.description}
-                  </p>
+                  <p className="text-sm leading-7 text-muted-foreground">{selectedItem.description}</p>
                 </SectionCard>
                 {library === "motion" ? (
                   <SectionCard title="动作详情">
@@ -688,9 +682,7 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
 
                 {selectedItem.preview ? (
                   <SectionCard title="内容预览">
-                    <p className="text-sm leading-7 text-muted-foreground">
-                      {selectedItem.preview}
-                    </p>
+                    <p className="text-sm leading-7 text-muted-foreground">{selectedItem.preview}</p>
                   </SectionCard>
                 ) : null}
 
@@ -703,9 +695,7 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
                           className="rounded-[1.25rem] border border-border/70 bg-white px-4 py-3"
                         >
                           <p className="font-medium text-surface-900">{item.question}</p>
-                          <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                            {item.answer}
-                          </p>
+                          <p className="mt-2 text-sm leading-7 text-muted-foreground">{item.answer}</p>
                         </div>
                       ))
                     ) : (
@@ -718,8 +708,8 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
               <EmptyState title="请选择一条内容" description="点击列表中的记录后，在此查看右侧固定详情区。" />
             )}
           </DetailPanel>
-        </div>
-      </div>
+        }
+      />
 
       <DialogFormShell
         open={Boolean(deleteTarget)}

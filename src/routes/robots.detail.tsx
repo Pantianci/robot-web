@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { CollapsibleSidePanel } from "@/components/collapsible-side-panel";
 import { DetailPanel } from "@/components/detail-panel";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
@@ -17,7 +18,7 @@ function RobotDetailPage() {
   const robot = useMemo(() => robots[0] ?? null, [robots]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <PageHeader
         eyebrow="机器人管理 > 机器人详情"
         title="机器人详情"
@@ -25,8 +26,8 @@ function RobotDetailPage() {
         badge="详情页"
       />
 
-      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_360px]">
-        <div className="flex min-h-0 flex-col gap-6">
+      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="flex min-h-0 flex-col gap-4">
           <SectionCard title="设备概览" className="shrink-0">
             {robot ? (
               <PropertyList
@@ -65,22 +66,24 @@ function RobotDetailPage() {
           </SectionCard>
         </div>
 
-        <DetailPanel title="异常与备注" className="h-full pt-1">
-          {robot ? (
-            <>
-              <SectionCard title="异常记录">
-                <p className="text-sm leading-7 text-muted-foreground">
-                  当前设备暂无严重异常，低电量和动作阻塞将会显示在此区域。
-                </p>
-              </SectionCard>
-              <SectionCard title="处理备注">
-                <p className="text-sm leading-7 text-muted-foreground">{robot.note}</p>
-              </SectionCard>
-            </>
-          ) : (
-            <EmptyState title="暂无机器人详情" />
-          )}
-        </DetailPanel>
+        <CollapsibleSidePanel label="备注" widthClassName="w-full xl:w-[360px]">
+          <DetailPanel title="异常与备注" className="h-full">
+            {robot ? (
+              <>
+                <SectionCard title="异常记录">
+                  <p className="text-sm leading-7 text-muted-foreground">
+                    当前设备暂无严重异常，低电量和动作阻塞将会显示在此区域。
+                  </p>
+                </SectionCard>
+                <SectionCard title="处理备注">
+                  <p className="text-sm leading-7 text-muted-foreground">{robot.note}</p>
+                </SectionCard>
+              </>
+            ) : (
+              <EmptyState title="暂无机器人详情" />
+            )}
+          </DetailPanel>
+        </CollapsibleSidePanel>
       </div>
     </div>
   );

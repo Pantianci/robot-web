@@ -37,6 +37,7 @@ import {
 import { clearDraft, readDraft, readState, writeDraft, writeState } from "@/lib/storage";
 import type { KnowledgeItem, KnowledgeLibrary } from "@/lib/types";
 import { formatDateTime, generateId } from "@/lib/utils";
+import { CollapsibleSidePanel } from "@/components/collapsible-side-panel";
 import { Field } from "@/components/field";
 import { PageHeader } from "@/components/page-header";
 import { SectionCard } from "@/components/section-card";
@@ -436,7 +437,7 @@ export function MultiModalEditorPage({
   ];
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <PageHeader
         eyebrow={`${meta.eyebrow} > ${mode === "edit" ? meta.editTitle : meta.createTitle}`}
         title={mode === "edit" ? meta.editTitle : meta.createTitle}
@@ -451,9 +452,9 @@ export function MultiModalEditorPage({
         }
       />
 
-      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.35fr)_360px]">
-        <div className="flex min-h-0 flex-col gap-6">
-          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
+      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="flex min-h-0 flex-col gap-4">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
           {meta.uploadSpec ? (
             <SectionCard title={`${meta.uploadTitle}上传`} description="当前原型用页面内交互模拟上传和文件名回填。">
               <div className="rounded-[1.5rem] border border-dashed border-primary/30 bg-primary/5 p-6">
@@ -686,12 +687,12 @@ export function MultiModalEditorPage({
           </Card>
         </div>
 
-        <div className="min-h-0 pt-1">
+        <CollapsibleSidePanel label="辅助" widthClassName="w-full xl:w-[360px]">
           <Card className="flex h-full min-h-0 flex-col overflow-hidden">
             <CardHeader className="border-b border-border/60">
               <CardTitle>录入辅助</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 min-h-0 space-y-5 overflow-y-auto p-5">
+            <CardContent className="flex-1 min-h-0 space-y-4 overflow-y-auto p-5">
               <SectionCard title="录入检查">
                 <Checklist items={checklist} />
               </SectionCard>
@@ -735,7 +736,7 @@ export function MultiModalEditorPage({
               </SectionCard>
             </CardContent>
           </Card>
-        </div>
+        </CollapsibleSidePanel>
       </div>
     </div>
   );
@@ -820,7 +821,7 @@ export function MultiModalExportPage({ library, navigate }: MultiModalExportProp
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <PageHeader
         eyebrow={`${meta.eyebrow} > ${meta.exportTitle}`}
         title={meta.exportTitle}
@@ -835,8 +836,8 @@ export function MultiModalExportPage({ library, navigate }: MultiModalExportProp
         }
       />
 
-      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.3fr)_360px]">
-        <div className="flex min-h-0 flex-col gap-6">
+      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="flex min-h-0 flex-col gap-4">
           <SectionCard title="导出配置">
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="导出对象">
@@ -949,12 +950,12 @@ export function MultiModalExportPage({ library, navigate }: MultiModalExportProp
           </Card>
         </div>
 
-        <div className="min-h-0 pt-1">
+        <CollapsibleSidePanel label="历史" widthClassName="w-full xl:w-[360px]">
           <Card className="flex h-full min-h-0 flex-col overflow-hidden">
             <CardHeader className="border-b border-border/60">
               <CardTitle>导出上下文与历史</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 min-h-0 space-y-5 overflow-y-auto p-5">
+            <CardContent className="flex-1 min-h-0 space-y-4 overflow-y-auto p-5">
               <SectionCard title="上下文摘要">
                 <div className="space-y-3 text-sm">
                   <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3">
@@ -992,7 +993,7 @@ export function MultiModalExportPage({ library, navigate }: MultiModalExportProp
               </SectionCard>
             </CardContent>
           </Card>
-        </div>
+        </CollapsibleSidePanel>
       </div>
     </div>
   );
@@ -1078,7 +1079,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <PageHeader
         eyebrow="多模态知识库 > 知识库问答"
         title="知识库问答"
@@ -1238,12 +1239,12 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
           </Card>
         </div>
 
-        <div className="min-h-0 pt-1">
+        <CollapsibleSidePanel label="推荐" widthClassName="w-full xl:w-[360px]">
           <Card className="flex h-full min-h-0 flex-col overflow-hidden">
             <CardHeader className="border-b border-border/60">
               <CardTitle>推荐与技巧</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 min-h-0 space-y-5 overflow-y-auto p-5">
+            <CardContent className="flex-1 min-h-0 space-y-4 overflow-y-auto p-5">
               <SectionCard title="热门与推荐问题">
                 <div className="space-y-3">
                   {promptPool.slice(0, 6).map((item) => (
@@ -1274,7 +1275,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
               </SectionCard>
             </CardContent>
           </Card>
-        </div>
+        </CollapsibleSidePanel>
       </div>
     </div>
   );

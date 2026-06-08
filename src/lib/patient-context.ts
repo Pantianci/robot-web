@@ -13,6 +13,10 @@ export type PrescriptionWorkspaceContext = {
   prescriptionId: string;
 };
 
+export type CurrentActionWorkspaceContext = {
+  currentActionId: string;
+};
+
 export type ReportWorkspaceContext = {
   reportId: string;
 };
@@ -20,6 +24,7 @@ export type ReportWorkspaceContext = {
 export const patientWorkspaceContextKey = "robot-web-prototype::patient-workspace";
 export const planWorkspaceContextKey = "robot-web-prototype::plan-workspace";
 export const prescriptionWorkspaceContextKey = "robot-web-prototype::prescription-workspace";
+export const currentActionWorkspaceContextKey = "robot-web-prototype::current-action-workspace";
 export const reportWorkspaceContextKey = "robot-web-prototype::report-workspace";
 
 export const defaultPatientWorkspace: PatientWorkspaceContext = {
