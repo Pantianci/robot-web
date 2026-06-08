@@ -1093,145 +1093,153 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
         }
       />
 
-      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.35fr)_360px]">
-        <div className="flex min-h-0 flex-col gap-4">
-          <SectionCard title="知识源选择">
-            <div className="flex flex-wrap gap-3">
-              {qaLibraryOptions.map((item) => {
-                const active = selectedSources.includes(item.value);
-                return (
-                  <button
-                    key={item.value}
-                    type="button"
-                    className={
-                      active
-                        ? "rounded-full bg-primary px-4 py-2 text-sm font-medium text-white"
-                        : "rounded-full border border-border/70 bg-white px-4 py-2 text-sm font-medium text-surface-700"
-                    }
-                    onClick={() =>
-                      setSelectedSources((current) =>
-                        current.includes(item.value)
-                          ? current.filter((value) => value !== item.value)
-                          : [...current, item.value]
-                      )
-                    }
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-3 text-xs text-muted-foreground">
-              {selectedSources.length
-                ? `已选择 ${selectedSources.length} 个知识源，问答结果将优先基于所选范围生成。`
-                : "当前未选择知识源，默认处于自由问答模式。"}
-            </p>
-          </SectionCard>
+      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.42fr)_360px]">
+        <div className="flex min-h-0 flex-col gap-3">
+          <Card className="shrink-0 overflow-hidden">
+            <CardContent className="space-y-3 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-surface-900">知识源选择</p>
+                  <p className="text-xs text-muted-foreground">按知识源缩小问答范围，优先生成定向答案。</p>
+                </div>
+                <div className="rounded-full bg-surface-50 px-3 py-1 text-xs text-muted-foreground">
+                  {selectedSources.length ? `已选择 ${selectedSources.length} 个知识源` : "当前为自由问答模式"}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {qaLibraryOptions.map((item) => {
+                  const active = selectedSources.includes(item.value);
+                  return (
+                    <button
+                      key={item.value}
+                      type="button"
+                      className={
+                        active
+                          ? "rounded-full bg-primary px-4 py-2 text-sm font-medium text-white"
+                          : "rounded-full border border-border/70 bg-white px-4 py-2 text-sm font-medium text-surface-700"
+                      }
+                      onClick={() =>
+                        setSelectedSources((current) =>
+                          current.includes(item.value)
+                            ? current.filter((value) => value !== item.value)
+                            : [...current, item.value]
+                        )
+                      }
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
 
           <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <CardHeader className="border-b border-border/60">
-              <CardTitle>多轮对话</CardTitle>
+            <CardHeader className="shrink-0 border-b border-border/60 px-5 py-4">
+              <CardTitle>我要提问</CardTitle>
             </CardHeader>
-            <CardContent className="min-h-0 flex-1 overflow-y-auto p-5">
-            <div className="space-y-4">
-              {messages.length ? (
-                messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={
-                      message.role === "user"
-                        ? "ml-auto max-w-[78%] rounded-[1.5rem] bg-primary px-5 py-4 text-sm text-white"
-                        : "max-w-[88%] rounded-[1.5rem] border border-border/70 bg-white px-5 py-4"
-                    }
-                  >
-                    <p className={message.role === "user" ? "leading-7" : "text-sm leading-7 text-surface-900"}>
-                      {message.text}
-                    </p>
-                    {message.role === "assistant" ? (
-                      <div className="mt-4 space-y-3">
-                        <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
-                          <p className="font-medium text-surface-900">关联资源摘要</p>
-                          <p className="mt-2 leading-7">{message.summary}</p>
-                        </div>
-                        <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
-                          <p className="font-medium text-surface-900">建议方案</p>
-                          <p className="mt-2 leading-7">{message.suggestion}</p>
-                        </div>
-                        <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
-                          <p className="font-medium text-surface-900">专家意见</p>
-                          <p className="mt-2 leading-7">{message.expertOpinion}</p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {message.relatedResources?.map((item) => (
-                            <Badge key={item} className="bg-white text-surface-700">
-                              {item}
-                            </Badge>
-                          ))}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant={message.feedback === "up" ? "default" : "outline"}
-                            size="sm"
-                            onClick={() =>
-                              setMessages((current) =>
-                                current.map((item) =>
-                                  item.id === message.id ? { ...item, feedback: "up" } : item
+            <CardContent className="min-h-0 flex-1 overflow-y-auto p-4">
+              <div className="flex min-h-full flex-col gap-4">
+                {messages.length ? (
+                  messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={
+                        message.role === "user"
+                          ? "ml-auto max-w-[78%] rounded-[1.5rem] bg-primary px-5 py-4 text-sm text-white"
+                          : "max-w-[88%] rounded-[1.5rem] border border-border/70 bg-white px-5 py-4"
+                      }
+                    >
+                      <p className={message.role === "user" ? "leading-7" : "text-sm leading-7 text-surface-900"}>
+                        {message.text}
+                      </p>
+                      {message.role === "assistant" ? (
+                        <div className="mt-4 space-y-3">
+                          <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
+                            <p className="font-medium text-surface-900">关联资源摘要</p>
+                            <p className="mt-2 leading-7">{message.summary}</p>
+                          </div>
+                          <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
+                            <p className="font-medium text-surface-900">建议方案</p>
+                            <p className="mt-2 leading-7">{message.suggestion}</p>
+                          </div>
+                          <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
+                            <p className="font-medium text-surface-900">专家意见</p>
+                            <p className="mt-2 leading-7">{message.expertOpinion}</p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {message.relatedResources?.map((item) => (
+                              <Badge key={item} className="bg-white text-surface-700">
+                                {item}
+                              </Badge>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant={message.feedback === "up" ? "default" : "outline"}
+                              size="sm"
+                              onClick={() =>
+                                setMessages((current) =>
+                                  current.map((item) =>
+                                    item.id === message.id ? { ...item, feedback: "up" } : item
+                                  )
                                 )
-                              )
-                            }
-                          >
-                            <ThumbsUp className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant={message.feedback === "down" ? "default" : "outline"}
-                            size="sm"
-                            onClick={() =>
-                              setMessages((current) =>
-                                current.map((item) =>
-                                  item.id === message.id ? { ...item, feedback: "down" } : item
+                              }
+                            >
+                              <ThumbsUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant={message.feedback === "down" ? "default" : "outline"}
+                              size="sm"
+                              onClick={() =>
+                                setMessages((current) =>
+                                  current.map((item) =>
+                                    item.id === message.id ? { ...item, feedback: "down" } : item
+                                  )
                                 )
-                              )
-                            }
-                          >
-                            <ThumbsDown className="h-4 w-4" />
-                          </Button>
+                              }
+                            >
+                              <ThumbsDown className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ) : null}
+                      ) : null}
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex flex-1 items-center justify-center rounded-[1.5rem] border border-dashed border-border/70 bg-surface-50 px-5 py-10 text-center text-sm text-muted-foreground">
+                    <div>
+                      <MessageSquareDashed className="mx-auto h-8 w-8 text-surface-400" />
+                      <p className="mt-3">还没有对话内容，输入问题后开始多轮问答。</p>
+                    </div>
                   </div>
-                ))
-              ) : (
-                <div className="rounded-[1.5rem] border border-dashed border-border/70 bg-surface-50 px-5 py-10 text-center text-sm text-muted-foreground">
-                  <MessageSquareDashed className="mx-auto h-8 w-8 text-surface-400" />
-                  <p className="mt-3">还没有对话内容，输入问题后开始多轮问答。</p>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 
           <Card className="shrink-0">
-            <CardContent className="p-4">
-            <Field label="问题输入">
-              <Textarea
-                value={question}
-                placeholder="请输入问题，支持连续追问和上下文承接"
-                className="min-h-[88px]"
-                onChange={(event) => setQuestion(event.target.value)}
-              />
-            </Field>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Button onClick={sendQuestion}>
-                <Send className="h-4 w-4" />
-                发送
-              </Button>
-              <Button variant="outline" onClick={() => setQuestion("")}>
-                清空输入
-              </Button>
-              <Button variant="secondary" onClick={resetConversation}>
-                重置会话
-              </Button>
-            </div>
+            <CardContent className="space-y-3 p-3">
+              <Field label="问题输入">
+                <Textarea
+                  value={question}
+                  placeholder="请输入问题，支持连续追问和上下文承接"
+                  className="min-h-[68px] resize-none"
+                  onChange={(event) => setQuestion(event.target.value)}
+                />
+              </Field>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={sendQuestion}>
+                  <Send className="h-4 w-4" />
+                  发送
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setQuestion("")}>
+                  清空输入
+                </Button>
+                <Button size="sm" variant="secondary" onClick={resetConversation}>
+                  重置会话
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
