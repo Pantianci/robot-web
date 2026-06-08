@@ -107,29 +107,6 @@ export function ReportManagement() {
     writeState(reportWorkspaceContextKey, { reportId: selected.id });
   }, [selected]);
 
-  const metrics = [
-    {
-      label: "报告总数",
-      value: reports.length,
-      helper: "当前全局可检索报告"
-    },
-    {
-      label: "护士已评价",
-      value: reports.filter((item) => item.nurseComment).length,
-      helper: "已进入医生确认前状态"
-    },
-    {
-      label: "医生待评价",
-      value: reports.filter((item) => item.status === "待审核").length,
-      helper: "需尽快人工确认"
-    },
-    {
-      label: "已完成",
-      value: reports.filter((item) => item.status === "已完成").length,
-      helper: "可导出归档"
-    }
-  ];
-
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <PageHeader
@@ -154,18 +131,6 @@ export function ReportManagement() {
           </>
         }
       />
-
-      <div className="grid gap-4 md:grid-cols-4">
-        {metrics.map((item) => (
-          <Card key={item.label} className="border-border/70 shadow-none">
-            <CardContent className="p-5">
-              <p className="text-xs text-muted-foreground">{item.label}</p>
-              <p className="mt-3 text-2xl font-semibold text-surface-900">{item.value}</p>
-              <p className="mt-2 text-xs leading-6 text-muted-foreground">{item.helper}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
       {exportMessage ? (
         <Card className="border-primary/20 bg-primary/5">

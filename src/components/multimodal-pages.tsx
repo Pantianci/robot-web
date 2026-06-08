@@ -37,7 +37,7 @@ import {
 import { clearDraft, readDraft, readState, writeDraft, writeState } from "@/lib/storage";
 import type { KnowledgeItem, KnowledgeLibrary } from "@/lib/types";
 import { formatDateTime, generateId } from "@/lib/utils";
-import { CollapsibleSidePanel } from "@/components/collapsible-side-panel";
+import { CollapsibleSidePanel, CollapsibleSplitLayout } from "@/components/collapsible-side-panel";
 import { Field } from "@/components/field";
 import { PageHeader } from "@/components/page-header";
 import { SectionCard } from "@/components/section-card";
@@ -1094,152 +1094,155 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
         }
       />
 
-      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1.42fr)_360px]">
-        <div className="flex min-h-0 flex-col gap-2">
-          <Card className="shrink-0 overflow-hidden">
-            <CardContent className="flex flex-wrap items-center gap-2 p-3">
-              <div className="flex min-w-0 flex-1 flex-wrap gap-2">
-                {qaLibraryOptions.map((item) => {
-                  const active = selectedSources.includes(item.value);
-                  return (
-                    <button
-                      key={item.value}
-                      type="button"
-                      className={
-                        active
-                          ? "rounded-full bg-primary px-4 py-2 text-sm font-medium text-white"
-                          : "rounded-full border border-border/70 bg-white px-4 py-2 text-sm font-medium text-surface-700"
-                      }
-                      onClick={() =>
-                        setSelectedSources((current) =>
-                          current.includes(item.value)
-                            ? current.filter((value) => value !== item.value)
-                            : [...current, item.value]
-                        )
-                      }
-                    >
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <Button size="sm" variant="outline" onClick={() => setSelectedSources([])}>
-                重置
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <CardHeader className="shrink-0 border-b border-border/60 px-4 py-3">
-              <CardTitle>我要提问</CardTitle>
-            </CardHeader>
-            <CardContent className="min-h-0 flex-1 overflow-y-auto p-3">
-              <div className="flex min-h-full flex-col gap-4">
-                {messages.length ? (
-                  messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={
-                        message.role === "user"
-                          ? "ml-auto max-w-[78%] rounded-[1.5rem] bg-primary px-5 py-4 text-sm text-white"
-                          : "max-w-[88%] rounded-[1.5rem] border border-border/70 bg-white px-5 py-4"
-                      }
-                    >
-                      <p className={message.role === "user" ? "leading-7" : "text-sm leading-7 text-surface-900"}>
-                        {message.text}
-                      </p>
-                      {message.role === "assistant" ? (
-                        <div className="mt-4 space-y-3">
-                          <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
-                            <p className="font-medium text-surface-900">关联资源摘要</p>
-                            <p className="mt-2 leading-7">{message.summary}</p>
-                          </div>
-                          <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
-                            <p className="font-medium text-surface-900">建议方案</p>
-                            <p className="mt-2 leading-7">{message.suggestion}</p>
-                          </div>
-                          <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
-                            <p className="font-medium text-surface-900">专家意见</p>
-                            <p className="mt-2 leading-7">{message.expertOpinion}</p>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {message.relatedResources?.map((item) => (
-                              <Badge key={item} className="bg-white text-surface-700">
-                                {item}
-                              </Badge>
-                            ))}
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant={message.feedback === "up" ? "default" : "outline"}
-                              size="sm"
-                              onClick={() =>
-                                setMessages((current) =>
-                                  current.map((item) =>
-                                    item.id === message.id ? { ...item, feedback: "up" } : item
-                                  )
-                                )
-                              }
-                            >
-                              <ThumbsUp className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant={message.feedback === "down" ? "default" : "outline"}
-                              size="sm"
-                              onClick={() =>
-                                setMessages((current) =>
-                                  current.map((item) =>
-                                    item.id === message.id ? { ...item, feedback: "down" } : item
-                                  )
-                                )
-                              }
-                            >
-                              <ThumbsDown className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  ))
-                ) : (
-                  <div className="flex flex-1 items-center justify-center rounded-[1.5rem] border border-dashed border-border/70 bg-surface-50 px-5 py-10 text-center text-sm text-muted-foreground">
-                    <div>
-                      <MessageSquareDashed className="mx-auto h-8 w-8 text-surface-400" />
-                      <p className="mt-3">还没有对话内容，输入问题后开始多轮问答。</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shrink-0">
-            <CardContent className="p-2">
-              <div className="relative">
-                <Textarea
-                  value={question}
-                  placeholder="请输入问题，支持连续追问和上下文承接"
-                  className="min-h-[94px] resize-none rounded-[1.25rem] border-border/70 bg-white pb-14 pr-[15.5rem] pt-3"
-                  onChange={(event) => setQuestion(event.target.value)}
-                />
-                <div className="absolute bottom-3 right-3 flex flex-wrap items-center justify-end gap-2">
-                  <Button size="sm" variant="outline" onClick={() => setQuestion("")}>
-                    清空
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={resetConversation}>
-                    重置
-                  </Button>
-                  <Button size="sm" onClick={sendQuestion}>
-                    <Send className="h-4 w-4" />
-                    发送
-                  </Button>
+      <CollapsibleSplitLayout
+        label="推荐"
+        sideWidthClassName="w-full xl:w-[360px]"
+        main={
+          <div className="flex min-h-0 flex-col gap-2">
+            <Card className="shrink-0 overflow-hidden">
+              <CardContent className="flex flex-wrap items-center gap-2 p-3">
+                <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+                  {qaLibraryOptions.map((item) => {
+                    const active = selectedSources.includes(item.value);
+                    return (
+                      <button
+                        key={item.value}
+                        type="button"
+                        className={
+                          active
+                            ? "rounded-full bg-primary px-4 py-2 text-sm font-medium text-white"
+                            : "rounded-full border border-border/70 bg-white px-4 py-2 text-sm font-medium text-surface-700"
+                        }
+                        onClick={() =>
+                          setSelectedSources((current) =>
+                            current.includes(item.value)
+                              ? current.filter((value) => value !== item.value)
+                              : [...current, item.value]
+                          )
+                        }
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                <Button size="sm" variant="outline" onClick={() => setSelectedSources([])}>
+                  重置
+                </Button>
+              </CardContent>
+            </Card>
 
-        <CollapsibleSidePanel label="推荐" widthClassName="w-full xl:w-[360px]">
+            <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <CardHeader className="shrink-0 border-b border-border/60 px-4 py-3">
+                <CardTitle>我要提问</CardTitle>
+              </CardHeader>
+              <CardContent className="min-h-0 flex-1 overflow-y-auto p-3">
+                <div className="flex min-h-full flex-col gap-4">
+                  {messages.length ? (
+                    messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={
+                          message.role === "user"
+                            ? "ml-auto max-w-[78%] rounded-[1.5rem] bg-primary px-5 py-4 text-sm text-white"
+                            : "max-w-[88%] rounded-[1.5rem] border border-border/70 bg-white px-5 py-4"
+                        }
+                      >
+                        <p className={message.role === "user" ? "leading-7" : "text-sm leading-7 text-surface-900"}>
+                          {message.text}
+                        </p>
+                        {message.role === "assistant" ? (
+                          <div className="mt-4 space-y-3">
+                            <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
+                              <p className="font-medium text-surface-900">关联资源摘要</p>
+                              <p className="mt-2 leading-7">{message.summary}</p>
+                            </div>
+                            <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
+                              <p className="font-medium text-surface-900">建议方案</p>
+                              <p className="mt-2 leading-7">{message.suggestion}</p>
+                            </div>
+                            <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
+                              <p className="font-medium text-surface-900">专家意见</p>
+                              <p className="mt-2 leading-7">{message.expertOpinion}</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {message.relatedResources?.map((item) => (
+                                <Badge key={item} className="bg-white text-surface-700">
+                                  {item}
+                                </Badge>
+                              ))}
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant={message.feedback === "up" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() =>
+                                  setMessages((current) =>
+                                    current.map((record) =>
+                                      record.id === message.id ? { ...record, feedback: "up" } : record
+                                    )
+                                  )
+                                }
+                              >
+                                <ThumbsUp className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant={message.feedback === "down" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() =>
+                                  setMessages((current) =>
+                                    current.map((record) =>
+                                      record.id === message.id ? { ...record, feedback: "down" } : record
+                                    )
+                                  )
+                                }
+                              >
+                                <ThumbsDown className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex flex-1 items-center justify-center rounded-[1.5rem] border border-dashed border-border/70 bg-surface-50 px-5 py-10 text-center text-sm text-muted-foreground">
+                      <div>
+                        <MessageSquareDashed className="mx-auto h-8 w-8 text-surface-400" />
+                        <p className="mt-3">还没有对话内容，输入问题后开始多轮问答。</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shrink-0">
+              <CardContent className="p-2">
+                <div className="relative">
+                  <Textarea
+                    value={question}
+                    placeholder="请输入问题，支持连续追问和上下文承接"
+                    className="min-h-[94px] resize-none rounded-[1.25rem] border-border/70 bg-white pb-14 pr-[15.5rem] pt-3"
+                    onChange={(event) => setQuestion(event.target.value)}
+                  />
+                  <div className="absolute bottom-3 right-3 flex flex-wrap items-center justify-end gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setQuestion("")}>
+                      清空
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={resetConversation}>
+                      重置
+                    </Button>
+                    <Button size="sm" onClick={sendQuestion}>
+                      <Send className="h-4 w-4" />
+                      发送
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        }
+        side={
           <Card className="flex h-full min-h-0 flex-col overflow-hidden">
             <CardHeader className="border-b border-border/60">
               <CardTitle>推荐与技巧</CardTitle>
@@ -1275,8 +1278,8 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
               </SectionCard>
             </CardContent>
           </Card>
-        </CollapsibleSidePanel>
-      </div>
+        }
+      />
     </div>
   );
 }

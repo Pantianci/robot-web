@@ -865,9 +865,9 @@ export function SubPageScaffold({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <PageHeader eyebrow={eyebrow} title={title} description={description} badge={status} actions={actions} />
-      {children}
+      <div className="flex min-h-0 flex-1 flex-col gap-4">{children}</div>
     </div>
   );
 }

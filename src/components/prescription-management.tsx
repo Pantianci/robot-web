@@ -55,11 +55,37 @@ const pageSize = 8;
 
 function resolveWorkspacePatient(
   patients: Patient[],
-  context: WorkspaceContext | null
+  context: WorkspaceContext | null,
+  view: ViewMode,
+  plans: RehabPlan[],
+  currentActions: CurrentAction[],
+  prescriptions: Prescription[]
 ) {
+  const hasViewData = (patientId: string) => {
+    if (view === "plans") {
+      return plans.some((item) => item.patientId === patientId);
+    }
+
+    if (view === "current") {
+      return (
+        currentActions.some((item) => item.patientId === patientId) ||
+        prescriptions.some((item) => item.patientId === patientId)
+      );
+    }
+
+    return prescriptions.some((item) => item.patientId === patientId);
+  };
+
+  const workspacePatient = patients.find((item) => item.id === context?.patientId) ?? null;
+  const defaultPatient = patients.find((item) => item.id === defaultPatientWorkspace.patientId) ?? null;
+  const firstPatientWithData = patients.find((item) => hasViewData(item.id)) ?? null;
+
   return (
-    patients.find((item) => item.id === context?.patientId) ??
-    patients.find((item) => item.id === defaultPatientWorkspace.patientId) ??
+    (workspacePatient && hasViewData(workspacePatient.id) ? workspacePatient : null) ??
+    (defaultPatient && hasViewData(defaultPatient.id) ? defaultPatient : null) ??
+    firstPatientWithData ??
+    workspacePatient ??
+    defaultPatient ??
     patients[0] ??
     null
   );
@@ -98,17 +124,17 @@ function PatientSummaryCard({
   return (
     <Card className="border-border/70 bg-white shadow-none">
       <CardContent className="overflow-x-auto p-5">
-        <div className="flex min-w-max items-start gap-6 whitespace-nowrap">
+        <div className="grid min-w-[1180px] grid-cols-[minmax(180px,1.5fr)_minmax(180px,1.35fr)_repeat(7,minmax(92px,1fr))] items-center gap-6 whitespace-nowrap">
           {summary.map((item, index) => (
-            <div key={`${item.label}-${index}`} className="shrink-0">
+            <div key={`${item.label}-${index}`} className="min-w-0">
               <p className="text-xs text-muted-foreground">{item.label}</p>
               <p
                 className={
                   index === 0
-                    ? "mt-1 text-xl font-semibold text-surface-900"
+                    ? "mt-1 truncate text-2xl font-semibold text-surface-900"
                     : index === 1
-                      ? "mt-1 text-base font-semibold text-surface-900"
-                      : "mt-1 text-sm font-medium text-surface-900"
+                      ? "mt-1 truncate text-lg font-semibold text-primary"
+                      : "mt-1 truncate text-sm font-medium text-surface-900"
                     }
               >
                 {item.value}
@@ -178,7 +204,14 @@ export function PrescriptionManagement({
   const deletePrescriptionMutation = useDeletePrescriptionMutation();
 
   const workspace = readState<WorkspaceContext>(patientWorkspaceContextKey);
-  const patient = resolveWorkspacePatient(patients, workspace);
+  const patient = resolveWorkspacePatient(
+    patients,
+    workspace,
+    view,
+    plans,
+    currentActions,
+    prescriptions
+  );
   const patientPlans = useMemo(
     () =>
       plans
@@ -303,16 +336,18 @@ export function PrescriptionManagement({
     filteredPrescriptions[0] ??
     null;
 
-  const pagedPlans = filteredPlans.slice((planPage - 1) * pageSize, planPage * pageSize);
-  const pagedActions = filteredActions.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const pagedPrescriptions = filteredPrescriptions.slice(
-    (prescriptionPage - 1) * pageSize,
-    prescriptionPage * pageSize
-  );
-
   const planPages = Math.max(1, Math.ceil(filteredPlans.length / pageSize));
   const currentPages = Math.max(1, Math.ceil(filteredActions.length / pageSize));
   const prescriptionPages = Math.max(1, Math.ceil(filteredPrescriptions.length / pageSize));
+  const safePlanPage = Math.min(planPage, planPages);
+  const safeCurrentPage = Math.min(currentPage, currentPages);
+  const safePrescriptionPage = Math.min(prescriptionPage, prescriptionPages);
+  const pagedPlans = filteredPlans.slice((safePlanPage - 1) * pageSize, safePlanPage * pageSize);
+  const pagedActions = filteredActions.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize);
+  const pagedPrescriptions = filteredPrescriptions.slice(
+    (safePrescriptionPage - 1) * pageSize,
+    safePrescriptionPage * pageSize
+  );
 
   const resetFilter = () => {
     setKeyword("");
@@ -548,7 +583,12 @@ export function PrescriptionManagement({
                   </div>
                 )}
               </CardContent>
-              <PaginationBar total={filteredPlans.length} page={planPage} totalPages={planPages} onPageChange={setPlanPage} />
+              <PaginationBar
+                total={filteredPlans.length}
+                page={safePlanPage}
+                totalPages={planPages}
+                onPageChange={setPlanPage}
+              />
             </Card>
           }
           side={
@@ -626,7 +666,7 @@ export function PrescriptionManagement({
                           data-state={selectedAction?.id === item.id ? "selected" : undefined}
                           onClick={() => setSelectedActionId(item.id)}
                         >
-                          <TableCell>{(currentPage - 1) * pageSize + index + 1}</TableCell>
+                          <TableCell>{(safeCurrentPage - 1) * pageSize + index + 1}</TableCell>
                           <TableCell className="font-medium">{item.title}</TableCell>
                           <TableCell>{item.duration}</TableCell>
                           <TableCell>{item.intensity === "中等" ? "8 次" : "10 次"}</TableCell>
@@ -672,7 +712,12 @@ export function PrescriptionManagement({
                   </div>
                 )}
               </CardContent>
-              <PaginationBar total={filteredActions.length} page={currentPage} totalPages={currentPages} onPageChange={setCurrentPage} />
+              <PaginationBar
+                total={filteredActions.length}
+                page={safeCurrentPage}
+                totalPages={currentPages}
+                onPageChange={setCurrentPage}
+              />
             </Card>
           }
           side={
@@ -799,7 +844,12 @@ export function PrescriptionManagement({
                   </div>
                 )}
               </CardContent>
-              <PaginationBar total={filteredPrescriptions.length} page={prescriptionPage} totalPages={prescriptionPages} onPageChange={setPrescriptionPage} />
+              <PaginationBar
+                total={filteredPrescriptions.length}
+                page={safePrescriptionPage}
+                totalPages={prescriptionPages}
+                onPageChange={setPrescriptionPage}
+              />
             </Card>
           }
           side={
