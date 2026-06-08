@@ -49,6 +49,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -139,42 +146,64 @@ const qaLibraryOptions: Array<{ label: string; value: KnowledgeLibrary }> = [
   { label: "动作序列库", value: "sequence" }
 ];
 
+type QaMediaItem = NonNullable<MultiModalQaMessage["media"]>[number];
+
+const qaImageMediaExample: QaMediaItem = {
+  id: "qa-media-image-shoulder",
+  type: "image",
+  title: "张三肩外展训练骨骼关键点图",
+  description: "AI 根据张三当前处方生成的人物运动图片，叠加肩、肘、腕、躯干和下肢关键点标注。",
+  source: "ai-generated",
+  assetUrl: "/qa-ai-generated-shoulder-keypoints.png",
+  prompt: "基于患者张三当前处方，生成肩外展训练的人物运动图片，并叠加骨骼关键点、腕部锁定点和肩外展角度标注。",
+  meta: "AI 单独生成 · 图片 · 1280 x 720"
+};
+
+const qaVideoMediaExample: QaMediaItem = {
+  id: "qa-media-video-shoulder",
+  type: "video",
+  title: "张三肩外展训练教学视频预览",
+  description: "AI 根据同一处方生成的视频回复预览，用于展示动作节奏、次数、停顿和安全提示。",
+  source: "ai-generated",
+  prompt: "基于患者张三当前处方，生成肩外展训练 42 秒教学视频，包含准备姿势、外展节奏、保持时间和安全提醒。",
+  meta: "AI 单独生成 · 视频预览 · 00:42"
+};
+
 const qaMediaExampleItems: NonNullable<MultiModalQaMessage["media"]> = [
-  {
-    id: "qa-media-image-shoulder",
-    type: "image",
-    title: "肩外展角度标注图",
-    description: "AI 回复可以把动作角度、发力方向和风险点整理成图片预览。",
-    meta: "图片回复示例 · PNG · 1280 x 720"
-  },
-  {
-    id: "qa-media-video-ankle",
-    type: "video",
-    title: "踝泵训练标准动作视频",
-    description: "AI 回复可以返回动作教学视频，展示节奏、次数和安全提示。",
-    meta: "视频回复示例 · MP4 · 00:42"
-  }
+  qaImageMediaExample,
+  qaVideoMediaExample
 ];
 
 const defaultQaMessages: MultiModalQaMessage[] = [
   {
-    id: "qa-example-user-media",
+    id: "qa-example-user-zs-current",
     role: "user",
-    text: "AI 回复可以返回图片和视频吗？",
-    sources: ["knowledge", "motion"],
-    createdAt: "2026-06-08T08:00:00.000+08:00"
+    text: "张三当前处方是肩外展训练，请先生成一张带骨骼关键点的动作图片，再生成一个视频回复预览。",
+    sources: [],
+    createdAt: "2026-06-09T09:00:00.000+08:00"
   },
   {
-    id: "qa-example-assistant-media",
+    id: "qa-example-assistant-image",
     role: "assistant",
-    text: "可以。输入框当前只支持文本提问，但 AI 回复可以根据知识库返回图片、视频和结构化说明。下面是示例：",
-    sources: ["knowledge", "motion"],
-    createdAt: "2026-06-08T08:00:04.000+08:00",
-    summary: "已关联康复知识库与标准动作库，回复内容包含动作说明、图片标注和视频演示。",
-    suggestion: "图片适合展示姿势和角度，视频适合展示动作节奏、次数和安全边界。",
-    expertOpinion: "媒体回复仅作为训练辅助，正式处方仍需医生结合患者疼痛、活动度和禁忌症确认。",
-    media: qaMediaExampleItems,
-    relatedResources: ["肩外展训练视频", "踝泵训练视频", "术后早期活动度训练"],
+    text: "已按张三当前处方单独生成图片回复：肩外展训练人物运动图，已叠加骨骼关键点和肩外展角度标注。",
+    sources: [],
+    createdAt: "2026-06-09T09:00:04.000+08:00",
+    summary: "这张图是 AI 生成结果，不是从知识库检索素材。它用于展示肩外展时肩、肘、腕和躯干稳定性的关键观察点。",
+    suggestion: "可用于给患者说明起始姿势、抬臂角度和躯干不要代偿。点击图片卡片可放大预览。",
+    expertOpinion: "骨骼关键点用于辅助观察动作质量，正式训练强度仍以医生处方和患者疼痛反馈为准。",
+    media: [qaImageMediaExample],
+    feedback: null
+  },
+  {
+    id: "qa-example-assistant-video",
+    role: "assistant",
+    text: "已继续生成视频回复预览：当前不接入真实视频文件，用视频窗口样式模拟 AI 生成的视频结果。",
+    sources: [],
+    createdAt: "2026-06-09T09:00:09.000+08:00",
+    summary: "这个视频预览同样是 AI 单独生成的回复附件，用于表达训练节奏和关键提示，不来自知识库素材库。",
+    suggestion: "视频适合展示抬臂节奏、保持时间、放下速度和中途停止条件。点击视频卡片可放大预览。",
+    expertOpinion: "视频生成结果可作为宣教辅助，不能替代治疗师现场评估和处方审核。",
+    media: [qaVideoMediaExample],
     feedback: null
   }
 ];
@@ -184,30 +213,70 @@ function normalizeQaMessagesWithMediaExample(messages: MultiModalQaMessage[] | n
     return defaultQaMessages;
   }
 
-  if (messages.some((message) => message.media?.length)) {
+  if (messages.some((message) => message.media?.some((item) => item.source === "ai-generated"))) {
     return messages;
   }
 
-  return [...defaultQaMessages, ...messages];
+  const previousGenericExamples = new Set(["qa-example-user-media", "qa-example-assistant-media"]);
+  return [...defaultQaMessages, ...messages.filter((message) => !previousGenericExamples.has(message.id))];
 }
 
-function shouldAttachQaMedia(question: string, matchedAnswers: Array<{ library: KnowledgeLibrary }>) {
-  return (
-    /图片|图像|视频|影像|动作|训练|演示|标准/.test(question) ||
-    matchedAnswers.some((item) => item.library === "motion")
-  );
+function getRequestedQaMedia(question: string, matchedAnswers: Array<{ library: KnowledgeLibrary }>) {
+  const wantsImage = /图片|图像|照片|关键点|骨骼/.test(question);
+  const wantsVideo = /视频|影像|演示|教学/.test(question);
+  const wantsMotionMedia =
+    /张三|肩外展|动作|训练|处方/.test(question) || matchedAnswers.some((item) => item.library === "motion");
+
+  if (wantsImage && !wantsVideo) {
+    return [qaImageMediaExample];
+  }
+
+  if (wantsVideo && !wantsImage) {
+    return [qaVideoMediaExample];
+  }
+
+  if (wantsImage || wantsVideo || wantsMotionMedia) {
+    return qaMediaExampleItems;
+  }
+
+  return [];
 }
 
-function QaMediaAttachment({ item }: { item: NonNullable<MultiModalQaMessage["media"]>[number] }) {
+function createGeneratedQaMediaMessage(item: QaMediaItem, sources: KnowledgeLibrary[]): MultiModalQaMessage {
+  const isVideo = item.type === "video";
+
+  return {
+    id: generateId(isVideo ? "qa-assistant-video" : "qa-assistant-image"),
+    role: "assistant",
+    text: isVideo
+      ? "已生成视频回复预览：当前原型不接入真实视频文件，用视频窗口样式模拟 AI 生成结果。"
+      : "已生成图片回复：张三肩外展训练人物运动图，已叠加骨骼关键点和肩外展角度标注。",
+    sources,
+    createdAt: new Date().toISOString(),
+    summary: isVideo
+      ? "该视频预览是 AI 单独生成的回复附件，用于表达抬臂节奏、保持时间和中途停止提示，不来自知识库素材库。"
+      : "该图片是 AI 单独生成的回复附件，用于展示肩、肘、腕、躯干和下肢关键点，不是从知识库检索素材。",
+    suggestion: isVideo
+      ? "点击视频卡片可放大预览，适合给患者说明动作节奏、次数和安全边界。"
+      : "点击图片卡片可放大预览，适合给患者说明起始姿势、抬臂角度和躯干不要代偿。",
+    expertOpinion: isVideo
+      ? "视频生成结果可作为宣教辅助，不能替代治疗师现场评估和处方审核。"
+      : "骨骼关键点用于辅助观察动作质量，正式训练强度仍以医生处方和患者疼痛反馈为准。",
+    media: [item],
+    feedback: null
+  };
+}
+
+function QaMediaVisual({ item, expanded = false }: { item: QaMediaItem; expanded?: boolean }) {
   const isVideo = item.type === "video";
 
   return (
-    <div className="overflow-hidden rounded-[1rem] border border-border/70 bg-white">
+    <div className={expanded ? "overflow-hidden rounded-[1.25rem] border border-border/70 bg-white" : ""}>
       <div
         className={
           isVideo
             ? "relative aspect-video bg-surface-900 text-white"
-            : "relative aspect-video bg-gradient-to-br from-sky-50 via-white to-emerald-50"
+            : "relative aspect-video bg-surface-50"
         }
       >
         {isVideo ? (
@@ -232,30 +301,92 @@ function QaMediaAttachment({ item }: { item: NonNullable<MultiModalQaMessage["me
             </div>
           </>
         ) : (
-          <>
-            <div className="absolute left-[12%] top-[18%] rounded-full border border-primary/25 bg-white/85 px-3 py-1 text-xs font-medium text-primary">
-              角度 90°
-            </div>
-            <div className="absolute left-[22%] top-[38%] h-14 w-14 rounded-full border-4 border-primary/60 bg-primary/10" />
-            <div className="absolute left-[35%] top-[46%] h-3 w-[34%] rotate-[-15deg] rounded-full bg-primary/70" />
-            <div className="absolute left-[52%] top-[36%] h-3 w-[24%] rotate-[22deg] rounded-full bg-emerald-500/70" />
-            <div className="absolute bottom-[20%] left-[18%] right-[18%] h-2 rounded-full bg-surface-300" />
-            <div className="absolute bottom-[28%] right-[14%] rounded-full border border-emerald-200 bg-white/90 px-3 py-1 text-xs font-medium text-emerald-700">
-              发力方向
-            </div>
-            <ImageIcon className="absolute right-5 top-5 h-6 w-6 text-surface-400" />
-          </>
+          item.assetUrl ? (
+            <>
+              <img src={item.assetUrl} alt={item.title} className="h-full w-full object-cover" />
+              <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-primary shadow-sm">
+                AI 生成图片
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="absolute left-[12%] top-[18%] rounded-full border border-primary/25 bg-white/85 px-3 py-1 text-xs font-medium text-primary">
+                角度 90°
+              </div>
+              <div className="absolute left-[22%] top-[38%] h-14 w-14 rounded-full border-4 border-primary/60 bg-primary/10" />
+              <div className="absolute left-[35%] top-[46%] h-3 w-[34%] rotate-[-15deg] rounded-full bg-primary/70" />
+              <div className="absolute left-[52%] top-[36%] h-3 w-[24%] rotate-[22deg] rounded-full bg-emerald-500/70" />
+              <div className="absolute bottom-[20%] left-[18%] right-[18%] h-2 rounded-full bg-surface-300" />
+              <div className="absolute bottom-[28%] right-[14%] rounded-full border border-emerald-200 bg-white/90 px-3 py-1 text-xs font-medium text-emerald-700">
+                发力方向
+              </div>
+              <ImageIcon className="absolute right-5 top-5 h-6 w-6 text-surface-400" />
+            </>
+          )
         )}
       </div>
+    </div>
+  );
+}
+
+function QaMediaAttachment({ item, onPreview }: { item: QaMediaItem; onPreview: (item: QaMediaItem) => void }) {
+  const isVideo = item.type === "video";
+
+  return (
+    <button
+      type="button"
+      className="overflow-hidden rounded-[1rem] border border-border/70 bg-white text-left transition hover:-translate-y-0.5 hover:shadow-panel"
+      onClick={() => onPreview(item)}
+      aria-label={`预览${item.title}`}
+    >
+      <QaMediaVisual item={item} />
       <div className="px-4 py-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <p className="text-sm font-semibold text-surface-900">{item.title}</p>
           <Badge className="bg-surface-50 text-surface-700">{isVideo ? "视频" : "图片"}</Badge>
         </div>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Badge className="bg-secondary text-secondary-foreground">AI 独立生成</Badge>
+          <Badge className="bg-white text-surface-700">点击放大</Badge>
+        </div>
         <p className="mt-2 text-xs text-surface-500">{item.meta}</p>
       </div>
-    </div>
+    </button>
+  );
+}
+
+function QaMediaPreviewDialog({
+  item,
+  onOpenChange
+}: {
+  item: QaMediaItem | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
+    <Dialog open={Boolean(item)} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[min(94vw,1120px)] p-5">
+        {item ? (
+          <>
+            <DialogHeader className="pr-8">
+              <DialogTitle>{item.title}</DialogTitle>
+              <DialogDescription>{item.description}</DialogDescription>
+            </DialogHeader>
+            <QaMediaVisual item={item} expanded />
+            <div className="grid gap-3 rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground md:grid-cols-[1fr_auto]">
+              <div>
+                <p className="font-medium text-surface-900">生成提示词</p>
+                <p className="mt-2 leading-7">{item.prompt}</p>
+              </div>
+              <div className="flex items-start justify-end gap-2">
+                <Badge className="bg-white text-surface-700">AI 独立生成</Badge>
+                <Badge>{item.type === "video" ? "视频" : "图片"}</Badge>
+              </div>
+            </div>
+          </>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1145,6 +1276,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
   );
   const [question, setQuestion] = useState("");
   const [selectedSources, setSelectedSources] = useState<KnowledgeLibrary[]>([]);
+  const [previewMedia, setPreviewMedia] = useState<QaMediaItem | null>(null);
 
   const sourceMap = {
     knowledge: knowledgeQa,
@@ -1173,10 +1305,45 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
       .flatMap((source) => sourceMap[source])
       .filter((item) => trimmed.includes(item.question.slice(0, 6)) || item.question.includes(trimmed.slice(0, 4)));
 
+    const generatedMedia = getRequestedQaMedia(trimmed, matchedAnswers);
     const answerText =
       matchedAnswers[0]?.answer ??
-      "当前为自由问答模式，建议进一步限定知识源或补充患者阶段、动作名称等上下文信息。";
-    const media = shouldAttachQaMedia(trimmed, matchedAnswers) ? qaMediaExampleItems : undefined;
+      (generatedMedia.length
+        ? "已根据当前项目里的患者处方场景理解生成需求，下面将按图片、视频分别返回 AI 生成结果。"
+        : "当前为自由问答模式，建议进一步限定知识源或补充患者阶段、动作名称等上下文信息。");
+
+    const assistantMessages: MultiModalQaMessage[] = generatedMedia.length
+      ? [
+          {
+            id: generateId("qa-assistant-context"),
+            role: "assistant",
+            text: answerText,
+            sources,
+            createdAt: new Date().toISOString(),
+            summary: "本次回复按 AI 生成流程处理，图片和视频会作为独立回复附件返回。",
+            suggestion: "点击生成的图片或视频卡片可以打开放大预览窗口。",
+            expertOpinion: "生成内容用于原型演示和训练宣教辅助，实际执行仍需结合处方审核。",
+            feedback: null
+          },
+          ...generatedMedia.map((item) => createGeneratedQaMediaMessage(item, sources))
+        ]
+      : [
+          {
+            id: generateId("qa-assistant"),
+            role: "assistant",
+            text: answerText,
+            sources,
+            createdAt: new Date().toISOString(),
+            summary: matchedAnswers[0]?.answer ?? "基于当前问法给出摘要结论。",
+            suggestion:
+              selectedSources.length > 0
+                ? "已优先基于所选知识源回答，可继续追问执行细节。"
+                : "当前未限定知识源，建议选择一个或多个知识库提高准确性。",
+            expertOpinion: "专家意见区用于沉淀标准建议和临床边界。",
+            relatedResources: matchedAnswers.map((item) => item.question).slice(0, 3),
+            feedback: null
+          }
+        ];
 
     const nextMessages: MultiModalQaMessage[] = [
       ...messages,
@@ -1187,22 +1354,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
         sources,
         createdAt: new Date().toISOString()
       },
-      {
-        id: generateId("qa-assistant"),
-        role: "assistant",
-        text: answerText,
-        sources,
-        createdAt: new Date().toISOString(),
-        summary: matchedAnswers[0]?.answer ?? "基于当前问法给出摘要结论。",
-        suggestion:
-          selectedSources.length > 0
-            ? "已优先基于所选知识源回答，可继续追问执行细节。"
-            : "当前未限定知识源，建议选择一个或多个知识库提高准确性。",
-        expertOpinion: "专家意见区用于沉淀标准建议和临床边界。",
-        media,
-        relatedResources: matchedAnswers.map((item) => item.question).slice(0, 3),
-        feedback: null
-      }
+      ...assistantMessages
     ];
 
     setMessages(nextMessages);
@@ -1291,13 +1443,15 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                         {message.role === "assistant" ? (
                           <div className="mt-4 space-y-3">
                             <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
-                              <p className="font-medium text-surface-900">关联资源摘要</p>
+                              <p className="font-medium text-surface-900">
+                                {message.media?.length ? "AI 生成说明" : "关联资源摘要"}
+                              </p>
                               <p className="mt-2 leading-7">{message.summary}</p>
                             </div>
                             {message.media?.length ? (
                               <div className="grid gap-3 md:grid-cols-2">
                                 {message.media.map((item) => (
-                                  <QaMediaAttachment key={item.id} item={item} />
+                                  <QaMediaAttachment key={item.id} item={item} onPreview={setPreviewMedia} />
                                 ))}
                               </div>
                             ) : null}
@@ -1424,6 +1578,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
           </Card>
         }
       />
+      <QaMediaPreviewDialog item={previewMedia} onOpenChange={(open) => !open && setPreviewMedia(null)} />
     </div>
   );
 }

@@ -53,6 +53,9 @@ export type MultiModalQaMessage = {
     type: "image" | "video";
     title: string;
     description: string;
+    source: "ai-generated";
+    assetUrl?: string;
+    prompt?: string;
     meta: string;
   }>;
   relatedResources?: string[];
