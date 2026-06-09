@@ -8,7 +8,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(214,231,255,0.65),_transparent_48%),linear-gradient(180deg,_#f7fbff_0%,_#eef5ff_100%)] text-foreground lg:h-screen lg:overflow-hidden">
       <div className="grid min-h-screen lg:h-screen lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="border-b border-white/50 bg-surface-900 text-white lg:h-screen lg:overflow-y-auto lg:border-b-0 lg:border-r lg:border-r-white/10">
+        <aside className="overflow-hidden border-b border-white/50 bg-surface-900 text-white lg:h-screen lg:border-b-0 lg:border-r lg:border-r-white/10">
           <div className="p-5">
             <div className="rounded-[1.5rem] bg-white/6 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
               <div className="flex items-center gap-3">

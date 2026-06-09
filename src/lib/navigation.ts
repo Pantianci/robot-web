@@ -45,8 +45,6 @@ export const navigationGroups = [
     items: [
       { to: "/patients/base", label: "基础档案" },
       { to: "/patients/plans", label: "康复方案" },
-      { to: "/patients/prescriptions", label: "处方列表" },
-      { to: "/patients/current", label: "当前处方" },
       { to: "/patients/reports", label: "评估报告" }
     ]
   },

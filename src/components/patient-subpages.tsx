@@ -104,12 +104,17 @@ type ExportDraft = {
   format: string;
 };
 
-type ExportReturnTo =
-  | "/patients/base"
-  | "/patients/prescriptions"
-  | "/patients/plans"
-  | "/patients/current"
-  | "/patients/reports";
+type ExportReturnTo = string;
+
+type CarePathScope = "all" | "patient";
+
+type CarePathSubPageProps = {
+  scope?: CarePathScope;
+  patientId?: string;
+  planId?: string;
+  prescriptionId?: string;
+  returnTo?: string;
+};
 
 const patientCreateDraftKey = "patients:create-page";
 const planCreateDraftKey = "patients:plan-create-page";
@@ -129,10 +134,12 @@ const prescriptionEditDraftKey = "patients:prescription-edit-page";
 function resolveWorkspacePatient(
   patients: Patient[],
   plans: RehabPlan[] = [],
-  prescriptions: Prescription[] = []
+  prescriptions: Prescription[] = [],
+  patientId?: string
 ) {
   const workspace = readState<{ patientId: string }>(patientWorkspaceContextKey);
   return (
+    patients.find((item) => item.id === patientId) ??
     patients.find((item) => item.id === workspace?.patientId) ??
     patients.find((item) => item.id === defaultPatientWorkspace.patientId) ??
     plans.find((item) => item.patientId === defaultPatientWorkspace.patientId)
@@ -141,6 +148,22 @@ function resolveWorkspacePatient(
         ? patients.find((item) => item.id === defaultPatientWorkspace.patientId) ?? patients[0] ?? null
         : patients[0] ?? null
   );
+}
+
+function navigateTo(navigate: ReturnType<typeof useNavigate>, to: string) {
+  navigate({ to: to as never });
+}
+
+function patientPlansPath(patientId: string) {
+  return `/patients/${patientId}/plans`;
+}
+
+function patientPlanPrescriptionsPath(patientId: string, planId: string) {
+  return `/patients/${patientId}/plans/${planId}/prescriptions`;
+}
+
+function patientPrescriptionCurrentPath(patientId: string, planId: string, prescriptionId: string) {
+  return `/patients/${patientId}/plans/${planId}/prescriptions/${prescriptionId}/current`;
 }
 
 function SubPageLayout({
@@ -570,13 +593,23 @@ export function PatientExportPage() {
   );
 }
 
-export function PlanCreatePage() {
+export function PlanCreatePage({
+  scope = "all",
+  patientId,
+  returnTo
+}: CarePathSubPageProps = {}) {
   const navigate = useNavigate();
   const { data: patients = [] } = usePatientsQuery();
   const { data: plans = [] } = usePlansQuery();
-  const patient = resolveWorkspacePatient(patients, plans) ?? patients[0] ?? null;
+  const initialPatient = resolveWorkspacePatient(patients, plans, [], patientId) ?? patients[0] ?? null;
+  const [selectedPatientId, setSelectedPatientId] = useState(patientId ?? initialPatient?.id ?? "");
+  const patient =
+    scope === "all"
+      ? patients.find((item) => item.id === selectedPatientId) ?? initialPatient
+      : initialPatient;
   const createMutation = useCreatePlanMutation();
   const summaryPlan = plans.find((item) => item.patientId === patient?.id) ?? null;
+  const targetReturnTo = returnTo ?? (scope === "patient" && patient ? patientPlansPath(patient.id) : "/patients/plans");
   const [draft, setDraft] = useState<PlanCreateDraft>(
     readDraft<PlanCreateDraft>(planCreateDraftKey) ?? {
       type: "基础功能恢复",
@@ -620,19 +653,19 @@ export function PlanCreatePage() {
       patientName: patient.name
     });
     clearDraft(planCreateDraftKey);
-    navigate({ to: "/patients/plans" });
+    navigateTo(navigate, targetReturnTo);
   };
 
   const cancel = () => {
     clearDraft(planCreateDraftKey);
-    navigate({ to: "/patients/plans" });
+    navigateTo(navigate, targetReturnTo);
   };
 
   return (
     <SubPageLayout
       eyebrow="患者档案管理 > 康复方案 > 新增方案"
       title="新增方案"
-      description="当前页面默认绑定基础档案选中的患者；若未选择，则默认落到张三。"
+      description={scope === "all" ? "从全员康复方案页新增方案，可选择目标患者后提交。" : "从患者档案进入的专属新增方案页，默认绑定当前患者。"}
       left={
         <>
           <PatientSummaryCard
@@ -647,7 +680,21 @@ export function PlanCreatePage() {
             </CardHeader>
             <CardContent className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-5 md:grid-cols-2">
               <Field label="患者姓名">
-                <Input value={patient?.name ?? defaultPatientWorkspace.patientName} disabled />
+                {scope === "all" ? (
+                  <select
+                    className="native-select"
+                    value={patient?.id ?? ""}
+                    onChange={(event) => setSelectedPatientId(event.target.value)}
+                  >
+                    {patients.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <Input value={patient?.name ?? defaultPatientWorkspace.patientName} disabled />
+                )}
               </Field>
               <Field label="方案类型" required>
                 <Input value={draft.type} onChange={(event) => persist({ type: event.target.value })} />
@@ -710,7 +757,7 @@ export function PlanCreatePage() {
       bottom={
         <>
           <div>
-            {errorMessage ? <p className="text-sm text-rose-700">{errorMessage}</p> : <p className="text-sm text-primary">方案提交后会回流到张三的康复方案页。</p>}
+            {errorMessage ? <p className="text-sm text-rose-700">{errorMessage}</p> : <p className="text-sm text-primary">方案提交后会回流到对应康复方案列表。</p>}
           </div>
           <div className="flex gap-3">
             <Button variant="secondary" onClick={() => writeDraft(planCreateDraftKey, draft)}>
@@ -728,15 +775,21 @@ export function PlanCreatePage() {
   );
 }
 
-export function PlanEditPage() {
+export function PlanEditPage({
+  scope = "all",
+  patientId,
+  planId,
+  returnTo
+}: CarePathSubPageProps = {}) {
   const navigate = useNavigate();
   const { data: patients = [] } = usePatientsQuery();
   const { data: plans = [] } = usePlansQuery();
-  const patient = resolveWorkspacePatient(patients, plans) ?? patients[0] ?? null;
   const summaryPlan =
+    plans.find((item) => item.id === planId) ??
     plans.find((item) => item.id === readState<{ planId: string }>(planWorkspaceContextKey)?.planId) ??
-    plans.find((item) => item.patientId === patient?.id) ??
     null;
+  const patient = resolveWorkspacePatient(patients, plans, [], patientId ?? summaryPlan?.patientId) ?? patients[0] ?? null;
+  const targetReturnTo = returnTo ?? (scope === "patient" && patient ? patientPlansPath(patient.id) : "/patients/plans");
   const updateMutation = useUpdatePlanMutation();
   const [draft, setDraft] = useState<PlanCreateDraft>(
     readDraft<PlanCreateDraft>(planEditDraftKey) ?? {
@@ -772,19 +825,19 @@ export function PlanEditPage() {
       }
     });
     clearDraft(planEditDraftKey);
-    navigate({ to: "/patients/plans" });
+    navigateTo(navigate, targetReturnTo);
   };
 
   const cancel = () => {
     clearDraft(planEditDraftKey);
-    navigate({ to: "/patients/plans" });
+    navigateTo(navigate, targetReturnTo);
   };
 
   return (
     <SubPageLayout
       eyebrow="患者档案管理 > 康复方案 > 修改方案"
       title="修改方案"
-      description="基于当前选中的康复方案进行编辑，保留 AI 参考侧栏与表单富文本联动。"
+      description={scope === "all" ? "从全员康复方案页编辑选中的方案。" : "从患者专属康复方案页编辑当前方案。"}
       left={
         <>
           <PatientSummaryCard patient={patient} plan={summaryPlan} prescription={null} currentAction={null} />
@@ -898,13 +951,22 @@ function PatientSummaryCard({
   );
 }
 
-export function PrescriptionCreatePage() {
+export function PrescriptionCreatePage({
+  patientId,
+  planId,
+  returnTo
+}: CarePathSubPageProps = {}) {
   const navigate = useNavigate();
   const { data: patients = [] } = usePatientsQuery();
   const { data: plans = [] } = usePlansQuery();
   const { data: prescriptions = [] } = usePrescriptionsQuery();
-  const patient = resolveWorkspacePatient(patients, plans, prescriptions) ?? patients[0] ?? null;
-  const summaryPlan = plans.find((item) => item.patientId === patient?.id) ?? null;
+  const summaryPlan =
+    plans.find((item) => item.id === planId) ??
+    plans.find((item) => item.id === readState<{ planId: string }>(planWorkspaceContextKey)?.planId) ??
+    null;
+  const patient = resolveWorkspacePatient(patients, plans, prescriptions, patientId ?? summaryPlan?.patientId) ?? patients[0] ?? null;
+  const targetReturnTo =
+    returnTo ?? (patient && summaryPlan ? patientPlanPrescriptionsPath(patient.id, summaryPlan.id) : "/patients/prescriptions");
   const createMutation = useCreatePrescriptionMutation();
   const [draft, setDraft] = useState<PrescriptionCreateDraft>(
     readDraft<PrescriptionCreateDraft>(prescriptionCreateDraftKey) ?? {
@@ -963,20 +1025,23 @@ export function PrescriptionCreatePage() {
       patientId: patient.id,
       patientName: patient.name
     });
+    if (summaryPlan) {
+      writeState(planWorkspaceContextKey, { planId: summaryPlan.id });
+    }
     clearDraft(prescriptionCreateDraftKey);
-    navigate({ to: "/patients/prescriptions" });
+    navigateTo(navigate, targetReturnTo);
   };
 
   const cancel = () => {
     clearDraft(prescriptionCreateDraftKey);
-    navigate({ to: "/patients/prescriptions" });
+    navigateTo(navigate, targetReturnTo);
   };
 
   return (
     <SubPageLayout
       eyebrow="患者档案管理 > 处方列表 > 新增动作处方"
       title="新增动作处方"
-      description="默认加载当前患者姓名，支持对动作序列中的各动作参数进行二次编辑。"
+      description="默认加载当前患者和当前方案，支持对动作序列中的各动作参数进行二次编辑。"
       left={
         <>
           <PatientSummaryCard
@@ -1074,7 +1139,7 @@ export function PrescriptionCreatePage() {
       bottom={
         <>
           <div>
-            {errorMessage ? <p className="text-sm text-rose-700">{errorMessage}</p> : <p className="text-sm text-primary">提交后会返回张三的运动处方列表页。</p>}
+            {errorMessage ? <p className="text-sm text-rose-700">{errorMessage}</p> : <p className="text-sm text-primary">提交后会返回当前方案的运动处方列表页。</p>}
           </div>
           <div className="flex gap-3">
             <Button variant="secondary" onClick={() => writeDraft(prescriptionCreateDraftKey, draft)}>
@@ -1092,19 +1157,29 @@ export function PrescriptionCreatePage() {
   );
 }
 
-export function PrescriptionEditPage() {
+export function PrescriptionEditPage({
+  patientId,
+  planId,
+  prescriptionId,
+  returnTo
+}: CarePathSubPageProps = {}) {
   const navigate = useNavigate();
   const { data: patients = [] } = usePatientsQuery();
   const { data: plans = [] } = usePlansQuery();
   const { data: prescriptions = [] } = usePrescriptionsQuery();
-  const patient = resolveWorkspacePatient(patients, plans, prescriptions) ?? patients[0] ?? null;
-  const summaryPlan = plans.find((item) => item.patientId === patient?.id) ?? null;
+  const summaryPlan =
+    plans.find((item) => item.id === planId) ??
+    plans.find((item) => item.id === readState<{ planId: string }>(planWorkspaceContextKey)?.planId) ??
+    null;
   const summaryPrescription =
+    prescriptions.find((item) => item.id === prescriptionId) ??
     prescriptions.find(
       (item) => item.id === readState<{ prescriptionId: string }>(prescriptionWorkspaceContextKey)?.prescriptionId
     ) ??
-    prescriptions.find((item) => item.patientId === patient?.id) ??
     null;
+  const patient = resolveWorkspacePatient(patients, plans, prescriptions, patientId ?? summaryPrescription?.patientId ?? summaryPlan?.patientId) ?? patients[0] ?? null;
+  const targetReturnTo =
+    returnTo ?? (patient && summaryPlan ? patientPlanPrescriptionsPath(patient.id, summaryPlan.id) : "/patients/prescriptions");
   const updateMutation = useUpdatePrescriptionMutation();
   const [draft, setDraft] = useState<PrescriptionCreateDraft>(
     readDraft<PrescriptionCreateDraft>(prescriptionEditDraftKey) ?? {
@@ -1153,12 +1228,12 @@ export function PrescriptionEditPage() {
       }
     });
     clearDraft(prescriptionEditDraftKey);
-    navigate({ to: "/patients/prescriptions" });
+    navigateTo(navigate, targetReturnTo);
   };
 
   const cancel = () => {
     clearDraft(prescriptionEditDraftKey);
-    navigate({ to: "/patients/prescriptions" });
+    navigateTo(navigate, targetReturnTo);
   };
 
   return (
@@ -1261,12 +1336,30 @@ export function PrescriptionEditPage() {
   );
 }
 
-export function CurrentActionCreatePage() {
+export function CurrentActionCreatePage({
+  patientId,
+  planId,
+  prescriptionId,
+  returnTo
+}: CarePathSubPageProps = {}) {
   const navigate = useNavigate();
   const { data: patients = [] } = usePatientsQuery();
   const { data: plans = [] } = usePlansQuery();
-  const patient = resolveWorkspacePatient(patients, plans) ?? patients[0] ?? null;
-  const summaryPlan = plans.find((item) => item.patientId === patient?.id) ?? null;
+  const { data: prescriptions = [] } = usePrescriptionsQuery();
+  const summaryPlan =
+    plans.find((item) => item.id === planId) ??
+    plans.find((item) => item.id === readState<{ planId: string }>(planWorkspaceContextKey)?.planId) ??
+    null;
+  const summaryPrescription =
+    prescriptions.find((item) => item.id === prescriptionId) ??
+    prescriptions.find((item) => item.id === readState<{ prescriptionId: string }>(prescriptionWorkspaceContextKey)?.prescriptionId) ??
+    null;
+  const patient = resolveWorkspacePatient(patients, plans, prescriptions, patientId ?? summaryPrescription?.patientId ?? summaryPlan?.patientId) ?? patients[0] ?? null;
+  const targetReturnTo =
+    returnTo ??
+    (patient && summaryPlan && summaryPrescription
+      ? patientPrescriptionCurrentPath(patient.id, summaryPlan.id, summaryPrescription.id)
+      : "/patients/current");
   const createMutation = useCreateCurrentActionMutation();
   const [draft, setDraft] = useState<CurrentActionCreateDraft>(
     readDraft<CurrentActionCreateDraft>(currentActionCreateDraftKey) ?? {
@@ -1287,7 +1380,7 @@ export function CurrentActionCreatePage() {
 
   const cancel = () => {
     clearDraft(currentActionCreateDraftKey);
-    navigate({ to: "/patients/current" });
+    navigateTo(navigate, targetReturnTo);
   };
 
   const submit = async () => {
@@ -1309,8 +1402,14 @@ export function CurrentActionCreatePage() {
       patientId: patient.id,
       patientName: patient.name
     });
+    if (summaryPlan) {
+      writeState(planWorkspaceContextKey, { planId: summaryPlan.id });
+    }
+    if (summaryPrescription) {
+      writeState(prescriptionWorkspaceContextKey, { prescriptionId: summaryPrescription.id });
+    }
     clearDraft(currentActionCreateDraftKey);
-    navigate({ to: "/patients/current" });
+    navigateTo(navigate, targetReturnTo);
   };
 
   const previewAction: CurrentAction | null = patient
@@ -1330,7 +1429,7 @@ export function CurrentActionCreatePage() {
     <SubPageLayout
       eyebrow="患者档案管理 > 当前处方 > 新增单体动作"
       title="新增单体动作"
-      description="当前原型页用于补充单体动作信息与视频预览位，提交后返回张三的当前处方页。"
+      description="当前原型页用于补充单体动作信息与视频预览位，提交后返回当前处方动作页。"
       left={
         <>
           <PatientSummaryCard
@@ -1414,20 +1513,33 @@ export function CurrentActionCreatePage() {
   );
 }
 
-export function CurrentActionEditPage() {
+export function CurrentActionEditPage({
+  patientId,
+  planId,
+  prescriptionId,
+  returnTo
+}: CarePathSubPageProps = {}) {
   const navigate = useNavigate();
   const { data: patients = [] } = usePatientsQuery();
   const { data: plans = [] } = usePlansQuery();
   const { data: prescriptions = [] } = usePrescriptionsQuery();
   const { data: currentActions = [] } = useCurrentActionsQuery();
-  const patient = resolveWorkspacePatient(patients, plans, prescriptions) ?? patients[0] ?? null;
-  const summaryPlan = plans.find((item) => item.patientId === patient?.id) ?? null;
+  const summaryPlan =
+    plans.find((item) => item.id === planId) ??
+    plans.find((item) => item.id === readState<{ planId: string }>(planWorkspaceContextKey)?.planId) ??
+    null;
   const summaryPrescription =
+    prescriptions.find((item) => item.id === prescriptionId) ??
     prescriptions.find(
       (item) => item.id === readState<{ prescriptionId: string }>(prescriptionWorkspaceContextKey)?.prescriptionId
     ) ??
-    prescriptions.find((item) => item.patientId === patient?.id) ??
     null;
+  const patient = resolveWorkspacePatient(patients, plans, prescriptions, patientId ?? summaryPrescription?.patientId ?? summaryPlan?.patientId) ?? patients[0] ?? null;
+  const targetReturnTo =
+    returnTo ??
+    (patient && summaryPlan && summaryPrescription
+      ? patientPrescriptionCurrentPath(patient.id, summaryPlan.id, summaryPrescription.id)
+      : "/patients/current");
   const actionWorkspace = readState<{ currentActionId: string }>(currentActionWorkspaceContextKey);
   const persistedAction =
     currentActions.find((item) => item.id === actionWorkspace?.currentActionId) ??
@@ -1481,7 +1593,7 @@ export function CurrentActionEditPage() {
 
   const cancel = () => {
     clearDraft(currentActionEditDraftKey);
-    navigate({ to: "/patients/current" });
+    navigateTo(navigate, targetReturnTo);
   };
 
   const submit = async () => {
@@ -1519,8 +1631,14 @@ export function CurrentActionEditPage() {
       patientId: patient.id,
       patientName: patient.name
     });
+    if (summaryPlan) {
+      writeState(planWorkspaceContextKey, { planId: summaryPlan.id });
+    }
+    if (summaryPrescription) {
+      writeState(prescriptionWorkspaceContextKey, { prescriptionId: summaryPrescription.id });
+    }
     clearDraft(currentActionEditDraftKey);
-    navigate({ to: "/patients/current" });
+    navigateTo(navigate, targetReturnTo);
   };
 
   const previewAction: CurrentAction | null = patient
@@ -1667,7 +1785,7 @@ function ExportSubPage({
 
   const cancel = () => {
     clearDraft(draftKey);
-    navigate({ to: returnTo });
+    navigateTo(navigate, returnTo);
   };
 
   return (
@@ -1748,14 +1866,21 @@ function ExportSubPage({
   );
 }
 
-export function PrescriptionExportPage() {
+export function PrescriptionExportPage({
+  patientId,
+  planId,
+  returnTo
+}: CarePathSubPageProps = {}) {
+  const targetReturnTo =
+    returnTo ?? (patientId && planId ? patientPlanPrescriptionsPath(patientId, planId) : "/patients/prescriptions");
+
   return (
     <ExportSubPage
       eyebrow="患者档案管理 > 处方列表 > 导出运动处方"
       title="导出运动处方"
       description="支持按当前筛选结果或选中记录导出，并配置导出时间范围、对象和条件。"
       draftKey={prescriptionExportDraftKey}
-      returnTo="/patients/prescriptions"
+      returnTo={targetReturnTo}
       detailTitle="导出任务摘要"
       initialDraft={{
         exportScope: "当前筛选结果",
@@ -1773,19 +1898,25 @@ export function PrescriptionExportPage() {
   );
 }
 
-export function PlanExportPage() {
+export function PlanExportPage({
+  scope = "all",
+  patientId,
+  returnTo
+}: CarePathSubPageProps = {}) {
+  const targetReturnTo = returnTo ?? (scope === "patient" && patientId ? patientPlansPath(patientId) : "/patients/plans");
+
   return (
     <ExportSubPage
       eyebrow="患者档案管理 > 康复方案 > 导出方案"
       title="导出方案"
-      description="支持当前筛选结果或张三当前方案导出，并配置时间范围、导出对象和条件。"
+      description="支持当前筛选结果或当前方案导出，并配置时间范围、导出对象和条件。"
       draftKey={planExportDraftKey}
-      returnTo="/patients/plans"
+      returnTo={targetReturnTo}
       detailTitle="导出任务摘要"
       initialDraft={{
-        exportScope: "张三当前筛选结果",
+        exportScope: "当前筛选结果",
         dateRange: "近30天",
-        exportObject: "张三康复方案",
+        exportObject: "康复方案",
         exportCondition: "已同步 + 待同步",
         format: "PDF / XLSX / DOCX"
       }}
@@ -1798,17 +1929,28 @@ export function PlanExportPage() {
   );
 }
 
-export function CurrentActionExportPage() {
+export function CurrentActionExportPage({
+  patientId,
+  planId,
+  prescriptionId,
+  returnTo
+}: CarePathSubPageProps = {}) {
+  const targetReturnTo =
+    returnTo ??
+    (patientId && planId && prescriptionId
+      ? patientPrescriptionCurrentPath(patientId, planId, prescriptionId)
+      : "/patients/current");
+
   return (
     <ExportSubPage
       eyebrow="患者档案管理 > 当前处方 > 导出单体动作"
       title="导出单体动作"
-      description="支持导出张三当前单体动作列表，并配置导出时间范围、对象和条件。"
+      description="支持导出当前单体动作列表，并配置导出时间范围、对象和条件。"
       draftKey={currentActionExportDraftKey}
-      returnTo="/patients/current"
+      returnTo={targetReturnTo}
       detailTitle="导出任务摘要"
       initialDraft={{
-        exportScope: "张三当前单体动作",
+        exportScope: "当前单体动作",
         dateRange: "近30天",
         exportObject: "当前标准动作处方列表",
         exportCondition: "按最近操作时间排序",

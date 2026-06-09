@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { FileOutput, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/table";
 
 type ViewMode = "plans" | "current" | "prescriptions";
+type ManagementScope = "all" | "patient";
 
 type WorkspaceContext = {
   selectedId?: string;
@@ -52,6 +53,30 @@ type WorkspaceContext = {
 };
 
 const pageSize = 8;
+
+function navigateTo(navigate: ReturnType<typeof useNavigate>, to: string) {
+  navigate({ to: to as never });
+}
+
+function writePatientWorkspace(patient: Patient) {
+  writeState(patientWorkspaceContextKey, {
+    selectedId: patient.id,
+    patientId: patient.id,
+    patientName: patient.name
+  });
+}
+
+function patientPlansPath(patientId: string) {
+  return `/patients/${patientId}/plans`;
+}
+
+function patientPlanPrescriptionsPath(patientId: string, planId: string) {
+  return `/patients/${patientId}/plans/${planId}/prescriptions`;
+}
+
+function patientPrescriptionCurrentPath(patientId: string, planId: string, prescriptionId: string) {
+  return `/patients/${patientId}/plans/${planId}/prescriptions/${prescriptionId}/current`;
+}
 
 function resolveWorkspacePatient(
   patients: Patient[],
@@ -190,9 +215,17 @@ function PaginationBar({
 }
 
 export function PrescriptionManagement({
-  view
+  view,
+  scope = "patient",
+  patientId,
+  planId,
+  prescriptionId
 }: {
   view: ViewMode;
+  scope?: ManagementScope;
+  patientId?: string;
+  planId?: string;
+  prescriptionId?: string;
 }) {
   const navigate = useNavigate();
   const { data: patients = [] } = usePatientsQuery();
@@ -204,7 +237,8 @@ export function PrescriptionManagement({
   const deletePrescriptionMutation = useDeletePrescriptionMutation();
 
   const workspace = readState<WorkspaceContext>(patientWorkspaceContextKey);
-  const patient = resolveWorkspacePatient(
+  const routePatient = patients.find((item) => item.id === patientId) ?? null;
+  const fallbackPatient = resolveWorkspacePatient(
     patients,
     workspace,
     view,
@@ -212,23 +246,29 @@ export function PrescriptionManagement({
     currentActions,
     prescriptions
   );
+  const activePatient = routePatient ?? fallbackPatient;
+  const allPlans = useMemo(
+    () => [...plans].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+    [plans]
+  );
   const patientPlans = useMemo(
     () =>
       plans
-        .filter((item) => item.patientId === patient?.id)
+        .filter((item) => item.patientId === activePatient?.id)
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
-    [patient?.id, plans]
+    [activePatient?.id, plans]
   );
+  const planRecords = scope === "all" && view === "plans" ? allPlans : patientPlans;
   const patientPrescriptions = useMemo(
     () =>
       prescriptions
-        .filter((item) => item.patientId === patient?.id)
+        .filter((item) => item.patientId === activePatient?.id)
         .sort((a, b) => new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime()),
-    [patient?.id, prescriptions]
+    [activePatient?.id, prescriptions]
   );
   const patientActions = useMemo(() => {
     const records = currentActions
-      .filter((item) => item.patientId === patient?.id)
+      .filter((item) => item.patientId === activePatient?.id)
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
     if (records.length) {
@@ -236,13 +276,13 @@ export function PrescriptionManagement({
     }
 
     return buildExampleActionsFromPrescription(patientPrescriptions[0] ?? null);
-  }, [currentActions, patient?.id, patientPrescriptions]);
+  }, [activePatient?.id, currentActions, patientPrescriptions]);
 
   const [keyword, setKeyword] = useState("");
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(patientPlans[0]?.id ?? null);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(planId ?? null);
   const [selectedActionId, setSelectedActionId] = useState<string | null>(patientActions[0]?.id ?? null);
   const [selectedPrescriptionId, setSelectedPrescriptionId] = useState<string | null>(
-    patientPrescriptions[0]?.id ?? null
+    prescriptionId ?? null
   );
   const [planPage, setPlanPage] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
@@ -252,25 +292,26 @@ export function PrescriptionManagement({
   const [deletePrescriptionTarget, setDeletePrescriptionTarget] = useState<Prescription | null>(null);
 
   useEffect(() => {
-    if (patient) {
-      writeState(patientWorkspaceContextKey, {
-        selectedId: patient.id,
-        patientId: patient.id,
-        patientName: patient.name
-      });
+    if (activePatient) {
+      writePatientWorkspace(activePatient);
     }
-  }, [patient]);
+  }, [activePatient]);
 
   useEffect(() => {
-    if (!patientPlans.length) {
+    if (!planRecords.length) {
       setSelectedPlanId(null);
       return;
     }
 
-    if (!selectedPlanId || !patientPlans.some((item) => item.id === selectedPlanId)) {
-      setSelectedPlanId(patientPlans[0]?.id ?? null);
+    if (planId && planRecords.some((item) => item.id === planId) && selectedPlanId !== planId) {
+      setSelectedPlanId(planId);
+      return;
     }
-  }, [patientPlans, selectedPlanId]);
+
+    if (!selectedPlanId || !planRecords.some((item) => item.id === selectedPlanId)) {
+      setSelectedPlanId(planRecords[0]?.id ?? null);
+    }
+  }, [planId, planRecords, selectedPlanId]);
 
   useEffect(() => {
     if (!patientActions.length) {
@@ -289,23 +330,25 @@ export function PrescriptionManagement({
       return;
     }
 
-    if (
-      !selectedPrescriptionId ||
-      !patientPrescriptions.some((item) => item.id === selectedPrescriptionId)
-    ) {
+    if (prescriptionId && patientPrescriptions.some((item) => item.id === prescriptionId) && selectedPrescriptionId !== prescriptionId) {
+      setSelectedPrescriptionId(prescriptionId);
+      return;
+    }
+
+    if (!selectedPrescriptionId || !patientPrescriptions.some((item) => item.id === selectedPrescriptionId)) {
       setSelectedPrescriptionId(patientPrescriptions[0]?.id ?? null);
     }
-  }, [patientPrescriptions, selectedPrescriptionId]);
+  }, [patientPrescriptions, prescriptionId, selectedPrescriptionId]);
 
   const filteredPlans = useMemo(
     () =>
-      patientPlans.filter((item) =>
-        [item.id, item.type, item.goal, item.risk, item.doctor]
+      planRecords.filter((item) =>
+        [item.id, item.patientName, item.type, item.goal, item.risk, item.doctor]
           .join(" ")
           .toLowerCase()
           .includes(keyword.toLowerCase())
       ),
-    [keyword, patientPlans]
+    [keyword, planRecords]
   );
   const filteredActions = useMemo(
     () =>
@@ -383,9 +426,30 @@ export function PrescriptionManagement({
     setDeletePrescriptionTarget(null);
   };
 
+  const selectedPlanPatient =
+    patients.find((item) => item.id === selectedPlan?.patientId) ??
+    activePatient;
+  const summaryPatient = scope === "all" && view === "plans" ? selectedPlanPatient : activePatient;
   const summaryPlan = selectedPlan ?? patientPlans[0] ?? null;
   const summaryPrescription = selectedPrescription ?? patientPrescriptions[0] ?? null;
   const summaryAction = selectedAction ?? patientActions[0] ?? null;
+  const patientPlanRoot = activePatient ? patientPlansPath(activePatient.id) : "/patients/plans";
+  const planCreatePath = scope === "patient" ? `${patientPlanRoot}/create` : "/patients/plans/create";
+  const planExportPath = scope === "patient" ? `${patientPlanRoot}/export` : "/patients/plans/export";
+  const prescriptionRoot =
+    activePatient && summaryPlan
+      ? patientPlanPrescriptionsPath(activePatient.id, summaryPlan.id)
+      : "/patients/prescriptions";
+  const prescriptionCreatePath = `${prescriptionRoot}/create`;
+  const prescriptionEditPath = `${prescriptionRoot}/edit`;
+  const prescriptionExportPath = `${prescriptionRoot}/export`;
+  const currentRoot =
+    activePatient && summaryPlan && summaryPrescription
+      ? patientPrescriptionCurrentPath(activePatient.id, summaryPlan.id, summaryPrescription.id)
+      : "/patients/current";
+  const currentCreatePath = `${currentRoot}/create`;
+  const currentEditPath = `${currentRoot}/edit`;
+  const currentExportPath = `${currentRoot}/export`;
 
   const planActions = (
     <>
@@ -393,34 +457,26 @@ export function PrescriptionManagement({
         <Sparkles className="h-4 w-4" />
         AI生成方案
       </Button>
-      <Button asChild>
-        <Link to="/patients/plans/create">
-          <Plus className="h-4 w-4" />
-          新增方案
-        </Link>
+      <Button onClick={() => navigateTo(navigate, planCreatePath)}>
+        <Plus className="h-4 w-4" />
+        新增方案
       </Button>
-      <Button asChild variant="outline">
-        <Link to="/patients/plans/export" className="flex items-center gap-2">
-          <FileOutput className="h-4 w-4" />
-          导出方案
-        </Link>
+      <Button variant="outline" onClick={() => navigateTo(navigate, planExportPath)}>
+        <FileOutput className="h-4 w-4" />
+        导出方案
       </Button>
     </>
   );
 
   const currentActionsButtons = (
     <>
-      <Button asChild>
-        <Link to="/patients/current/create">
-          <Plus className="h-4 w-4" />
-          新增单体动作
-        </Link>
+      <Button onClick={() => navigateTo(navigate, currentCreatePath)}>
+        <Plus className="h-4 w-4" />
+        新增单体动作
       </Button>
-      <Button asChild variant="outline">
-        <Link to="/patients/current/export">
-          <FileOutput className="h-4 w-4" />
-          导出单体动作
-        </Link>
+      <Button variant="outline" onClick={() => navigateTo(navigate, currentExportPath)}>
+        <FileOutput className="h-4 w-4" />
+        导出单体动作
       </Button>
     </>
   );
@@ -431,39 +487,53 @@ export function PrescriptionManagement({
         <Sparkles className="h-4 w-4" />
         AI生成处方
       </Button>
-      <Button asChild>
-        <Link to="/patients/prescriptions/create">
-          <Plus className="h-4 w-4" />
-          新增运动处方
-        </Link>
+      <Button onClick={() => navigateTo(navigate, prescriptionCreatePath)}>
+        <Plus className="h-4 w-4" />
+        新增运动处方
       </Button>
-      <Button asChild variant="outline">
-        <Link to="/patients/prescriptions/export">
-          <FileOutput className="h-4 w-4" />
-          导出运动处方
-        </Link>
+      <Button variant="outline" onClick={() => navigateTo(navigate, prescriptionExportPath)}>
+        <FileOutput className="h-4 w-4" />
+        导出运动处方
       </Button>
     </>
   );
+  const headerEyebrow =
+    scope === "all" && view === "plans"
+      ? "患者档案管理 > 康复方案"
+      : view === "plans"
+        ? `患者档案管理 > 基础档案 > ${activePatient?.name ?? "患者"} > 康复方案`
+        : view === "prescriptions"
+          ? `患者档案管理 > 基础档案 > ${activePatient?.name ?? "患者"} > 康复方案 > ${summaryPlan?.id ?? "方案"} > 处方列表`
+          : `患者档案管理 > 基础档案 > ${activePatient?.name ?? "患者"} > 康复方案 > ${summaryPlan?.id ?? "方案"} > 处方列表 > ${summaryPrescription?.id ?? "处方"} > 当前处方`;
+  const headerTitle =
+    scope === "all" && view === "plans"
+      ? "康复方案"
+      : view === "plans"
+        ? `${activePatient?.name ?? "患者"}的康复方案`
+        : view === "prescriptions"
+          ? `${activePatient?.name ?? "患者"}的运动处方列表`
+          : `${activePatient?.name ?? "患者"}的当前处方`;
+  const headerDescription =
+    scope === "all" && view === "plans"
+      ? "展示所有患者的康复方案，支持新增、编辑、删除、导出和全局检索。"
+      : view === "plans"
+        ? "从患者档案进入的专属康复方案页，点击某一条方案进入该方案的处方列表。"
+        : view === "prescriptions"
+          ? "从患者方案进入的运动处方列表，点击某一条处方进入当前处方动作页。"
+          : "从运动处方进入的当前处方动作页，用于查看、编辑和维护单体动作。";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <PageHeader
-        eyebrow={`患者档案管理 > ${view === "plans" ? "康复方案" : view === "current" ? "当前处方" : "处方列表"}`}
-        title={view === "plans" ? "康复方案" : view === "current" ? "当前处方" : "运动处方列表"}
-        description={
-          view === "plans"
-            ? "当前为基础档案中选中患者的专属康复方案页，默认展示张三。"
-            : view === "current"
-              ? "当前为基础档案中选中患者的专属单体动作处方页，默认展示张三。"
-              : "当前为基础档案中选中患者的专属运动处方页，默认展示张三。"
-        }
+        eyebrow={headerEyebrow}
+        title={headerTitle}
+        description={headerDescription}
         className="mb-1"
         actions={view === "plans" ? planActions : view === "current" ? currentActionsButtons : prescriptionActions}
       />
 
       <PatientSummaryCard
-        patient={patient}
+        patient={summaryPatient}
         plan={summaryPlan}
         prescription={summaryPrescription}
         currentAction={summaryAction}
@@ -511,6 +581,7 @@ export function PrescriptionManagement({
                     <TableHeader className="sticky top-0 z-10 bg-white">
                       <TableRow>
                         <TableHead>方案编号</TableHead>
+                        {scope === "all" ? <TableHead>患者</TableHead> : null}
                         <TableHead>确认医生</TableHead>
                         <TableHead>处方数</TableHead>
                         <TableHead>采纳状态</TableHead>
@@ -522,6 +593,9 @@ export function PrescriptionManagement({
                     </TableHeader>
                     <TableBody>
                       {pagedPlans.map((item) => {
+                        const planPatient =
+                          patients.find((patientItem) => patientItem.id === item.patientId) ??
+                          activePatient;
                         const prescriptionCount = patientPrescriptions.filter(
                           (prescription) => prescription.patientId === item.patientId
                         ).length;
@@ -530,11 +604,25 @@ export function PrescriptionManagement({
                             key={item.id}
                             className="cursor-pointer"
                             data-state={selectedPlan?.id === item.id ? "selected" : undefined}
-                            onClick={() => setSelectedPlanId(item.id)}
+                            onClick={() => {
+                              setSelectedPlanId(item.id);
+                              writeState(planWorkspaceContextKey, { planId: item.id });
+                              if (planPatient) {
+                                writePatientWorkspace(planPatient);
+                              }
+                              if (scope === "patient" && planPatient) {
+                                navigateTo(navigate, patientPlanPrescriptionsPath(planPatient.id, item.id));
+                              }
+                            }}
                           >
                             <TableCell className="font-medium">{item.id}</TableCell>
+                            {scope === "all" ? <TableCell>{item.patientName}</TableCell> : null}
                             <TableCell>{item.doctor}</TableCell>
-                            <TableCell>{prescriptionCount}</TableCell>
+                            <TableCell>
+                              {scope === "all"
+                                ? prescriptions.filter((prescription) => prescription.patientId === item.patientId).length
+                                : prescriptionCount}
+                            </TableCell>
                             <TableCell>
                               <Badge>{item.status === "已同步" ? "已采纳" : "待采纳"}</Badge>
                             </TableCell>
@@ -551,7 +639,15 @@ export function PrescriptionManagement({
                                     event.stopPropagation();
                                     writeState(planWorkspaceContextKey, { planId: item.id });
                                     setSelectedPlanId(item.id);
-                                    navigate({ to: "/patients/plans/edit" });
+                                    if (planPatient) {
+                                      writePatientWorkspace(planPatient);
+                                    }
+                                    navigateTo(
+                                      navigate,
+                                      scope === "patient" && planPatient
+                                        ? `${patientPlansPath(planPatient.id)}/edit`
+                                        : "/patients/plans/edit"
+                                    );
                                   }}
                                 >
                                   <Pencil className="h-4 w-4" />
@@ -682,7 +778,7 @@ export function PrescriptionManagement({
                                   event.stopPropagation();
                                   writeState(currentActionWorkspaceContextKey, { currentActionId: item.id });
                                   setSelectedActionId(item.id);
-                                  navigate({ to: "/patients/current/edit" });
+                                  navigateTo(navigate, currentEditPath);
                                 }}
                               >
                                 <Pencil className="h-4 w-4" />
@@ -790,7 +886,16 @@ export function PrescriptionManagement({
                           key={item.id}
                           className="cursor-pointer"
                           data-state={selectedPrescription?.id === item.id ? "selected" : undefined}
-                          onClick={() => setSelectedPrescriptionId(item.id)}
+                          onClick={() => {
+                            setSelectedPrescriptionId(item.id);
+                            writeState(prescriptionWorkspaceContextKey, { prescriptionId: item.id });
+                            if (activePatient && summaryPlan) {
+                              navigateTo(
+                                navigate,
+                                patientPrescriptionCurrentPath(activePatient.id, summaryPlan.id, item.id)
+                              );
+                            }
+                          }}
                         >
                           <TableCell className="font-medium">{item.id}</TableCell>
                           <TableCell>{item.doctor}</TableCell>
@@ -813,7 +918,7 @@ export function PrescriptionManagement({
                                     prescriptionId: item.id
                                   });
                                   setSelectedPrescriptionId(item.id);
-                                  navigate({ to: "/patients/prescriptions/edit" });
+                                  navigateTo(navigate, prescriptionEditPath);
                                 }}
                               >
                                 <Pencil className="h-4 w-4" />

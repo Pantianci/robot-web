@@ -6,5 +6,5 @@ export const Route = createFileRoute("/patients/plans/")({
 });
 
 function RehabPlansPage() {
-  return <PrescriptionManagement view="plans" />;
+  return <PrescriptionManagement view="plans" scope="all" />;
 }

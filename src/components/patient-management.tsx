@@ -129,6 +129,15 @@ export function PatientManagement() {
     navigate({ to: "/patients/base/edit" });
   };
 
+  const openPatientPlans = (patient: Patient) => {
+    writeState(patientWorkspaceContextKey, {
+      selectedId: patient.id,
+      patientId: patient.id,
+      patientName: patient.name
+    });
+    navigate({ to: "/patients/$patientId/plans", params: { patientId: patient.id } });
+  };
+
   const resetFilters = () => {
     setQuery("");
     setStageFilter("全部");
@@ -261,7 +270,10 @@ export function PatientManagement() {
                         key={item.id}
                         data-state={selected?.id === item.id ? "selected" : undefined}
                         className="cursor-pointer"
-                        onClick={() => setSelectedId(item.id)}
+                        onClick={() => {
+                          setSelectedId(item.id);
+                          openPatientPlans(item);
+                        }}
                       >
                         <TableCell>{item.id}</TableCell>
                         <TableCell className="font-medium">{item.name}</TableCell>
