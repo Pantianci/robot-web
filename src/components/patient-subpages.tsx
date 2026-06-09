@@ -332,7 +332,8 @@ function SubPageLayout({
   actions,
   left,
   right,
-  bottom
+  bottom,
+  fixedBottom = false
 }: {
   eyebrow: React.ReactNode;
   title: string;
@@ -341,6 +342,7 @@ function SubPageLayout({
   left: React.ReactNode;
   right: React.ReactNode;
   bottom: React.ReactNode;
+  fixedBottom?: boolean;
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
@@ -356,14 +358,27 @@ function SubPageLayout({
         label="摘要"
         sideWidthClassName="w-full xl:w-[360px]"
         main={
-          <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
-            {left}
-            <Card className="shrink-0 border-primary/15 bg-primary/5">
-              <CardContent className="flex items-center justify-between gap-4 p-5">
-                {bottom}
-              </CardContent>
-            </Card>
-          </div>
+          fixedBottom ? (
+            <div className="flex min-h-0 flex-col gap-4">
+              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                <div className="space-y-4">{left}</div>
+              </div>
+              <Card className="shrink-0 border-primary/15 bg-primary/5">
+                <CardContent className="flex items-center justify-between gap-4 p-5">
+                  {bottom}
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
+              <div className="space-y-4">{left}</div>
+              <Card className="shrink-0 border-primary/15 bg-primary/5">
+                <CardContent className="flex items-center justify-between gap-4 p-5">
+                  {bottom}
+                </CardContent>
+              </Card>
+            </div>
+          )
         }
         side={right}
       />
@@ -1201,6 +1216,7 @@ export function PrescriptionCreatePage({
       eyebrow={buildPrescriptionBreadcrumb({ navigate, patient, plan: summaryPlan, currentLabel: "新增运动处方" })}
       title="新增动作处方"
       description="默认加载当前患者和当前方案，支持对动作序列中的各动作参数进行二次编辑。"
+      fixedBottom
       left={
         <>
           <PatientSummaryCard

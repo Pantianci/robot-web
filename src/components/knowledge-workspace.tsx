@@ -83,6 +83,7 @@ function createDefaultListContext(): MultiModalListContext {
 
 function normalizeKeywordFields(item: KnowledgeItem) {
   return [
+    item.id,
     item.title,
     item.fileName,
     item.category,
@@ -123,11 +124,11 @@ function listColumnsForLibrary(library: KnowledgeLibrary) {
   }
 
   if (library === "motion") {
-    return ["视频名称", "动作名称", "持续时间", "适用部位", "角度", "方向", "适应症", "禁忌症", "标签", "状态", "操作"] as const;
+    return ["动作ID", "视频名称", "动作名称", "持续时间", "适用部位", "角度", "方向", "适应症", "禁忌症", "标签", "状态", "操作"] as const;
   }
 
   if (library === "sequence") {
-    return ["序列名称", "阶段", "目标", "动作顺序", "总时长", "状态", "操作"] as const;
+    return ["序列ID", "序列名称", "阶段", "目标", "动作顺序", "总时长", "状态", "操作"] as const;
   }
 
   return ["标题", "格式", "文件大小", "标签", "状态", "时间", "操作"] as const;
@@ -149,6 +150,7 @@ function libraryTableRow(
 
   if (library === "motion") {
     return [
+      item.id,
       item.fileName ?? item.title,
       item.actionName ?? item.title,
       item.durationMinutes ? `${item.durationMinutes} 分钟` : "-",
@@ -164,6 +166,7 @@ function libraryTableRow(
 
   if (library === "sequence") {
     return [
+      item.id,
       item.title,
       item.stage ?? "-",
       item.goal ?? "-",
@@ -189,11 +192,11 @@ function statusColumnIndexForLibrary(library: KnowledgeLibrary) {
   }
 
   if (library === "motion") {
-    return 9;
+    return 10;
   }
 
   if (library === "sequence") {
-    return 5;
+    return 6;
   }
 
   return 4;
@@ -613,6 +616,11 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
               <>
                 <PropertyList
                   items={[
+                    ...(library === "motion"
+                      ? [{ label: "动作ID", value: selectedItem.id }]
+                      : library === "sequence"
+                        ? [{ label: "序列ID", value: selectedItem.id }]
+                        : []),
                     {
                       label: library === "voice" ? "标准问题" : "标题",
                       value: library === "voice" ? selectedItem.standardQuestion ?? selectedItem.title : selectedItem.title

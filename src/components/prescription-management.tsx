@@ -383,7 +383,7 @@ export function RehabPlanManagement() {
     navigateTo(navigate, "/patients/plans/edit");
   };
 
-  const openPatientFlow = (plan: RehabPlan) => {
+  const openPlanPrescriptions = (plan: RehabPlan) => {
     const patient = patients.find((item) => item.id === plan.patientId) ?? null;
     if (!patient) {
       return;
@@ -391,7 +391,7 @@ export function RehabPlanManagement() {
 
     writePatientWorkspace(patient);
     writeState(planWorkspaceContextKey, { planId: plan.id });
-    navigateTo(navigate, patientPlansPath(patient.id));
+    navigateTo(navigate, patientPlanPrescriptionsPath(patient.id, plan.id));
   };
 
   const handleDeletePlan = async () => {
@@ -525,19 +525,25 @@ export function RehabPlanManagement() {
                   <TableHeader className="sticky top-0 z-10 bg-white">
                     <TableRow>
                       <TableHead>方案编号</TableHead>
+                      <TableHead>患者ID</TableHead>
                       <TableHead>患者</TableHead>
-                      <TableHead>阶段</TableHead>
+                      <TableHead>确认医生</TableHead>
+                      <TableHead>处方数</TableHead>
+                      <TableHead>采纳状态</TableHead>
                       <TableHead>类型</TableHead>
+                      <TableHead>阶段</TableHead>
                       <TableHead>训练目标</TableHead>
                       <TableHead>风险</TableHead>
-                      <TableHead>状态</TableHead>
-                      <TableHead>医生</TableHead>
                       <TableHead>更新时间</TableHead>
                       <TableHead>操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {pagedPlans.map((plan) => {
+                      const prescriptionCount = prescriptions.filter(
+                        (prescription) => prescription.patientId === plan.patientId
+                      ).length;
+
                       return (
                         <TableRow
                           key={plan.id}
@@ -545,18 +551,31 @@ export function RehabPlanManagement() {
                           data-state={selectedPlan?.id === plan.id ? "selected" : undefined}
                           onClick={() => setSelectedPlanId(plan.id)}
                         >
-                          <TableCell className="font-medium">{plan.id}</TableCell>
+                          <TableCell className="font-medium">
+                            <button
+                              type="button"
+                              className="text-left text-primary transition hover:text-primary/80 hover:underline"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openPlanPrescriptions(plan);
+                              }}
+                            >
+                              {plan.id}
+                            </button>
+                          </TableCell>
+                          <TableCell>{plan.patientId}</TableCell>
                           <TableCell>{plan.patientName}</TableCell>
-                          <TableCell>{plan.stage}</TableCell>
+                          <TableCell>{plan.doctor}</TableCell>
+                          <TableCell>{prescriptionCount}</TableCell>
+                          <TableCell>
+                            <Badge>{plan.status === "已同步" ? "已采纳" : "待采纳"}</Badge>
+                          </TableCell>
                           <TableCell>{plan.type}</TableCell>
+                          <TableCell>{plan.stage}</TableCell>
                           <TableCell className="max-w-[220px] truncate">{plan.goal}</TableCell>
                           <TableCell>
                             <Badge className={planRiskBadgeClass(plan.risk)}>{plan.risk}</Badge>
                           </TableCell>
-                          <TableCell>
-                            <Badge className={planStatusBadgeClass(plan.status)}>{plan.status}</Badge>
-                          </TableCell>
-                          <TableCell>{plan.doctor}</TableCell>
                           <TableCell>{formatDateTime(plan.updatedAt)}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -566,10 +585,10 @@ export function RehabPlanManagement() {
                                 size="sm"
                                 onClick={(event) => {
                                   event.stopPropagation();
-                                  openPatientFlow(plan);
+                                  openPlanPrescriptions(plan);
                                 }}
                               >
-                                患者链路
+                                处方列表
                               </Button>
                               <Button
                                 type="button"
@@ -667,13 +686,13 @@ export function RehabPlanManagement() {
                       ))
                     ) : (
                       <div className="rounded-[1rem] border border-dashed border-border/70 bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
-                        当前患者还没有关联处方，可先进入患者链路继续配置。
+                        当前患者还没有关联处方，点击上方方案编号或“处方列表”可进入该方案的处方页继续配置。
                       </div>
                     )}
                   </div>
                 </SectionCard>
                 <div className="flex gap-2">
-                  <Button onClick={() => openPatientFlow(selectedPlan)}>进入患者链路</Button>
+                  <Button onClick={() => openPlanPrescriptions(selectedPlan)}>进入处方列表</Button>
                   <Button variant="outline" onClick={() => openPlanEdit(selectedPlan)}>
                     编辑方案
                   </Button>
