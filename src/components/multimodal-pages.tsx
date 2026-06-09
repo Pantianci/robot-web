@@ -13,7 +13,7 @@ import {
   ThumbsUp,
   X
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import {
   useCreateKnowledgeMutation,
@@ -1604,7 +1604,6 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
   const [question, setQuestion] = useState("");
   const [selectedQaTags, setSelectedQaTags] = useState<QaTagSelection>(() => createDefaultQaTagSelection());
   const [previewMedia, setPreviewMedia] = useState<QaMediaItem | null>(null);
-  const messageScrollRef = useRef<HTMLDivElement | null>(null);
 
   const qaTagOptionsByLibrary = useMemo(
     () => ({
@@ -1660,19 +1659,6 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
 
   useEffect(() => {
     writeState(qaStateKey, messages);
-  }, [messages]);
-
-  useEffect(() => {
-    const container = messageScrollRef.current;
-    if (!container) {
-      return;
-    }
-
-    const frame = window.requestAnimationFrame(() => {
-      container.scrollTop = container.scrollHeight;
-    });
-
-    return () => window.cancelAnimationFrame(frame);
   }, [messages]);
 
   const sendQuestion = () => {
@@ -1804,11 +1790,8 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
               <CardHeader className="shrink-0 border-b border-border/60 px-4 py-3">
                 <CardTitle>我要提问</CardTitle>
               </CardHeader>
-              <CardContent
-                ref={messageScrollRef}
-                className="min-h-0 flex-1 overflow-y-auto px-3 pb-[10.5rem] pt-3"
-              >
-                <div className="flex min-h-full flex-col gap-4">
+              <CardContent className="min-h-0 flex-1 overflow-y-auto px-3 pb-[10.5rem] pt-3">
+                <div className="flex min-h-full flex-col justify-end gap-4">
                   {messages.length ? (
                     messages.map((message) => (
                       <div
