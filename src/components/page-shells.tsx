@@ -94,6 +94,8 @@ const metricToneStyles: Record<MetricTone, string> = {
   slate: "bg-surface-100 text-surface-700"
 };
 
+const tagPageSize = 8;
+
 const defaultActionNotes: Record<ActionScenario, string[]> = {
   knowledge: [
     "知识文件、标签和说明建议同时补齐，方便后续问答引用。",
@@ -1732,6 +1734,7 @@ export function TagManagementPage({
   const [dateFilter, setDateFilter] = useState("全部");
   const [selectedId, setSelectedId] = useState<string | null>(tags[0]?.id ?? null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<TagItem | null>(null);
   const [deletingTag, setDeletingTag] = useState<TagItem | null>(null);
@@ -1794,12 +1797,19 @@ export function TagManagementPage({
 
   const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0] ?? null;
   const filteredIds = useMemo(() => filtered.map((item) => item.id), [filtered]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / tagPageSize));
+  const safePage = Math.min(page, totalPages);
+  const paged = useMemo(
+    () => filtered.slice((safePage - 1) * tagPageSize, safePage * tagPageSize),
+    [filtered, safePage]
+  );
+  const pagedIds = useMemo(() => paged.map((item) => item.id), [paged]);
   const selectedCount = useMemo(
     () => selectedIds.filter((id) => filteredIds.includes(id)).length,
     [filteredIds, selectedIds]
   );
-  const allFilteredSelected = isPageFullySelected(selectedIds, filteredIds);
-  const someFilteredSelected = isPagePartiallySelected(selectedIds, filteredIds);
+  const allPagedSelected = isPageFullySelected(selectedIds, pagedIds);
+  const somePagedSelected = isPagePartiallySelected(selectedIds, pagedIds);
   const relatedItems = useMemo(() => {
     if (!selected) {
       return [];
@@ -1813,6 +1823,7 @@ export function TagManagementPage({
     setParentFilter("全部");
     setStatusFilter("全部");
     setDateFilter("全部");
+    setPage(1);
   };
 
   const resetTagForm = () => {
@@ -1901,6 +1912,10 @@ export function TagManagementPage({
     setSelectedIds((current) => current.filter((id) => filteredIdSet.has(id)));
   }, [filteredIds]);
 
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
+
   return (
     <SubPageScaffold
       eyebrow={eyebrow}
@@ -1920,7 +1935,7 @@ export function TagManagementPage({
             <Button variant="secondary" onClick={resetFilters}>
               重置
             </Button>
-            <Button>查询</Button>
+            <Button onClick={() => setPage(1)}>查询</Button>
           </>
         }
       >
@@ -1990,12 +2005,12 @@ export function TagManagementPage({
                     <TableRow>
                       <TableHead className="w-12">
                         <TableSelectionCheckbox
-                          checked={allFilteredSelected}
-                          indeterminate={someFilteredSelected}
+                          checked={allPagedSelected}
+                          indeterminate={somePagedSelected}
                           onChange={(checked) =>
-                            setSelectedIds((current) => togglePageSelection(current, filteredIds, checked))
+                            setSelectedIds((current) => togglePageSelection(current, pagedIds, checked))
                           }
-                          ariaLabel="全选当前标签列表"
+                          ariaLabel={`全选标签列表第 ${safePage} 页`}
                         />
                       </TableHead>
                       <TableHead className="min-w-[140px]">标签名称</TableHead>
@@ -2008,7 +2023,7 @@ export function TagManagementPage({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.map((tag) => (
+                    {paged.map((tag) => (
                       <TableRow
                         key={tag.id}
                         className="cursor-pointer"
@@ -2073,6 +2088,31 @@ export function TagManagementPage({
                 </div>
               )}
             </CardContent>
+            {filtered.length ? (
+              <div className="flex items-center justify-between border-t border-border/60 px-5 py-4 text-sm text-muted-foreground">
+                <span>
+                  共 {filtered.length} 条，当前第 {safePage} / {totalPages} 页，已勾选 {selectedCount} 条
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={safePage <= 1}
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  >
+                    上一页
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={safePage >= totalPages}
+                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                  >
+                    下一页
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </Card>
         }
         side={
