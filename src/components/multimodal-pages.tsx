@@ -9,6 +9,7 @@ import {
   PlayCircle,
   Plus,
   Send,
+  Sparkles,
   ThumbsDown,
   ThumbsUp,
   X
@@ -380,6 +381,30 @@ const defaultQaMessages: MultiModalQaMessage[] = [
     expertOpinion: "视频生成结果可作为宣教辅助，不能替代治疗师现场评估和处方审核。",
     media: [qaVideoMediaExample],
     feedback: null
+  },
+  {
+    id: "qa-example-user-thinking",
+    role: "user",
+    text: "请深度思考张三术后1周的肩外展训练，当前处方最该先强调什么？",
+    sources: [],
+    createdAt: "2026-06-09T09:00:16.000+08:00"
+  },
+  {
+    id: "qa-example-assistant-thinking",
+    role: "assistant",
+    text: "已按深度思考模式整理回复：张三当前处方最应该先强调安全角度上限、躯干不要代偿，以及疼痛出现时立即停止。",
+    sources: [],
+    createdAt: "2026-06-09T09:00:22.000+08:00",
+    thinkingSteps: [
+      "先锁定患者上下文：张三、术后1周、肩外展训练。",
+      "再筛肩关节术后早期、疼痛控制和动作节奏相关知识。",
+      "优先判断安全边界：角度上限、耸肩代偿、疼痛波动。",
+      "最后按患者能直接执行的顺序输出结论、提醒和复盘重点。"
+    ],
+    summary: "术后1周阶段应先保安全，再谈幅度和次数；当前处方的首要目标不是追求更高角度，而是稳定完成标准轨迹。",
+    suggestion: "给患者演示时先强调起始姿势、抬臂节奏和疼痛停止条件，再补充每天复盘要点。",
+    expertOpinion: "如果出现明显耸肩代偿、刺痛或训练后疼痛持续上升，应立即回到更低强度方案。",
+    feedback: null
   }
 ];
 
@@ -440,6 +465,31 @@ function createGeneratedQaMediaMessage(item: QaMediaItem, sources: KnowledgeLibr
     media: [item],
     feedback: null
   };
+}
+
+function buildDeepThinkingSteps({
+  question,
+  selectedTagCount,
+  activeLibraries,
+  matchedAnswers
+}: {
+  question: string;
+  selectedTagCount: number;
+  activeLibraries: KnowledgeLibrary[];
+  matchedAnswers: QaContext[];
+}) {
+  const librariesLabel = activeLibraries
+    .map((library) => qaLibraryOptions.find((item) => item.value === library)?.label ?? library)
+    .join("、");
+
+  return [
+    `识别当前问法的患者与动作上下文：${question.slice(0, 26)}${question.length > 26 ? "..." : ""}`,
+    selectedTagCount
+      ? `先限定到已选的 ${selectedTagCount} 个标签范围，在 ${librariesLabel} 内缩小候选内容。`
+      : `当前未限定标签，所以先在 ${librariesLabel} 中按患者、阶段和动作词做第一轮聚焦。`,
+    `再核对关键判断点：动作阶段、风险边界、执行节奏和停止条件是否明确。`,
+    `最后组织回复顺序：先给结论，再补执行建议、风险提醒和下一步追问方向。${matchedAnswers.length ? `本轮命中 ${matchedAnswers.length} 条候选内容。` : ""}`
+  ];
 }
 
 function QaMediaVisual({ item, expanded = false }: { item: QaMediaItem; expanded?: boolean }) {
@@ -1602,6 +1652,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
   );
   const [question, setQuestion] = useState("");
   const [selectedQaTags, setSelectedQaTags] = useState<QaTagSelection>(() => createDefaultQaTagSelection());
+  const [deepThinking, setDeepThinking] = useState(false);
   const [previewMedia, setPreviewMedia] = useState<QaMediaItem | null>(null);
 
   const qaTagOptionsByLibrary = useMemo(
@@ -1680,13 +1731,21 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
         : "当前为自由问答模式，建议进一步限定库内标签或补充患者阶段、动作名称等上下文信息。");
 
     const assistantMessages: MultiModalQaMessage[] = generatedMedia.length
-      ? [
+        ? [
           {
             id: generateId("qa-assistant-context"),
             role: "assistant",
             text: answerText,
             sources,
             createdAt: new Date().toISOString(),
+            thinkingSteps: deepThinking
+              ? buildDeepThinkingSteps({
+                  question: trimmed,
+                  selectedTagCount,
+                  activeLibraries,
+                  matchedAnswers
+                })
+              : undefined,
             summary: "本次回复按 AI 生成流程处理，图片和视频会作为独立回复附件返回。",
             suggestion: "点击生成的图片或视频卡片可以打开放大预览窗口。",
             expertOpinion: "生成内容用于原型演示和训练宣教辅助，实际执行仍需结合处方审核。",
@@ -1701,6 +1760,14 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
             text: answerText,
             sources,
             createdAt: new Date().toISOString(),
+            thinkingSteps: deepThinking
+              ? buildDeepThinkingSteps({
+                  question: trimmed,
+                  selectedTagCount,
+                  activeLibraries,
+                  matchedAnswers
+                })
+              : undefined,
             summary: matchedAnswers[0]?.answer ?? "基于当前问法给出摘要结论。",
             suggestion:
               selectedTagCount > 0
@@ -1804,6 +1871,18 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                         </p>
                         {message.role === "assistant" ? (
                           <div className="mt-4 space-y-3">
+                            {message.thinkingSteps?.length ? (
+                              <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
+                                <p className="font-medium text-surface-900">深度思考过程</p>
+                                <div className="mt-2 space-y-2">
+                                  {message.thinkingSteps.map((step, index) => (
+                                    <p key={`${message.id}-thinking-${index}`} className="leading-7">
+                                      {index + 1}. {step}
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null}
                             <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
                               <p className="font-medium text-surface-900">
                                 {message.media?.length ? "AI 生成说明" : "关联资源摘要"}
@@ -1884,19 +1963,38 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                     <Textarea
                       value={question}
                       placeholder="请输入问题，支持连续追问和上下文承接"
-                      className="min-h-[68px] resize-none border-0 bg-transparent px-1 pb-12 pr-[14rem] pt-1 shadow-none focus-visible:ring-0"
+                      className="min-h-[68px] resize-none border-0 bg-transparent px-1 pb-12 pr-[8.5rem] pt-1 shadow-none focus-visible:ring-0"
                       onChange={(event) => setQuestion(event.target.value)}
                     />
                     <div className="absolute bottom-2.5 right-2.5 flex flex-wrap items-center justify-end gap-2">
-                      <Button size="sm" variant="outline" onClick={() => setQuestion("")}>
-                        清空
+                      <Button
+                        size="icon"
+                        variant={deepThinking ? "default" : "outline"}
+                        title="深度思考"
+                        aria-label="深度思考"
+                        className="h-9 w-9"
+                        onClick={() => setDeepThinking((current) => !current)}
+                      >
+                        <Sparkles className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="secondary" onClick={resetConversation}>
-                        重置
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        title="清空"
+                        aria-label="清空"
+                        className="h-9 w-9"
+                        onClick={() => setQuestion("")}
+                      >
+                        <X className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" onClick={sendQuestion}>
+                      <Button
+                        size="icon"
+                        title="发送"
+                        aria-label="发送"
+                        className="h-9 w-9"
+                        onClick={sendQuestion}
+                      >
                         <Send className="h-4 w-4" />
-                        发送
                       </Button>
                     </div>
                   </div>

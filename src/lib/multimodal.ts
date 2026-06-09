@@ -45,6 +45,7 @@ export type MultiModalQaMessage = {
   text: string;
   sources: KnowledgeLibrary[];
   createdAt: string;
+  thinkingSteps?: string[];
   summary?: string;
   suggestion?: string;
   expertOpinion?: string;
