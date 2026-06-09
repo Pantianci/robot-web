@@ -2,6 +2,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { FileOutput, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
+  useCreatePlanMutation,
+  useCreatePrescriptionMutation,
   useDeleteCurrentActionMutation,
   useDeletePlanMutation,
   useDeletePrescriptionMutation,
@@ -42,6 +44,7 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 
 type ViewMode = "plans" | "current" | "prescriptions";
 type ManagementScope = "all" | "patient";
@@ -50,6 +53,22 @@ type WorkspaceContext = {
   selectedId?: string;
   patientId: string;
   patientName: string;
+};
+
+type AiPlanDraft = {
+  patientId: string;
+  goal: string;
+  risk: RehabPlan["risk"];
+  focus: string;
+  note: string;
+};
+
+type AiPrescriptionDraft = {
+  planId: string;
+  goal: string;
+  frequency: string;
+  focus: string;
+  note: string;
 };
 
 const pageSize = 8;
@@ -76,6 +95,78 @@ function patientPlanPrescriptionsPath(patientId: string, planId: string) {
 
 function patientPrescriptionCurrentPath(patientId: string, planId: string, prescriptionId: string) {
   return `/patients/${patientId}/plans/${planId}/prescriptions/${prescriptionId}/current`;
+}
+
+function ensureDoctorSuffix(name: string) {
+  return name.endsWith("医生") ? name : `${name}医生`;
+}
+
+function inferAiPlanType(patient: Patient) {
+  if (patient.diagnosis.includes("偏瘫")) {
+    return "偏瘫协同恢复";
+  }
+
+  if (patient.diagnosis.includes("膝") || patient.diagnosis.includes("步态")) {
+    return "步态稳定强化";
+  }
+
+  if (patient.diagnosis.includes("肩")) {
+    return "肩关节功能恢复";
+  }
+
+  return "基础功能恢复";
+}
+
+function buildAiPlanDraft(patient: Patient | null, existingPlan: RehabPlan | null): AiPlanDraft {
+  return {
+    patientId: patient?.id ?? "",
+    goal: existingPlan?.goal ?? `${patient?.stage ?? "当前阶段"}重点恢复训练`,
+    risk: existingPlan?.risk ?? "中风险",
+    focus: patient ? `${patient.diagnosis}相关功能提升与疼痛控制` : "",
+    note: patient ? `结合${patient.bedNo}床当前观察情况，补充训练节奏和医护协同重点。` : ""
+  };
+}
+
+function buildAiPrescriptionDraft(plan: RehabPlan | null): AiPrescriptionDraft {
+  return {
+    planId: plan?.id ?? "",
+    goal: plan?.goal ?? "围绕当前康复方案生成运动处方",
+    frequency: "3-5 次/周",
+    focus: plan ? `${plan.type}重点动作组合` : "",
+    note: plan ? `围绕方案 ${plan.id} 自动生成，提交前可继续补充执行要点。` : ""
+  };
+}
+
+function buildAiPrescriptionMovements(plan: RehabPlan) {
+  if (plan.type.includes("步态") || plan.goal.includes("步")) {
+    return [
+      { id: `mv-ai-${plan.id}-1`, name: "踝泵训练", angle: "15-20 度", repetitions: "20 次", duration: "05:00" },
+      { id: `mv-ai-${plan.id}-2`, name: "膝屈伸训练", angle: "20-45 度", repetitions: "12 次", duration: "06:00" },
+      { id: `mv-ai-${plan.id}-3`, name: "负重步态训练", angle: "步态循环", repetitions: "8 次", duration: "08:00" }
+    ];
+  }
+
+  if (plan.type.includes("偏瘫")) {
+    return [
+      { id: `mv-ai-${plan.id}-1`, name: "躯干稳定激活", angle: "中立位", repetitions: "10 次", duration: "05:30" },
+      { id: `mv-ai-${plan.id}-2`, name: "坐站转换训练", angle: "前移重心", repetitions: "8 次", duration: "06:00" },
+      { id: `mv-ai-${plan.id}-3`, name: "上肢前伸抓握", angle: "前伸 20-40 度", repetitions: "10 次", duration: "06:30" }
+    ];
+  }
+
+  if (plan.type.includes("关节") || plan.goal.includes("活动度")) {
+    return [
+      { id: `mv-ai-${plan.id}-1`, name: "热疗前牵伸准备", angle: "小角度", repetitions: "8 次", duration: "04:30" },
+      { id: `mv-ai-${plan.id}-2`, name: "肩关节被动活动", angle: "20-50 度", repetitions: "10 次", duration: "06:00" },
+      { id: `mv-ai-${plan.id}-3`, name: "疼痛反馈监测训练", angle: "渐进角度", repetitions: "6 次", duration: "05:00" }
+    ];
+  }
+
+  return [
+    { id: `mv-ai-${plan.id}-1`, name: "肩胛稳定激活", angle: "10-20 度", repetitions: "10 次", duration: "05:00" },
+    { id: `mv-ai-${plan.id}-2`, name: "肩外展训练", angle: "30-60 度", repetitions: "8 次", duration: "06:00" },
+    { id: `mv-ai-${plan.id}-3`, name: "被动摆动", angle: "小角度", repetitions: "12 次", duration: "04:30" }
+  ];
 }
 
 function openPatientBase(
@@ -262,12 +353,6 @@ function PaginationBar({
   );
 }
 
-function planStatusBadgeClass(status: RehabPlan["status"]) {
-  return status === "已同步"
-    ? "bg-emerald-100 text-emerald-700"
-    : "bg-amber-100 text-amber-700";
-}
-
 function planRiskBadgeClass(risk: string) {
   if (risk.includes("高")) {
     return "bg-rose-100 text-rose-700";
@@ -285,6 +370,7 @@ export function RehabPlanManagement() {
   const { data: patients = [] } = usePatientsQuery();
   const { data: plans = [] } = usePlansQuery();
   const { data: prescriptions = [] } = usePrescriptionsQuery();
+  const createPlanMutation = useCreatePlanMutation();
   const deletePlanMutation = useDeletePlanMutation();
   const [keyword, setKeyword] = useState("");
   const [patientFilter, setPatientFilter] = useState("");
@@ -293,6 +379,14 @@ export function RehabPlanManagement() {
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [aiPlanOpen, setAiPlanOpen] = useState(false);
+  const [aiPlanDraft, setAiPlanDraft] = useState<AiPlanDraft>({
+    patientId: "",
+    goal: "",
+    risk: "中风险",
+    focus: "",
+    note: ""
+  });
   const [deletePlanTarget, setDeletePlanTarget] = useState<RehabPlan | null>(null);
 
   const sortedPlans = useMemo(
@@ -350,6 +444,9 @@ export function RehabPlanManagement() {
 
   const selectedPlan = filteredPlans.find((plan) => plan.id === selectedPlanId) ?? filteredPlans[0] ?? null;
   const selectedPatient = patients.find((patient) => patient.id === selectedPlan?.patientId) ?? null;
+  const aiPlanPatient = patients.find((patient) => patient.id === aiPlanDraft.patientId) ?? null;
+  const aiPlanTemplate =
+    sortedPlans.find((plan) => plan.patientId === aiPlanPatient?.id) ?? null;
   const selectedPatientPrescriptions = useMemo(
     () =>
       prescriptions
@@ -372,6 +469,20 @@ export function RehabPlanManagement() {
     setRiskFilter("");
     setStatusFilter("");
     setPage(1);
+  };
+
+  const openAiPlanDialog = () => {
+    const initialPatient = selectedPatient ?? coveredPatients[0] ?? patients[0] ?? null;
+    const initialTemplate =
+      sortedPlans.find((plan) => plan.patientId === initialPatient?.id) ?? null;
+    setAiPlanDraft(buildAiPlanDraft(initialPatient, initialTemplate));
+    setAiPlanOpen(true);
+  };
+
+  const handleAiPlanPatientChange = (patientId: string) => {
+    const patient = patients.find((item) => item.id === patientId) ?? null;
+    const template = sortedPlans.find((plan) => plan.patientId === patient?.id) ?? null;
+    setAiPlanDraft(buildAiPlanDraft(patient, template));
   };
 
   const openPlanEdit = (plan: RehabPlan) => {
@@ -403,6 +514,38 @@ export function RehabPlanManagement() {
     setDeletePlanTarget(null);
   };
 
+  const handleCreateAiPlan = async () => {
+    if (!aiPlanPatient || !aiPlanDraft.goal.trim() || !aiPlanDraft.focus.trim()) {
+      return;
+    }
+
+    const createdPlan = await createPlanMutation.mutateAsync({
+      patientId: aiPlanPatient.id,
+      patientName: aiPlanPatient.name,
+      type: aiPlanTemplate?.type ?? inferAiPlanType(aiPlanPatient),
+      goal: aiPlanDraft.goal.trim(),
+      risk: aiPlanDraft.risk,
+      description: `AI 根据 ${aiPlanPatient.diagnosis}、${aiPlanPatient.stage} 自动生成方案。训练重点：${aiPlanDraft.focus.trim()}。${aiPlanDraft.note.trim()}`,
+      doctor: aiPlanTemplate?.doctor ?? (aiPlanPatient.createdBy.replace(/医生$/, "") || "李明"),
+      nurse: aiPlanTemplate?.nurse ?? "周宁",
+      deviceId: aiPlanPatient.robotId || aiPlanTemplate?.deviceId || "设备待分配",
+      stage: aiPlanPatient.stage,
+      aiReference: `AI 已结合基础档案、阶段信息和补充说明生成建议方案，当前关注：${aiPlanDraft.focus.trim()}。风险等级：${aiPlanDraft.risk}。`,
+      status: "待同步"
+    });
+
+    writePatientWorkspace(aiPlanPatient);
+    writeState(planWorkspaceContextKey, { planId: createdPlan.id });
+    setKeyword("");
+    setPatientFilter("");
+    setStageFilter("");
+    setRiskFilter("");
+    setStatusFilter("");
+    setPage(1);
+    setSelectedPlanId(createdPlan.id);
+    setAiPlanOpen(false);
+  };
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <PageHeader
@@ -419,7 +562,7 @@ export function RehabPlanManagement() {
         className="mb-1"
         actions={
           <>
-            <Button variant="secondary">
+            <Button variant="secondary" disabled={!patients.length} onClick={openAiPlanDialog}>
               <Sparkles className="h-4 w-4" />
               AI生成方案
             </Button>
@@ -706,6 +849,82 @@ export function RehabPlanManagement() {
       />
 
       <DialogFormShell
+        open={aiPlanOpen}
+        onOpenChange={setAiPlanOpen}
+        title="AI生成方案"
+        description="先选择基础档案中的患者，再补充训练重点和说明，确认后会自动生成一条待采纳方案。"
+        onSubmit={handleCreateAiPlan}
+        submitLabel="确认生成"
+      >
+        <Field label="选择患者" required>
+          <select
+            className="native-select"
+            value={aiPlanDraft.patientId}
+            onChange={(event) => handleAiPlanPatientChange(event.target.value)}
+          >
+            <option value="">请选择患者</option>
+            {patients.map((patient) => (
+              <option key={patient.id} value={patient.id}>
+                {patient.name} / {patient.id}
+              </option>
+            ))}
+          </select>
+        </Field>
+        {aiPlanPatient ? (
+          <PropertyList
+            items={[
+              { label: "患者姓名", value: aiPlanPatient.name },
+              { label: "患者ID", value: aiPlanPatient.id },
+              { label: "病种", value: aiPlanPatient.diagnosis },
+              { label: "阶段", value: aiPlanPatient.stage },
+              { label: "病床号", value: aiPlanPatient.bedNo },
+              { label: "机器人ID", value: aiPlanPatient.robotId || "未绑定" }
+            ]}
+          />
+        ) : null}
+        <Field label="AI训练目标" required>
+          <Input
+            value={aiPlanDraft.goal}
+            onChange={(event) =>
+              setAiPlanDraft((current) => ({ ...current, goal: event.target.value }))
+            }
+          />
+        </Field>
+        <Field label="风险等级">
+          <select
+            className="native-select"
+            value={aiPlanDraft.risk}
+            onChange={(event) =>
+              setAiPlanDraft((current) => ({
+                ...current,
+                risk: event.target.value as RehabPlan["risk"]
+              }))
+            }
+          >
+            <option value="低风险">低风险</option>
+            <option value="中风险">中风险</option>
+            <option value="高风险">高风险</option>
+          </select>
+        </Field>
+        <Field label="训练重点" required>
+          <Textarea
+            value={aiPlanDraft.focus}
+            onChange={(event) =>
+              setAiPlanDraft((current) => ({ ...current, focus: event.target.value }))
+            }
+          />
+        </Field>
+        <Field label="补充说明">
+          <Textarea
+            value={aiPlanDraft.note}
+            onChange={(event) =>
+              setAiPlanDraft((current) => ({ ...current, note: event.target.value }))
+            }
+          />
+        </Field>
+      </DialogFormShell>
+
+      <DialogFormShell
         open={Boolean(deletePlanTarget)}
         onOpenChange={(open) => {
           if (!open) {
@@ -741,6 +960,7 @@ export function PrescriptionManagement({
   const { data: plans = [] } = usePlansQuery();
   const { data: currentActions = [] } = useCurrentActionsQuery();
   const { data: prescriptions = [] } = usePrescriptionsQuery();
+  const createPrescriptionMutation = useCreatePrescriptionMutation();
   const deletePlanMutation = useDeletePlanMutation();
   const deleteCurrentActionMutation = useDeleteCurrentActionMutation();
   const deletePrescriptionMutation = useDeletePrescriptionMutation();
@@ -793,6 +1013,14 @@ export function PrescriptionManagement({
   const [selectedPrescriptionId, setSelectedPrescriptionId] = useState<string | null>(
     prescriptionId ?? null
   );
+  const [aiPrescriptionOpen, setAiPrescriptionOpen] = useState(false);
+  const [aiPrescriptionDraft, setAiPrescriptionDraft] = useState<AiPrescriptionDraft>({
+    planId: "",
+    goal: "",
+    frequency: "3-5 次/周",
+    focus: "",
+    note: ""
+  });
   const [planPage, setPlanPage] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [prescriptionPage, setPrescriptionPage] = useState(1);
@@ -935,6 +1163,49 @@ export function PrescriptionManagement({
     setDeletePrescriptionTarget(null);
   };
 
+  const handleCreateAiPrescription = async () => {
+    if (!aiPrescriptionPlan || !aiPrescriptionDraft.goal.trim() || !aiPrescriptionDraft.focus.trim()) {
+      return;
+    }
+
+    const planPatient =
+      patients.find((patient) => patient.id === aiPrescriptionPlan.patientId) ?? activePatient;
+
+    if (!planPatient) {
+      return;
+    }
+
+    const createdPrescription = await createPrescriptionMutation.mutateAsync({
+      patientId: planPatient.id,
+      patientName: planPatient.name,
+      stage: aiPrescriptionPlan.stage,
+      goal: aiPrescriptionDraft.goal.trim(),
+      risk: aiPrescriptionPlan.risk,
+      sequenceName: `${aiPrescriptionPlan.type} AI处方`,
+      doctor: ensureDoctorSuffix(aiPrescriptionPlan.doctor),
+      status: "待审核",
+      note: `AI 已围绕方案 ${aiPrescriptionPlan.id} 生成处方。训练重点：${aiPrescriptionDraft.focus.trim()}。${aiPrescriptionDraft.note.trim()}`,
+      aiReference: `${aiPrescriptionPlan.aiReference} 处方聚焦：${aiPrescriptionDraft.focus.trim()}。`,
+      videoTitle: `${aiPrescriptionPlan.type} - AI推荐教学视频`,
+      videoDuration: "15分30秒",
+      frequency: aiPrescriptionDraft.frequency.trim() || "3-5 次/周",
+      movements: buildAiPrescriptionMovements(aiPrescriptionPlan)
+    });
+
+    writePatientWorkspace(planPatient);
+    writeState(planWorkspaceContextKey, { planId: aiPrescriptionPlan.id });
+    writeState(prescriptionWorkspaceContextKey, { prescriptionId: createdPrescription.id });
+    setKeyword("");
+    setPrescriptionPage(1);
+    setSelectedPlanId(aiPrescriptionPlan.id);
+    setSelectedPrescriptionId(createdPrescription.id);
+    setAiPrescriptionOpen(false);
+
+    if (scope === "patient") {
+      navigateTo(navigate, patientPlanPrescriptionsPath(planPatient.id, aiPrescriptionPlan.id));
+    }
+  };
+
   const selectedPlanPatient =
     patients.find((item) => item.id === selectedPlan?.patientId) ??
     activePatient;
@@ -942,6 +1213,14 @@ export function PrescriptionManagement({
   const summaryPlan = selectedPlan ?? patientPlans[0] ?? null;
   const summaryPrescription = selectedPrescription ?? patientPrescriptions[0] ?? null;
   const summaryAction = selectedAction ?? patientActions[0] ?? null;
+  const availableAiPrescriptionPlans =
+    scope === "patient" && activePatient
+      ? allPlans.filter((plan) => plan.patientId === activePatient.id)
+      : allPlans;
+  const aiPrescriptionPlan =
+    availableAiPrescriptionPlans.find((plan) => plan.id === aiPrescriptionDraft.planId) ??
+    summaryPlan ??
+    null;
   const patientPlanRoot = activePatient ? patientPlansPath(activePatient.id) : "/patients/plans";
   const planCreatePath = scope === "patient" ? `${patientPlanRoot}/create` : "/patients/plans/create";
   const planExportPath = scope === "patient" ? `${patientPlanRoot}/export` : "/patients/plans/export";
@@ -992,7 +1271,15 @@ export function PrescriptionManagement({
 
   const prescriptionActions = (
     <>
-      <Button variant="secondary">
+      <Button
+        variant="secondary"
+        disabled={!availableAiPrescriptionPlans.length}
+        onClick={() => {
+          const initialPlan = summaryPlan ?? availableAiPrescriptionPlans[0] ?? null;
+          setAiPrescriptionDraft(buildAiPrescriptionDraft(initialPlan));
+          setAiPrescriptionOpen(true);
+        }}
+      >
         <Sparkles className="h-4 w-4" />
         AI生成处方
       </Button>
@@ -1537,6 +1824,80 @@ export function PrescriptionManagement({
           }
         />
       ) : null}
+
+      <DialogFormShell
+        open={aiPrescriptionOpen}
+        onOpenChange={setAiPrescriptionOpen}
+        title="AI生成处方"
+        description="先选择关联方案，再补充处方重点和执行说明，确认后会自动生成一条待采纳处方。"
+        onSubmit={handleCreateAiPrescription}
+        submitLabel="确认生成"
+      >
+        <Field label="选择方案" required>
+          <select
+            className="native-select"
+            value={aiPrescriptionDraft.planId}
+            onChange={(event) =>
+              setAiPrescriptionDraft(
+                buildAiPrescriptionDraft(
+                  availableAiPrescriptionPlans.find((plan) => plan.id === event.target.value) ?? null
+                )
+              )
+            }
+          >
+            <option value="">请选择方案</option>
+            {availableAiPrescriptionPlans.map((plan) => (
+              <option key={plan.id} value={plan.id}>
+                {plan.id} / {plan.patientName} / {plan.type}
+              </option>
+            ))}
+          </select>
+        </Field>
+        {aiPrescriptionPlan ? (
+          <PropertyList
+            items={[
+              { label: "方案编号", value: aiPrescriptionPlan.id },
+              { label: "患者姓名", value: aiPrescriptionPlan.patientName },
+              { label: "方案类型", value: aiPrescriptionPlan.type },
+              { label: "训练目标", value: aiPrescriptionPlan.goal },
+              { label: "风险等级", value: aiPrescriptionPlan.risk },
+              { label: "确认医生", value: aiPrescriptionPlan.doctor }
+            ]}
+          />
+        ) : null}
+        <Field label="AI处方目标" required>
+          <Input
+            value={aiPrescriptionDraft.goal}
+            onChange={(event) =>
+              setAiPrescriptionDraft((current) => ({ ...current, goal: event.target.value }))
+            }
+          />
+        </Field>
+        <Field label="执行频率">
+          <Input
+            value={aiPrescriptionDraft.frequency}
+            onChange={(event) =>
+              setAiPrescriptionDraft((current) => ({ ...current, frequency: event.target.value }))
+            }
+          />
+        </Field>
+        <Field label="处方重点" required>
+          <Textarea
+            value={aiPrescriptionDraft.focus}
+            onChange={(event) =>
+              setAiPrescriptionDraft((current) => ({ ...current, focus: event.target.value }))
+            }
+          />
+        </Field>
+        <Field label="补充说明">
+          <Textarea
+            value={aiPrescriptionDraft.note}
+            onChange={(event) =>
+              setAiPrescriptionDraft((current) => ({ ...current, note: event.target.value }))
+            }
+          />
+        </Field>
+      </DialogFormShell>
 
       <DialogFormShell
         open={Boolean(deletePlanTarget)}
