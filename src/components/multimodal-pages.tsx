@@ -510,7 +510,7 @@ function QaMediaAttachment({ item, onPreview }: { item: QaMediaItem; onPreview: 
   return (
     <button
       type="button"
-      className="inline-flex w-[min(100%,320px)] flex-col self-start overflow-hidden rounded-[1rem] border border-border/70 bg-white text-left transition hover:-translate-y-0.5 hover:shadow-panel"
+      className="flex w-full min-w-0 flex-col overflow-hidden rounded-[1rem] border border-border/70 bg-white text-left transition hover:-translate-y-0.5 hover:shadow-panel"
       onClick={() => onPreview(item)}
       aria-label={`预览${item.title}`}
     >
@@ -1809,7 +1809,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                               <p className="mt-2 leading-7">{message.summary}</p>
                             </div>
                             {message.media?.length ? (
-                              <div className="flex max-w-full flex-wrap gap-3">
+                              <div className="grid w-full gap-3">
                                 {message.media.map((item) => (
                                   <QaMediaAttachment key={item.id} item={item} onPreview={setPreviewMedia} />
                                 ))}
