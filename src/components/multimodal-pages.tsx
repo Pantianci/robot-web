@@ -1753,7 +1753,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
         label="推荐"
         sideWidthClassName="w-full xl:w-[360px]"
         main={
-          <div className="relative flex min-h-0 flex-col gap-3 pb-2">
+          <div className="relative flex min-h-0 flex-col gap-3">
             <FilterBar
               singleLine
               actions={
@@ -1794,7 +1794,9 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                         className={
                           message.role === "user"
                             ? "ml-auto inline-flex w-fit max-w-[78%] flex-col self-end rounded-[1.5rem] bg-primary px-5 py-4 text-sm text-white"
-                            : "inline-flex w-fit max-w-[88%] flex-col self-start rounded-[1.5rem] border border-border/70 bg-white px-5 py-4"
+                            : message.media?.length
+                              ? "inline-flex w-[32rem] max-w-[88%] flex-col self-start rounded-[1.5rem] border border-border/70 bg-white px-5 py-4"
+                              : "inline-flex w-fit max-w-[88%] flex-col self-start rounded-[1.5rem] border border-border/70 bg-white px-5 py-4"
                         }
                       >
                         <p className={message.role === "user" ? "leading-7" : "text-sm leading-7 text-surface-900"}>
@@ -1875,7 +1877,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
               </CardContent>
             </Card>
 
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-background via-background/94 to-transparent px-2 pb-2 pt-10">
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-background via-background/94 to-transparent px-2 pt-10">
               <Card className="pointer-events-auto mx-auto w-full overflow-hidden border-border/70 shadow-panel md:w-1/2">
                 <CardContent className="p-2.5">
                   <div className="relative">
