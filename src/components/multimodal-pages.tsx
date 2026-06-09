@@ -510,7 +510,7 @@ function QaMediaAttachment({ item, onPreview }: { item: QaMediaItem; onPreview: 
   return (
     <button
       type="button"
-      className="overflow-hidden rounded-[1rem] border border-border/70 bg-white text-left transition hover:-translate-y-0.5 hover:shadow-panel"
+      className="inline-flex w-[min(100%,320px)] flex-col self-start overflow-hidden rounded-[1rem] border border-border/70 bg-white text-left transition hover:-translate-y-0.5 hover:shadow-panel"
       onClick={() => onPreview(item)}
       aria-label={`预览${item.title}`}
     >
@@ -1793,8 +1793,8 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                         key={message.id}
                         className={
                           message.role === "user"
-                            ? "ml-auto w-fit self-end max-w-[78%] rounded-[1.5rem] bg-primary px-5 py-4 text-sm text-white"
-                            : "w-fit self-start max-w-[88%] rounded-[1.5rem] border border-border/70 bg-white px-5 py-4"
+                            ? "ml-auto inline-flex w-fit max-w-[78%] flex-col self-end rounded-[1.5rem] bg-primary px-5 py-4 text-sm text-white"
+                            : "inline-flex w-fit max-w-[88%] flex-col self-start rounded-[1.5rem] border border-border/70 bg-white px-5 py-4"
                         }
                       >
                         <p className={message.role === "user" ? "leading-7" : "text-sm leading-7 text-surface-900"}>
@@ -1809,7 +1809,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                               <p className="mt-2 leading-7">{message.summary}</p>
                             </div>
                             {message.media?.length ? (
-                              <div className="grid gap-3 md:grid-cols-2">
+                              <div className="flex max-w-full flex-wrap gap-3">
                                 {message.media.map((item) => (
                                   <QaMediaAttachment key={item.id} item={item} onPreview={setPreviewMedia} />
                                 ))}
@@ -1882,7 +1882,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                     <Textarea
                       value={question}
                       placeholder="请输入问题，支持连续追问和上下文承接"
-                      className="min-h-[68px] resize-none rounded-[1.15rem] border-border/70 bg-white pb-12 pr-[14rem] pt-3"
+                      className="min-h-[68px] resize-none border-0 bg-transparent px-1 pb-12 pr-[14rem] pt-1 shadow-none focus-visible:ring-0"
                       onChange={(event) => setQuestion(event.target.value)}
                     />
                     <div className="absolute bottom-2.5 right-2.5 flex flex-wrap items-center justify-end gap-2">
