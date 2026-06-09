@@ -134,6 +134,31 @@ function buildAiPlanDraft(patient: Patient | null, existingPlan: RehabPlan | nul
   };
 }
 
+function buildAiPlanPayload({
+  patient,
+  existingPlan,
+  draft
+}: {
+  patient: Patient;
+  existingPlan: RehabPlan | null;
+  draft: AiPlanDraft;
+}) {
+  return {
+    patientId: patient.id,
+    patientName: patient.name,
+    type: existingPlan?.type ?? inferAiPlanType(patient),
+    goal: draft.goal.trim(),
+    risk: draft.risk,
+    description: `AI 根据 ${patient.diagnosis}、${patient.stage} 自动生成方案。训练重点：${draft.focus.trim()}。${draft.note.trim()}`,
+    doctor: existingPlan?.doctor ?? (patient.createdBy.replace(/医生$/, "") || "李明"),
+    nurse: existingPlan?.nurse ?? "周宁",
+    deviceId: patient.robotId || existingPlan?.deviceId || "设备待分配",
+    stage: patient.stage,
+    aiReference: `AI 已结合基础档案、阶段信息和补充说明生成建议方案，当前关注：${draft.focus.trim()}。风险等级：${draft.risk}。`,
+    status: "待同步" as const
+  };
+}
+
 function buildAiPrescriptionDraft(plan: RehabPlan | null): AiPrescriptionDraft {
   return {
     planId: plan?.id ?? "",
@@ -540,20 +565,13 @@ export function RehabPlanManagement() {
       return;
     }
 
-    const createdPlan = await createPlanMutation.mutateAsync({
-      patientId: aiPlanPatient.id,
-      patientName: aiPlanPatient.name,
-      type: aiPlanTemplate?.type ?? inferAiPlanType(aiPlanPatient),
-      goal: aiPlanDraft.goal.trim(),
-      risk: aiPlanDraft.risk,
-      description: `AI 根据 ${aiPlanPatient.diagnosis}、${aiPlanPatient.stage} 自动生成方案。训练重点：${aiPlanDraft.focus.trim()}。${aiPlanDraft.note.trim()}`,
-      doctor: aiPlanTemplate?.doctor ?? (aiPlanPatient.createdBy.replace(/医生$/, "") || "李明"),
-      nurse: aiPlanTemplate?.nurse ?? "周宁",
-      deviceId: aiPlanPatient.robotId || aiPlanTemplate?.deviceId || "设备待分配",
-      stage: aiPlanPatient.stage,
-      aiReference: `AI 已结合基础档案、阶段信息和补充说明生成建议方案，当前关注：${aiPlanDraft.focus.trim()}。风险等级：${aiPlanDraft.risk}。`,
-      status: "待同步"
-    });
+    const createdPlan = await createPlanMutation.mutateAsync(
+      buildAiPlanPayload({
+        patient: aiPlanPatient,
+        existingPlan: aiPlanTemplate,
+        draft: aiPlanDraft
+      })
+    );
 
     writePatientWorkspace(aiPlanPatient);
     writeState(planWorkspaceContextKey, { planId: createdPlan.id });
@@ -999,6 +1017,7 @@ export function PrescriptionManagement({
   const { data: plans = [] } = usePlansQuery();
   const { data: currentActions = [] } = useCurrentActionsQuery();
   const { data: prescriptions = [] } = usePrescriptionsQuery();
+  const createPlanMutation = useCreatePlanMutation();
   const createPrescriptionMutation = useCreatePrescriptionMutation();
   const deletePlanMutation = useDeletePlanMutation();
   const deleteCurrentActionMutation = useDeleteCurrentActionMutation();
@@ -1047,6 +1066,14 @@ export function PrescriptionManagement({
   }, [activePatient?.id, currentActions, patientPrescriptions]);
 
   const [keyword, setKeyword] = useState("");
+  const [aiPlanOpen, setAiPlanOpen] = useState(false);
+  const [aiPlanDraft, setAiPlanDraft] = useState<AiPlanDraft>({
+    patientId: "",
+    goal: "",
+    risk: "中风险",
+    focus: "",
+    note: ""
+  });
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(planId ?? null);
   const [selectedPlanIds, setSelectedPlanIds] = useState<string[]>([]);
   const [selectedActionId, setSelectedActionId] = useState<string | null>(patientActions[0]?.id ?? null);
@@ -1306,6 +1333,10 @@ export function PrescriptionManagement({
   const summaryPlan = selectedPlan ?? patientPlans[0] ?? null;
   const summaryPrescription = selectedPrescription ?? patientPrescriptions[0] ?? null;
   const summaryAction = selectedAction ?? patientActions[0] ?? null;
+  const aiPlanTemplate =
+    patientPlans.find((item) => item.id === selectedPlan?.id) ??
+    patientPlans[0] ??
+    null;
   const availableAiPrescriptionPlans =
     scope === "patient" && activePatient
       ? allPlans.filter((plan) => plan.patientId === activePatient.id)
@@ -1332,9 +1363,39 @@ export function PrescriptionManagement({
   const currentEditPath = `${currentRoot}/edit`;
   const currentExportPath = `${currentRoot}/export`;
 
+  const openAiPlanDialog = () => {
+    if (!activePatient) {
+      return;
+    }
+
+    setAiPlanDraft(buildAiPlanDraft(activePatient, aiPlanTemplate));
+    setAiPlanOpen(true);
+  };
+
+  const handleCreateAiPlan = async () => {
+    if (!activePatient || !aiPlanDraft.goal.trim() || !aiPlanDraft.focus.trim()) {
+      return;
+    }
+
+    const createdPlan = await createPlanMutation.mutateAsync(
+      buildAiPlanPayload({
+        patient: activePatient,
+        existingPlan: aiPlanTemplate,
+        draft: aiPlanDraft
+      })
+    );
+
+    writePatientWorkspace(activePatient);
+    writeState(planWorkspaceContextKey, { planId: createdPlan.id });
+    setKeyword("");
+    setPlanPage(1);
+    setSelectedPlanId(createdPlan.id);
+    setAiPlanOpen(false);
+  };
+
   const planActions = (
     <>
-      <Button variant="secondary">
+      <Button variant="secondary" disabled={!activePatient} onClick={openAiPlanDialog}>
         <Sparkles className="h-4 w-4" />
         AI生成方案
       </Button>
@@ -1992,6 +2053,72 @@ export function PrescriptionManagement({
           }
         />
       ) : null}
+
+      <DialogFormShell
+        open={aiPlanOpen}
+        onOpenChange={setAiPlanOpen}
+        title="AI生成方案"
+        description={
+          activePatient
+            ? `当前患者已固定为${activePatient.name}，补充训练重点和说明后会自动生成一条待采纳方案。`
+            : "请先确认当前患者后再生成方案。"
+        }
+        onSubmit={handleCreateAiPlan}
+        submitLabel="确认生成"
+      >
+        {activePatient ? (
+          <PropertyList
+            items={[
+              { label: "患者姓名", value: activePatient.name },
+              { label: "患者ID", value: activePatient.id },
+              { label: "病种", value: activePatient.diagnosis },
+              { label: "阶段", value: activePatient.stage },
+              { label: "病床号", value: activePatient.bedNo },
+              { label: "机器人ID", value: activePatient.robotId || "未绑定" }
+            ]}
+          />
+        ) : null}
+        <Field label="AI训练目标" required>
+          <Input
+            value={aiPlanDraft.goal}
+            onChange={(event) =>
+              setAiPlanDraft((current) => ({ ...current, goal: event.target.value }))
+            }
+          />
+        </Field>
+        <Field label="风险等级">
+          <select
+            className="native-select"
+            value={aiPlanDraft.risk}
+            onChange={(event) =>
+              setAiPlanDraft((current) => ({
+                ...current,
+                risk: event.target.value as RehabPlan["risk"]
+              }))
+            }
+          >
+            <option value="低风险">低风险</option>
+            <option value="中风险">中风险</option>
+            <option value="高风险">高风险</option>
+          </select>
+        </Field>
+        <Field label="训练重点" required>
+          <Textarea
+            value={aiPlanDraft.focus}
+            onChange={(event) =>
+              setAiPlanDraft((current) => ({ ...current, focus: event.target.value }))
+            }
+          />
+        </Field>
+        <Field label="补充说明">
+          <Textarea
+            value={aiPlanDraft.note}
+            onChange={(event) =>
+              setAiPlanDraft((current) => ({ ...current, note: event.target.value }))
+            }
+          />
+        </Field>
+      </DialogFormShell>
 
       <DialogFormShell
         open={aiPrescriptionOpen}
