@@ -392,7 +392,8 @@ const defaultQaMessages: MultiModalQaMessage[] = [
   {
     id: "qa-example-assistant-thinking",
     role: "assistant",
-    text: "已按深度思考模式整理回复：张三当前处方最应该先强调安全角度上限、躯干不要代偿，以及疼痛出现时立即停止。",
+    text:
+      "张三术后 1 周的肩外展训练，最先要强调的不是把手抬得更高，而是先把当前阶段的安全边界讲清楚。\n\n第一，肩外展角度要控制在当前处方允许范围内，抬臂节奏保持均匀，不要为了追求幅度突然加速或猛抬。\n第二，训练过程中要持续观察有没有耸肩、躯干侧倾或者借力代偿，如果一开始就靠代偿完成动作，说明当前强度已经偏高。\n第三，只要出现刺痛、明显牵拉痛，或者训练后疼痛持续上升，就应该立即停止，先回退到更低幅度、减少次数，再决定是否继续。",
     sources: [],
     createdAt: "2026-06-09T09:00:22.000+08:00",
     thinkingSteps: [
@@ -490,6 +491,14 @@ function buildDeepThinkingSteps({
     `再核对关键判断点：动作阶段、风险边界、执行节奏和停止条件是否明确。`,
     `最后组织回复顺序：先给结论，再补执行建议、风险提醒和下一步追问方向。${matchedAnswers.length ? `本轮命中 ${matchedAnswers.length} 条候选内容。` : ""}`
   ];
+}
+
+function buildDeepThinkingAnswerText(answerText: string) {
+  return [
+    answerText,
+    "执行时先确认当前阶段允许的动作幅度和训练节奏，再观察是否出现耸肩、躯干侧倾或借力代偿。",
+    "如果训练过程中疼痛明显上升、动作轨迹失稳，或者训练后不适持续加重，应先回退强度，再决定是否继续。"
+  ].join("\n\n");
 }
 
 function QaMediaVisual({ item, expanded = false }: { item: QaMediaItem; expanded?: boolean }) {
@@ -1729,6 +1738,8 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
       (generatedMedia.length
         ? "已根据当前项目里的患者处方场景理解生成需求，下面将按图片、视频分别返回 AI 生成结果。"
         : "当前为自由问答模式，建议进一步限定库内标签或补充患者阶段、动作名称等上下文信息。");
+    const deepThinkingAnswerText =
+      deepThinking && !generatedMedia.length ? buildDeepThinkingAnswerText(answerText) : answerText;
 
     const assistantMessages: MultiModalQaMessage[] = generatedMedia.length
         ? [
@@ -1757,7 +1768,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
           {
             id: generateId("qa-assistant"),
             role: "assistant",
-            text: answerText,
+            text: deepThinkingAnswerText,
             sources,
             createdAt: new Date().toISOString(),
             thinkingSteps: deepThinking
@@ -1855,40 +1866,74 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
               <CardContent className="min-h-0 flex-1 overflow-y-auto px-3 py-3 pb-[10.5rem]">
                 <div className="flex min-h-full flex-col justify-end gap-4">
                   {messages.length ? (
-                    messages.map((message) => (
+                    messages.map((message) => {
+                      const hasThinkingSteps = Boolean(
+                        message.role === "assistant" && message.thinkingSteps?.length
+                      );
+                      const assistantBubbleClass =
+                        message.media?.length || hasThinkingSteps
+                          ? "inline-flex w-[34rem] max-w-[88%] flex-col rounded-[1.5rem] border border-border/70 bg-white px-5 py-4"
+                          : "inline-flex w-fit max-w-[88%] flex-col rounded-[1.5rem] border border-border/70 bg-white px-5 py-4";
+                      const showSummaryCard = Boolean(
+                        message.summary && (!hasThinkingSteps || message.media?.length)
+                      );
+                      const thinkingDurationSeconds = Math.max(
+                        5,
+                        (message.thinkingSteps?.length ?? 0) + 1
+                      );
+
+                      return (
                       <div
                         key={message.id}
                         className={
                           message.role === "user"
-                            ? "ml-auto inline-flex w-fit max-w-[78%] flex-col self-end rounded-[1.5rem] bg-primary px-5 py-4 text-sm text-white"
-                            : message.media?.length
-                              ? "inline-flex w-[32rem] max-w-[88%] flex-col self-start rounded-[1.5rem] border border-border/70 bg-white px-5 py-4"
-                              : "inline-flex w-fit max-w-[88%] flex-col self-start rounded-[1.5rem] border border-border/70 bg-white px-5 py-4"
+                            ? "flex w-full flex-col items-end"
+                            : "flex w-full flex-col items-start gap-3"
                         }
                       >
-                        <p className={message.role === "user" ? "leading-7" : "text-sm leading-7 text-surface-900"}>
+                        {hasThinkingSteps ? (
+                          <div className="w-[34rem] max-w-[88%]">
+                            <div className="inline-flex items-center gap-2 text-sm font-medium text-surface-700">
+                              <Sparkles className="h-4 w-4 text-primary/80" />
+                              <span>{`已思考（用时 ${thinkingDurationSeconds} 秒）`}</span>
+                            </div>
+                            <div className="mt-3 border-l border-border/80 pl-4 text-[15px] leading-8 text-surface-700/90">
+                              <div className="space-y-3">
+                                {message.thinkingSteps?.map((step, index) => (
+                                  <p key={`${message.id}-thinking-${index}`}>
+                                    {index === 0 ? `• ${step}` : step}
+                                  </p>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ) : null}
+                        <div
+                          className={
+                            message.role === "user"
+                              ? "inline-flex w-fit max-w-[78%] flex-col rounded-[1.5rem] bg-primary px-5 py-4 text-sm text-white"
+                              : assistantBubbleClass
+                          }
+                        >
+                        <p
+                          className={
+                            message.role === "user"
+                              ? "whitespace-pre-line leading-7"
+                              : "whitespace-pre-line text-sm leading-7 text-surface-900"
+                          }
+                        >
                           {message.text}
                         </p>
                         {message.role === "assistant" ? (
                           <div className="mt-4 space-y-3">
-                            {message.thinkingSteps?.length ? (
+                            {showSummaryCard ? (
                               <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
-                                <p className="font-medium text-surface-900">深度思考过程</p>
-                                <div className="mt-2 space-y-2">
-                                  {message.thinkingSteps.map((step, index) => (
-                                    <p key={`${message.id}-thinking-${index}`} className="leading-7">
-                                      {index + 1}. {step}
-                                    </p>
-                                  ))}
-                                </div>
+                                <p className="font-medium text-surface-900">
+                                  {message.media?.length ? "AI 生成说明" : "关联资源摘要"}
+                                </p>
+                                <p className="mt-2 leading-7">{message.summary}</p>
                               </div>
                             ) : null}
-                            <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
-                              <p className="font-medium text-surface-900">
-                                {message.media?.length ? "AI 生成说明" : "关联资源摘要"}
-                              </p>
-                              <p className="mt-2 leading-7">{message.summary}</p>
-                            </div>
                             {message.media?.length ? (
                               <div className="grid w-full gap-3">
                                 {message.media.map((item) => (
@@ -1896,14 +1941,6 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                                 ))}
                               </div>
                             ) : null}
-                            <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
-                              <p className="font-medium text-surface-900">建议方案</p>
-                              <p className="mt-2 leading-7">{message.suggestion}</p>
-                            </div>
-                            <div className="rounded-[1rem] bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
-                              <p className="font-medium text-surface-900">专家意见</p>
-                              <p className="mt-2 leading-7">{message.expertOpinion}</p>
-                            </div>
                             <div className="flex flex-wrap gap-2">
                               {message.relatedResources?.map((item) => (
                                 <Badge key={item} className="bg-white text-surface-700">
@@ -1942,7 +1979,9 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                           </div>
                         ) : null}
                       </div>
-                    ))
+                      </div>
+                    );
+                    })
                   ) : (
                     <div className="flex flex-1 items-center justify-center rounded-[1.5rem] border border-dashed border-border/70 bg-surface-50 px-5 py-10 text-center text-sm text-muted-foreground">
                       <div>
