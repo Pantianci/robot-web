@@ -13,7 +13,7 @@ import {
   ThumbsUp,
   X
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import {
   useCreateKnowledgeMutation,
@@ -1604,6 +1604,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
   const [question, setQuestion] = useState("");
   const [selectedQaTags, setSelectedQaTags] = useState<QaTagSelection>(() => createDefaultQaTagSelection());
   const [previewMedia, setPreviewMedia] = useState<QaMediaItem | null>(null);
+  const messageScrollRef = useRef<HTMLDivElement | null>(null);
 
   const qaTagOptionsByLibrary = useMemo(
     () => ({
@@ -1659,6 +1660,19 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
 
   useEffect(() => {
     writeState(qaStateKey, messages);
+  }, [messages]);
+
+  useEffect(() => {
+    const container = messageScrollRef.current;
+    if (!container) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      container.scrollTop = container.scrollHeight;
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [messages]);
 
   const sendQuestion = () => {
@@ -1755,7 +1769,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
         label="推荐"
         sideWidthClassName="w-full xl:w-[360px]"
         main={
-          <div className="flex min-h-0 flex-col gap-2">
+          <div className="relative flex min-h-0 flex-col gap-2 pb-2">
             <FilterBar
               singleLine
               actions={
@@ -1790,7 +1804,10 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
               <CardHeader className="shrink-0 border-b border-border/60 px-4 py-3">
                 <CardTitle>我要提问</CardTitle>
               </CardHeader>
-              <CardContent className="min-h-0 flex-1 overflow-y-auto p-3">
+              <CardContent
+                ref={messageScrollRef}
+                className="min-h-0 flex-1 overflow-y-auto px-3 pb-[10.5rem] pt-3"
+              >
                 <div className="flex min-h-full flex-col gap-4">
                   {messages.length ? (
                     messages.map((message) => (
@@ -1875,34 +1892,37 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                       </div>
                     </div>
                   )}
+                  <div className="h-6 shrink-0" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="shrink-0">
-              <CardContent className="p-2">
-                <div className="relative">
-                  <Textarea
-                    value={question}
-                    placeholder="请输入问题，支持连续追问和上下文承接"
-                    className="min-h-[94px] resize-none rounded-[1.25rem] border-border/70 bg-white pb-14 pr-[15.5rem] pt-3"
-                    onChange={(event) => setQuestion(event.target.value)}
-                  />
-                  <div className="absolute bottom-3 right-3 flex flex-wrap items-center justify-end gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setQuestion("")}>
-                      清空
-                    </Button>
-                    <Button size="sm" variant="secondary" onClick={resetConversation}>
-                      重置
-                    </Button>
-                    <Button size="sm" onClick={sendQuestion}>
-                      <Send className="h-4 w-4" />
-                      发送
-                    </Button>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-background via-background/94 to-transparent px-2 pb-2 pt-10">
+              <Card className="pointer-events-auto mx-auto w-full overflow-hidden border-border/70 shadow-panel">
+                <CardContent className="p-2.5">
+                  <div className="relative">
+                    <Textarea
+                      value={question}
+                      placeholder="请输入问题，支持连续追问和上下文承接"
+                      className="min-h-[68px] resize-none rounded-[1.15rem] border-border/70 bg-white pb-12 pr-[14rem] pt-3"
+                      onChange={(event) => setQuestion(event.target.value)}
+                    />
+                    <div className="absolute bottom-2.5 right-2.5 flex flex-wrap items-center justify-end gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setQuestion("")}>
+                        清空
+                      </Button>
+                      <Button size="sm" variant="secondary" onClick={resetConversation}>
+                        重置
+                      </Button>
+                      <Button size="sm" onClick={sendQuestion}>
+                        <Send className="h-4 w-4" />
+                        发送
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         }
         side={
