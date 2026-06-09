@@ -4,6 +4,12 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useDeletePatientMutation, usePatientsQuery } from "@/lib/hooks";
 import { defaultPatientWorkspace, patientWorkspaceContextKey } from "@/lib/patient-context";
 import { readState, writeState } from "@/lib/storage";
+import {
+  isPageFullySelected,
+  isPagePartiallySelected,
+  togglePageSelection,
+  toggleSelection
+} from "@/lib/table-selection";
 import { formatDateTime } from "@/lib/utils";
 import type { Patient } from "@/lib/types";
 import { CollapsibleSplitLayout } from "@/components/collapsible-side-panel";
@@ -17,6 +23,7 @@ import { PropertyList } from "@/components/property-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { TableSelectionCheckbox } from "@/components/ui/table-selection-checkbox";
 import {
   Table,
   TableBody,
@@ -44,6 +51,7 @@ export function PatientManagement() {
     readState<{ selectedId: string }>(patientWorkspaceContextKey)?.selectedId ??
       defaultPatientWorkspace.patientId
   );
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<Patient | null>(null);
   const [page, setPage] = useState(1);
 
@@ -100,10 +108,23 @@ export function PatientManagement() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / patientPageSize));
   const safePage = Math.min(page, totalPages);
   const paged = filtered.slice((safePage - 1) * patientPageSize, safePage * patientPageSize);
+  const filteredIds = useMemo(() => filtered.map((item) => item.id), [filtered]);
+  const pagedIds = useMemo(() => paged.map((item) => item.id), [paged]);
+  const selectedCount = useMemo(
+    () => selectedIds.filter((id) => filteredIds.includes(id)).length,
+    [filteredIds, selectedIds]
+  );
+  const allPagedSelected = isPageFullySelected(selectedIds, pagedIds);
+  const somePagedSelected = isPagePartiallySelected(selectedIds, pagedIds);
 
   useEffect(() => {
     setPage((current) => Math.min(current, totalPages));
   }, [totalPages]);
+
+  useEffect(() => {
+    const filteredIdSet = new Set(filteredIds);
+    setSelectedIds((current) => current.filter((id) => filteredIdSet.has(id)));
+  }, [filteredIds]);
 
   useEffect(() => {
     if (!selected) {
@@ -246,13 +267,28 @@ export function PatientManagement() {
         main={
           <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <CardHeader className="border-b border-border/60">
-              <CardTitle>患者列表</CardTitle>
+              <div>
+                <CardTitle>患者列表</CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  共 {filtered.length} 条记录，已勾选 {selectedCount} 条
+                </p>
+              </div>
             </CardHeader>
             <CardContent className="flex min-h-0 flex-1 flex-col p-0">
               {filtered.length ? (
                 <Table className="min-w-full">
                   <TableHeader className="sticky top-0 z-10 bg-white">
                     <TableRow>
+                      <TableHead className="w-12">
+                        <TableSelectionCheckbox
+                          checked={allPagedSelected}
+                          indeterminate={somePagedSelected}
+                          onChange={(checked) =>
+                            setSelectedIds((current) => togglePageSelection(current, pagedIds, checked))
+                          }
+                          ariaLabel={`全选患者列表第 ${safePage} 页`}
+                        />
+                      </TableHead>
                       <TableHead>患者ID</TableHead>
                       <TableHead>姓名</TableHead>
                       <TableHead>病种</TableHead>
@@ -274,6 +310,15 @@ export function PatientManagement() {
                           openPatientPlans(item);
                         }}
                       >
+                        <TableCell onClick={(event) => event.stopPropagation()}>
+                          <TableSelectionCheckbox
+                            checked={selectedIds.includes(item.id)}
+                            onChange={(checked) =>
+                              setSelectedIds((current) => toggleSelection(current, item.id, checked))
+                            }
+                            ariaLabel={`选择患者 ${item.name}`}
+                          />
+                        </TableCell>
                         <TableCell>{item.id}</TableCell>
                         <TableCell className="font-medium">{item.name}</TableCell>
                         <TableCell>{item.diagnosis}</TableCell>
@@ -321,7 +366,7 @@ export function PatientManagement() {
             {filtered.length ? (
               <div className="flex items-center justify-between border-t border-border/60 px-5 py-4 text-sm text-muted-foreground">
                 <span>
-                  共 {filtered.length} 条，当前第 {safePage} / {totalPages} 页
+                  共 {filtered.length} 条，当前第 {safePage} / {totalPages} 页，已勾选 {selectedCount} 条
                 </span>
                 <div className="flex items-center gap-2">
                   <Button

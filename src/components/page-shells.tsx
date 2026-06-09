@@ -32,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { TableSelectionCheckbox } from "@/components/ui/table-selection-checkbox";
 import {
   Table,
   TableBody,
@@ -47,6 +48,12 @@ import {
   useKnowledgeQuery,
   useUpdateKnowledgeTagMutation
 } from "@/lib/hooks";
+import {
+  isPageFullySelected,
+  isPagePartiallySelected,
+  togglePageSelection,
+  toggleSelection
+} from "@/lib/table-selection";
 import type { KnowledgeLibrary, TagItem } from "@/lib/types";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
 
@@ -1724,6 +1731,7 @@ export function TagManagementPage({
   const [statusFilter, setStatusFilter] = useState("全部");
   const [dateFilter, setDateFilter] = useState("全部");
   const [selectedId, setSelectedId] = useState<string | null>(tags[0]?.id ?? null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<TagItem | null>(null);
   const [deletingTag, setDeletingTag] = useState<TagItem | null>(null);
@@ -1785,6 +1793,13 @@ export function TagManagementPage({
   }, [dateFilter, parentFilter, query, statusFilter, tags]);
 
   const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0] ?? null;
+  const filteredIds = useMemo(() => filtered.map((item) => item.id), [filtered]);
+  const selectedCount = useMemo(
+    () => selectedIds.filter((id) => filteredIds.includes(id)).length,
+    [filteredIds, selectedIds]
+  );
+  const allFilteredSelected = isPageFullySelected(selectedIds, filteredIds);
+  const someFilteredSelected = isPagePartiallySelected(selectedIds, filteredIds);
   const relatedItems = useMemo(() => {
     if (!selected) {
       return [];
@@ -1881,6 +1896,11 @@ export function TagManagementPage({
     setDeletingTag(null);
   };
 
+  useEffect(() => {
+    const filteredIdSet = new Set(filteredIds);
+    setSelectedIds((current) => current.filter((id) => filteredIdSet.has(id)));
+  }, [filteredIds]);
+
   return (
     <SubPageScaffold
       eyebrow={eyebrow}
@@ -1956,13 +1976,28 @@ export function TagManagementPage({
         main={
           <Card className="flex min-h-0 flex-col overflow-hidden">
             <CardHeader className="border-b border-border/60">
-              <CardTitle>标签列表</CardTitle>
+              <div>
+                <CardTitle>标签列表</CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  共 {filtered.length} 条记录，已勾选 {selectedCount} 条
+                </p>
+              </div>
             </CardHeader>
             <CardContent className="flex min-h-0 flex-1 flex-col p-0">
               {filtered.length ? (
                 <Table className="min-w-full">
                   <TableHeader className="sticky top-0 z-10 bg-white">
                     <TableRow>
+                      <TableHead className="w-12">
+                        <TableSelectionCheckbox
+                          checked={allFilteredSelected}
+                          indeterminate={someFilteredSelected}
+                          onChange={(checked) =>
+                            setSelectedIds((current) => togglePageSelection(current, filteredIds, checked))
+                          }
+                          ariaLabel="全选当前标签列表"
+                        />
+                      </TableHead>
                       <TableHead className="min-w-[140px]">标签名称</TableHead>
                       <TableHead className="min-w-[220px]">标签说明</TableHead>
                       <TableHead className="min-w-[120px]">上级标签</TableHead>
@@ -1980,6 +2015,15 @@ export function TagManagementPage({
                         data-state={selected?.id === tag.id ? "selected" : undefined}
                         onClick={() => setSelectedId(tag.id)}
                       >
+                        <TableCell onClick={(event) => event.stopPropagation()}>
+                          <TableSelectionCheckbox
+                            checked={selectedIds.includes(tag.id)}
+                            onChange={(checked) =>
+                              setSelectedIds((current) => toggleSelection(current, tag.id, checked))
+                            }
+                            ariaLabel={`选择标签 ${tag.name}`}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">{tag.name}</TableCell>
                         <TableCell className="max-w-[280px] text-muted-foreground">
                           <p className="line-clamp-2">{tag.description || "暂无说明"}</p>

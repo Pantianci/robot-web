@@ -23,11 +23,17 @@ import {
   isInDateRange,
   knowledgeLibraryMeta,
   multiModalPageSizeOptions,
-  voiceCategoryOptions,
   type MultiModalListContext,
-  type MultiModalListFilters
+  type MultiModalListFilters,
+  voiceCategoryOptions,
 } from "@/lib/multimodal";
 import { readState, writeState } from "@/lib/storage";
+import {
+  isPageFullySelected,
+  isPagePartiallySelected,
+  togglePageSelection,
+  toggleSelection
+} from "@/lib/table-selection";
 import type { KnowledgeItem, KnowledgeLibrary } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
 import { CollapsibleSplitLayout } from "@/components/collapsible-side-panel";
@@ -43,6 +49,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { TableSelectionCheckbox } from "@/components/ui/table-selection-checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
@@ -564,6 +571,9 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
     () => paginate(filteredItems, safePage, context.pageSize),
     [context.pageSize, filteredItems, safePage]
   );
+  const pagedIds = useMemo(() => pagedItems.map((item) => item.id), [pagedItems]);
+  const allPagedSelected = isPageFullySelected(context.selectedIds, pagedIds);
+  const somePagedSelected = isPagePartiallySelected(context.selectedIds, pagedIds);
 
   const selectedItem =
     filteredItems.find((item) => item.id === context.selectedId) ??
@@ -653,9 +663,7 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
   const toggleSelected = (id: string) => {
     setContext((current) => ({
       ...current,
-      selectedIds: current.selectedIds.includes(id)
-        ? current.selectedIds.filter((item) => item !== id)
-        : [...current.selectedIds, id]
+      selectedIds: toggleSelection(current.selectedIds, id, !current.selectedIds.includes(id))
     }));
   };
 
@@ -845,7 +853,19 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
                   <Table className="min-w-full">
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-12">选择</TableHead>
+                        <TableHead className="w-12">
+                          <TableSelectionCheckbox
+                            checked={allPagedSelected}
+                            indeterminate={somePagedSelected}
+                            onChange={(checked) =>
+                              setContext((current) => ({
+                                ...current,
+                                selectedIds: togglePageSelection(current.selectedIds, pagedIds, checked)
+                              }))
+                            }
+                            ariaLabel={`全选内容列表第 ${safePage} 页`}
+                          />
+                        </TableHead>
                         {listColumnsForLibrary(library).map((column) => (
                           <TableHead key={column}>{column}</TableHead>
                         ))}
@@ -868,10 +888,10 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
                             }
                           >
                             <TableCell onClick={(event) => event.stopPropagation()}>
-                              <input
-                                type="checkbox"
+                              <TableSelectionCheckbox
                                 checked={context.selectedIds.includes(item.id)}
                                 onChange={() => toggleSelected(item.id)}
+                                ariaLabel={`选择内容 ${item.title}`}
                               />
                             </TableCell>
                             {rowValues.map((value, index) => (

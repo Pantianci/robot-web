@@ -21,6 +21,12 @@ import {
   prescriptionWorkspaceContextKey
 } from "@/lib/patient-context";
 import { readState, writeState } from "@/lib/storage";
+import {
+  isPageFullySelected,
+  isPagePartiallySelected,
+  togglePageSelection,
+  toggleSelection
+} from "@/lib/table-selection";
 import { formatDateTime } from "@/lib/utils";
 import type { CurrentAction, Patient, Prescription, RehabPlan } from "@/lib/types";
 import { CollapsibleSplitLayout } from "@/components/collapsible-side-panel";
@@ -36,6 +42,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { TableSelectionCheckbox } from "@/components/ui/table-selection-checkbox";
 import {
   Table,
   TableBody,
@@ -378,6 +385,7 @@ export function RehabPlanManagement() {
   const [riskFilter, setRiskFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [selectedPlanIds, setSelectedPlanIds] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [aiPlanOpen, setAiPlanOpen] = useState(false);
   const [aiPlanDraft, setAiPlanDraft] = useState<AiPlanDraft>({
@@ -457,10 +465,23 @@ export function RehabPlanManagement() {
   const totalPages = Math.max(1, Math.ceil(filteredPlans.length / pageSize));
   const safePage = Math.min(page, totalPages);
   const pagedPlans = filteredPlans.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const filteredPlanIds = useMemo(() => filteredPlans.map((plan) => plan.id), [filteredPlans]);
+  const pagedPlanIds = useMemo(() => pagedPlans.map((plan) => plan.id), [pagedPlans]);
+  const selectedPlanCount = useMemo(
+    () => selectedPlanIds.filter((id) => filteredPlanIds.includes(id)).length,
+    [filteredPlanIds, selectedPlanIds]
+  );
+  const allPagedPlansSelected = isPageFullySelected(selectedPlanIds, pagedPlanIds);
+  const somePagedPlansSelected = isPagePartiallySelected(selectedPlanIds, pagedPlanIds);
 
   useEffect(() => {
     setPage((current) => Math.min(current, totalPages));
   }, [totalPages]);
+
+  useEffect(() => {
+    const filteredPlanIdSet = new Set(filteredPlanIds);
+    setSelectedPlanIds((current) => current.filter((id) => filteredPlanIdSet.has(id)));
+  }, [filteredPlanIds]);
 
   const resetFilters = () => {
     setKeyword("");
@@ -657,7 +678,7 @@ export function RehabPlanManagement() {
               <div>
                 <CardTitle>全员方案列表</CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  共 {filteredPlans.length} 条方案，覆盖 {new Set(filteredPlans.map((plan) => plan.patientId)).size} 位患者
+                  共 {filteredPlans.length} 条方案，覆盖 {new Set(filteredPlans.map((plan) => plan.patientId)).size} 位患者，已勾选 {selectedPlanCount} 条
                 </p>
               </div>
             </CardHeader>
@@ -666,6 +687,16 @@ export function RehabPlanManagement() {
                 <Table className="min-w-full">
                   <TableHeader className="sticky top-0 z-10 bg-white">
                     <TableRow>
+                      <TableHead className="w-12">
+                        <TableSelectionCheckbox
+                          checked={allPagedPlansSelected}
+                          indeterminate={somePagedPlansSelected}
+                          onChange={(checked) =>
+                            setSelectedPlanIds((current) => togglePageSelection(current, pagedPlanIds, checked))
+                          }
+                          ariaLabel={`全选全员方案列表第 ${safePage} 页`}
+                        />
+                      </TableHead>
                       <TableHead>方案编号</TableHead>
                       <TableHead>患者ID</TableHead>
                       <TableHead>患者</TableHead>
@@ -693,6 +724,15 @@ export function RehabPlanManagement() {
                           data-state={selectedPlan?.id === plan.id ? "selected" : undefined}
                           onClick={() => setSelectedPlanId(plan.id)}
                         >
+                          <TableCell onClick={(event) => event.stopPropagation()}>
+                            <TableSelectionCheckbox
+                              checked={selectedPlanIds.includes(plan.id)}
+                              onChange={(checked) =>
+                                setSelectedPlanIds((current) => toggleSelection(current, plan.id, checked))
+                              }
+                              ariaLabel={`选择方案 ${plan.id}`}
+                            />
+                          </TableCell>
                           <TableCell className="font-medium">
                             <button
                               type="button"
@@ -1008,10 +1048,13 @@ export function PrescriptionManagement({
 
   const [keyword, setKeyword] = useState("");
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(planId ?? null);
+  const [selectedPlanIds, setSelectedPlanIds] = useState<string[]>([]);
   const [selectedActionId, setSelectedActionId] = useState<string | null>(patientActions[0]?.id ?? null);
+  const [selectedActionIds, setSelectedActionIds] = useState<string[]>([]);
   const [selectedPrescriptionId, setSelectedPrescriptionId] = useState<string | null>(
     prescriptionId ?? null
   );
+  const [selectedPrescriptionIds, setSelectedPrescriptionIds] = useState<string[]>([]);
   const [aiPrescriptionOpen, setAiPrescriptionOpen] = useState(false);
   const [aiPrescriptionDraft, setAiPrescriptionDraft] = useState<AiPrescriptionDraft>({
     planId: "",
@@ -1127,6 +1170,57 @@ export function PrescriptionManagement({
     (safePrescriptionPage - 1) * pageSize,
     safePrescriptionPage * pageSize
   );
+  const filteredPlanIds = useMemo(() => filteredPlans.map((item) => item.id), [filteredPlans]);
+  const filteredActionIds = useMemo(() => filteredActions.map((item) => item.id), [filteredActions]);
+  const filteredPrescriptionIds = useMemo(
+    () => filteredPrescriptions.map((item) => item.id),
+    [filteredPrescriptions]
+  );
+  const pagedPlanIds = useMemo(() => pagedPlans.map((item) => item.id), [pagedPlans]);
+  const pagedActionIds = useMemo(() => pagedActions.map((item) => item.id), [pagedActions]);
+  const pagedPrescriptionIds = useMemo(
+    () => pagedPrescriptions.map((item) => item.id),
+    [pagedPrescriptions]
+  );
+  const selectedPlanCount = useMemo(
+    () => selectedPlanIds.filter((id) => filteredPlanIds.includes(id)).length,
+    [filteredPlanIds, selectedPlanIds]
+  );
+  const selectedActionCount = useMemo(
+    () => selectedActionIds.filter((id) => filteredActionIds.includes(id)).length,
+    [filteredActionIds, selectedActionIds]
+  );
+  const selectedPrescriptionCount = useMemo(
+    () => selectedPrescriptionIds.filter((id) => filteredPrescriptionIds.includes(id)).length,
+    [filteredPrescriptionIds, selectedPrescriptionIds]
+  );
+  const allPagedPlansSelected = isPageFullySelected(selectedPlanIds, pagedPlanIds);
+  const somePagedPlansSelected = isPagePartiallySelected(selectedPlanIds, pagedPlanIds);
+  const allPagedActionsSelected = isPageFullySelected(selectedActionIds, pagedActionIds);
+  const somePagedActionsSelected = isPagePartiallySelected(selectedActionIds, pagedActionIds);
+  const allPagedPrescriptionsSelected = isPageFullySelected(
+    selectedPrescriptionIds,
+    pagedPrescriptionIds
+  );
+  const somePagedPrescriptionsSelected = isPagePartiallySelected(
+    selectedPrescriptionIds,
+    pagedPrescriptionIds
+  );
+
+  useEffect(() => {
+    const filteredPlanIdSet = new Set(filteredPlanIds);
+    setSelectedPlanIds((current) => current.filter((id) => filteredPlanIdSet.has(id)));
+  }, [filteredPlanIds]);
+
+  useEffect(() => {
+    const filteredActionIdSet = new Set(filteredActionIds);
+    setSelectedActionIds((current) => current.filter((id) => filteredActionIdSet.has(id)));
+  }, [filteredActionIds]);
+
+  useEffect(() => {
+    const filteredPrescriptionIdSet = new Set(filteredPrescriptionIds);
+    setSelectedPrescriptionIds((current) => current.filter((id) => filteredPrescriptionIdSet.has(id)));
+  }, [filteredPrescriptionIds]);
 
   const resetFilter = () => {
     setKeyword("");
@@ -1394,15 +1488,30 @@ export function PrescriptionManagement({
           label="方案"
           sideWidthClassName="w-full xl:w-[360px]"
           main={
-            <Card className="flex min-h-0 flex-col overflow-hidden">
-              <CardHeader className="border-b border-border/60">
+          <Card className="flex min-h-0 flex-col overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <div>
                 <CardTitle>方案列表</CardTitle>
-              </CardHeader>
-              <CardContent className="flex min-h-0 flex-1 flex-col p-0">
-                {filteredPlans.length ? (
-                  <Table className="min-w-full">
-                    <TableHeader className="sticky top-0 z-10 bg-white">
-                      <TableRow>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  共 {filteredPlans.length} 条记录，已勾选 {selectedPlanCount} 条
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+              {filteredPlans.length ? (
+                <Table className="min-w-full">
+                  <TableHeader className="sticky top-0 z-10 bg-white">
+                    <TableRow>
+                        <TableHead className="w-12">
+                          <TableSelectionCheckbox
+                            checked={allPagedPlansSelected}
+                            indeterminate={somePagedPlansSelected}
+                            onChange={(checked) =>
+                              setSelectedPlanIds((current) => togglePageSelection(current, pagedPlanIds, checked))
+                            }
+                            ariaLabel={`全选方案列表第 ${safePlanPage} 页`}
+                          />
+                        </TableHead>
                         <TableHead>方案编号</TableHead>
                         {scope === "all" ? <TableHead>患者</TableHead> : null}
                         <TableHead>确认医生</TableHead>
@@ -1425,9 +1534,9 @@ export function PrescriptionManagement({
                         return (
                           <TableRow
                             key={item.id}
-                            className="cursor-pointer"
-                            data-state={selectedPlan?.id === item.id ? "selected" : undefined}
-                            onClick={() => {
+                          className="cursor-pointer"
+                          data-state={selectedPlan?.id === item.id ? "selected" : undefined}
+                          onClick={() => {
                               setSelectedPlanId(item.id);
                               writeState(planWorkspaceContextKey, { planId: item.id });
                               if (planPatient) {
@@ -1438,6 +1547,15 @@ export function PrescriptionManagement({
                               }
                             }}
                           >
+                            <TableCell onClick={(event) => event.stopPropagation()}>
+                              <TableSelectionCheckbox
+                                checked={selectedPlanIds.includes(item.id)}
+                                onChange={(checked) =>
+                                  setSelectedPlanIds((current) => toggleSelection(current, item.id, checked))
+                                }
+                                ariaLabel={`选择方案 ${item.id}`}
+                              />
+                            </TableCell>
                             <TableCell className="font-medium">{item.id}</TableCell>
                             {scope === "all" ? <TableCell>{item.patientName}</TableCell> : null}
                             <TableCell>{item.doctor}</TableCell>
@@ -1558,15 +1676,30 @@ export function PrescriptionManagement({
           label="动作"
           sideWidthClassName="w-full xl:w-[360px]"
           main={
-            <Card className="flex min-h-0 flex-col overflow-hidden">
-              <CardHeader className="border-b border-border/60">
+          <Card className="flex min-h-0 flex-col overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <div>
                 <CardTitle>当前标准动作处方列表</CardTitle>
-              </CardHeader>
-              <CardContent className="flex min-h-0 flex-1 flex-col p-0">
-                {filteredActions.length ? (
-                  <Table className="min-w-full">
-                    <TableHeader className="sticky top-0 z-10 bg-white">
-                      <TableRow>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  共 {filteredActions.length} 条记录，已勾选 {selectedActionCount} 条
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+              {filteredActions.length ? (
+                <Table className="min-w-full">
+                  <TableHeader className="sticky top-0 z-10 bg-white">
+                    <TableRow>
+                        <TableHead className="w-12">
+                          <TableSelectionCheckbox
+                            checked={allPagedActionsSelected}
+                            indeterminate={somePagedActionsSelected}
+                            onChange={(checked) =>
+                              setSelectedActionIds((current) => togglePageSelection(current, pagedActionIds, checked))
+                            }
+                            ariaLabel={`全选动作列表第 ${safeCurrentPage} 页`}
+                          />
+                        </TableHead>
                         <TableHead>顺序号</TableHead>
                         <TableHead>动作</TableHead>
                         <TableHead>时间</TableHead>
@@ -1585,6 +1718,15 @@ export function PrescriptionManagement({
                           data-state={selectedAction?.id === item.id ? "selected" : undefined}
                           onClick={() => setSelectedActionId(item.id)}
                         >
+                          <TableCell onClick={(event) => event.stopPropagation()}>
+                            <TableSelectionCheckbox
+                              checked={selectedActionIds.includes(item.id)}
+                              onChange={(checked) =>
+                                setSelectedActionIds((current) => toggleSelection(current, item.id, checked))
+                              }
+                              ariaLabel={`选择动作 ${item.title}`}
+                            />
+                          </TableCell>
                           <TableCell>{(safeCurrentPage - 1) * pageSize + index + 1}</TableCell>
                           <TableCell className="font-medium">{item.title}</TableCell>
                           <TableCell>{item.duration}</TableCell>
@@ -1684,15 +1826,32 @@ export function PrescriptionManagement({
           label="处方"
           sideWidthClassName="w-full xl:w-[360px]"
           main={
-            <Card className="flex min-h-0 flex-col overflow-hidden">
-              <CardHeader className="border-b border-border/60">
+          <Card className="flex min-h-0 flex-col overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <div>
                 <CardTitle>处方列表</CardTitle>
-              </CardHeader>
-              <CardContent className="flex min-h-0 flex-1 flex-col p-0">
-                {filteredPrescriptions.length ? (
-                  <Table className="min-w-full">
-                    <TableHeader className="sticky top-0 z-10 bg-white">
-                      <TableRow>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  共 {filteredPrescriptions.length} 条记录，已勾选 {selectedPrescriptionCount} 条
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+              {filteredPrescriptions.length ? (
+                <Table className="min-w-full">
+                  <TableHeader className="sticky top-0 z-10 bg-white">
+                    <TableRow>
+                        <TableHead className="w-12">
+                          <TableSelectionCheckbox
+                            checked={allPagedPrescriptionsSelected}
+                            indeterminate={somePagedPrescriptionsSelected}
+                            onChange={(checked) =>
+                              setSelectedPrescriptionIds((current) =>
+                                togglePageSelection(current, pagedPrescriptionIds, checked)
+                              )
+                            }
+                            ariaLabel={`全选处方列表第 ${safePrescriptionPage} 页`}
+                          />
+                        </TableHead>
                         <TableHead>处方ID</TableHead>
                         <TableHead>确认医生</TableHead>
                         <TableHead>包含动作数</TableHead>
@@ -1709,14 +1868,25 @@ export function PrescriptionManagement({
                           key={item.id}
                           className="cursor-pointer"
                           data-state={selectedPrescription?.id === item.id ? "selected" : undefined}
-                            onClick={() => {
-                              setSelectedPrescriptionId(item.id);
-                              writeState(prescriptionWorkspaceContextKey, { prescriptionId: item.id });
-                              if (activePatient && summaryPlan) {
-                                openPatientCurrentActionList(navigate, activePatient, summaryPlan, item);
-                              }
-                            }}
+                          onClick={() => {
+                            setSelectedPrescriptionId(item.id);
+                            writeState(prescriptionWorkspaceContextKey, { prescriptionId: item.id });
+                            if (activePatient && summaryPlan) {
+                              openPatientCurrentActionList(navigate, activePatient, summaryPlan, item);
+                            }
+                          }}
                         >
+                          <TableCell onClick={(event) => event.stopPropagation()}>
+                            <TableSelectionCheckbox
+                              checked={selectedPrescriptionIds.includes(item.id)}
+                              onChange={(checked) =>
+                                setSelectedPrescriptionIds((current) =>
+                                  toggleSelection(current, item.id, checked)
+                                )
+                              }
+                              ariaLabel={`选择处方 ${item.id}`}
+                            />
+                          </TableCell>
                           <TableCell className="font-medium">{item.id}</TableCell>
                           <TableCell>{item.doctor}</TableCell>
                           <TableCell>{item.movements.length}</TableCell>

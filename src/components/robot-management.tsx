@@ -1,6 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { useCreateRobotMutation, useRobotsQuery } from "@/lib/hooks";
+import {
+  isPageFullySelected,
+  isPagePartiallySelected,
+  togglePageSelection,
+  toggleSelection
+} from "@/lib/table-selection";
 import { formatDateTime } from "@/lib/utils";
 import type { RobotStatus } from "@/lib/types";
 import { CollapsibleSplitLayout } from "@/components/collapsible-side-panel";
@@ -15,6 +21,7 @@ import { PropertyList } from "@/components/property-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { TableSelectionCheckbox } from "@/components/ui/table-selection-checkbox";
 import {
   Table,
   TableBody,
@@ -30,6 +37,7 @@ export function RobotManagement() {
   const createMutation = useCreateRobotMutation();
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(robots[0]?.id ?? null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<{
     id: string;
@@ -59,11 +67,23 @@ export function RobotManagement() {
       ),
     [robots, query]
   );
+  const filteredIds = useMemo(() => filtered.map((item) => item.id), [filtered]);
+  const selectedCount = useMemo(
+    () => selectedIds.filter((id) => filteredIds.includes(id)).length,
+    [filteredIds, selectedIds]
+  );
+  const allFilteredSelected = isPageFullySelected(selectedIds, filteredIds);
+  const someFilteredSelected = isPagePartiallySelected(selectedIds, filteredIds);
 
   const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0] ?? null;
   const onlineCount = robots.filter((item) => item.status === "执行中").length;
   const normalCount = robots.filter((item) => item.status === "正常").length;
   const warningCount = robots.filter((item) => item.status === "预警").length;
+
+  useEffect(() => {
+    const filteredIdSet = new Set(filteredIds);
+    setSelectedIds((current) => current.filter((id) => filteredIdSet.has(id)));
+  }, [filteredIds]);
 
   const handleSubmit = async () => {
     if (!draft.id) {
@@ -143,13 +163,28 @@ export function RobotManagement() {
         main={
           <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <CardHeader className="border-b border-border/60">
-              <CardTitle>机器人列表</CardTitle>
+              <div>
+                <CardTitle>机器人列表</CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  共 {filtered.length} 条记录，已勾选 {selectedCount} 条
+                </p>
+              </div>
             </CardHeader>
             <CardContent className="flex min-h-0 flex-1 flex-col p-0">
               {filtered.length ? (
                 <Table className="min-w-full">
                   <TableHeader className="sticky top-0 z-10 bg-white">
                     <TableRow>
+                      <TableHead className="w-12">
+                        <TableSelectionCheckbox
+                          checked={allFilteredSelected}
+                          indeterminate={someFilteredSelected}
+                          onChange={(checked) =>
+                            setSelectedIds((current) => togglePageSelection(current, filteredIds, checked))
+                          }
+                          ariaLabel="全选当前机器人列表"
+                        />
+                      </TableHead>
                       <TableHead>机器人ID</TableHead>
                       <TableHead>状态</TableHead>
                       <TableHead>患者</TableHead>
@@ -166,6 +201,15 @@ export function RobotManagement() {
                         className="cursor-pointer"
                         onClick={() => setSelectedId(item.id)}
                       >
+                        <TableCell onClick={(event) => event.stopPropagation()}>
+                          <TableSelectionCheckbox
+                            checked={selectedIds.includes(item.id)}
+                            onChange={(checked) =>
+                              setSelectedIds((current) => toggleSelection(current, item.id, checked))
+                            }
+                            ariaLabel={`选择机器人 ${item.id}`}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">{item.id}</TableCell>
                         <TableCell>{item.status}</TableCell>
                         <TableCell>{item.patientName}</TableCell>
