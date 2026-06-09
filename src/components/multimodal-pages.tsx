@@ -1793,8 +1793,8 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                         key={message.id}
                         className={
                           message.role === "user"
-                            ? "ml-auto max-w-[78%] rounded-[1.5rem] bg-primary px-5 py-4 text-sm text-white"
-                            : "max-w-[88%] rounded-[1.5rem] border border-border/70 bg-white px-5 py-4"
+                            ? "ml-auto w-fit self-end max-w-[78%] rounded-[1.5rem] bg-primary px-5 py-4 text-sm text-white"
+                            : "w-fit self-start max-w-[88%] rounded-[1.5rem] border border-border/70 bg-white px-5 py-4"
                         }
                       >
                         <p className={message.role === "user" ? "leading-7" : "text-sm leading-7 text-surface-900"}>
