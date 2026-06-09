@@ -31,6 +31,38 @@
       "updatedAt": "2026-06-03T10:00:00.000Z",
       "aiReference": "AI 建议在下肢循环训练后进入抗阻步态模块。",
       "status": "待同步"
+    },
+    {
+      "id": "plan-003",
+      "patientId": "pat-003",
+      "patientName": "王敏",
+      "type": "偏瘫上肢恢复",
+      "goal": "提升坐站平衡和上肢前伸主动参与度",
+      "risk": "中风险",
+      "description": "以躯干稳定、坐站转换和上肢引导训练为主，分段完成以减少疲劳累积。",
+      "doctor": "陈峰",
+      "nurse": "刘静",
+      "deviceId": "设备019",
+      "stage": "恢复阶段第3周",
+      "updatedAt": "2026-06-02T14:20:00.000Z",
+      "aiReference": "AI 建议先完成躯干控制训练，再加入上肢前伸和抓握协同任务。",
+      "status": "已同步"
+    },
+    {
+      "id": "plan-004",
+      "patientId": "pat-004",
+      "patientName": "赵薇",
+      "type": "关节松解准备",
+      "goal": "改善肩关节活动度并降低粘连期疼痛反馈",
+      "risk": "高风险",
+      "description": "以小角度牵伸、热疗前准备和疼痛监测为主，严控训练时长和强度。",
+      "doctor": "孙悦",
+      "nurse": "韩护士",
+      "deviceId": "设备006",
+      "stage": "评估阶段",
+      "updatedAt": "2026-06-01T09:30:00.000Z",
+      "aiReference": "AI 建议每日先评估疼痛等级和被动活动度，再逐步增加训练角度。",
+      "status": "待同步"
     }
   ],
   "currentActions": [

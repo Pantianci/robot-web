@@ -27,6 +27,7 @@ import { DialogFormShell } from "@/components/dialog-form-shell";
 import { EmptyState } from "@/components/empty-state";
 import { Field } from "@/components/field";
 import { FilterBar } from "@/components/filter-bar";
+import { MetricCard } from "@/components/metric-card";
 import { PageHeader } from "@/components/page-header";
 import { PropertyList } from "@/components/property-list";
 import { SectionCard } from "@/components/section-card";
@@ -210,6 +211,452 @@ function PaginationBar({
           下一页
         </Button>
       </div>
+    </div>
+  );
+}
+
+function planStatusBadgeClass(status: RehabPlan["status"]) {
+  return status === "已同步"
+    ? "bg-emerald-100 text-emerald-700"
+    : "bg-amber-100 text-amber-700";
+}
+
+function planRiskBadgeClass(risk: string) {
+  if (risk.includes("高")) {
+    return "bg-rose-100 text-rose-700";
+  }
+
+  if (risk.includes("中")) {
+    return "bg-amber-100 text-amber-700";
+  }
+
+  return "bg-emerald-100 text-emerald-700";
+}
+
+export function RehabPlanManagement() {
+  const navigate = useNavigate();
+  const { data: patients = [] } = usePatientsQuery();
+  const { data: plans = [] } = usePlansQuery();
+  const { data: prescriptions = [] } = usePrescriptionsQuery();
+  const deletePlanMutation = useDeletePlanMutation();
+  const [keyword, setKeyword] = useState("");
+  const [patientFilter, setPatientFilter] = useState("");
+  const [stageFilter, setStageFilter] = useState("");
+  const [riskFilter, setRiskFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [deletePlanTarget, setDeletePlanTarget] = useState<RehabPlan | null>(null);
+
+  const sortedPlans = useMemo(
+    () => [...plans].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+    [plans]
+  );
+  const coveredPatients = useMemo(
+    () => patients.filter((patient) => sortedPlans.some((plan) => plan.patientId === patient.id)),
+    [patients, sortedPlans]
+  );
+  const stageOptions = useMemo(
+    () => Array.from(new Set(sortedPlans.map((plan) => plan.stage))).filter(Boolean),
+    [sortedPlans]
+  );
+  const filteredPlans = useMemo(
+    () =>
+      sortedPlans.filter((plan) => {
+        const patient = patients.find((item) => item.id === plan.patientId) ?? null;
+        const matchesKeyword =
+          !keyword ||
+          [
+            plan.id,
+            plan.patientName,
+            patient?.id,
+            plan.type,
+            plan.goal,
+            plan.risk,
+            plan.doctor,
+            plan.nurse
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
+            .includes(keyword.toLowerCase());
+        const matchesPatient = !patientFilter || plan.patientId === patientFilter;
+        const matchesStage = !stageFilter || plan.stage === stageFilter;
+        const matchesRisk = !riskFilter || plan.risk === riskFilter;
+        const matchesStatus = !statusFilter || plan.status === statusFilter;
+
+        return matchesKeyword && matchesPatient && matchesStage && matchesRisk && matchesStatus;
+      }),
+    [keyword, patientFilter, patients, riskFilter, sortedPlans, stageFilter, statusFilter]
+  );
+
+  useEffect(() => {
+    if (!filteredPlans.length) {
+      setSelectedPlanId(null);
+      return;
+    }
+
+    if (!selectedPlanId || !filteredPlans.some((plan) => plan.id === selectedPlanId)) {
+      setSelectedPlanId(filteredPlans[0]?.id ?? null);
+    }
+  }, [filteredPlans, selectedPlanId]);
+
+  const selectedPlan = filteredPlans.find((plan) => plan.id === selectedPlanId) ?? filteredPlans[0] ?? null;
+  const selectedPatient = patients.find((patient) => patient.id === selectedPlan?.patientId) ?? null;
+  const selectedPatientPrescriptions = useMemo(
+    () =>
+      prescriptions
+        .filter((item) => item.patientId === selectedPlan?.patientId)
+        .sort((a, b) => new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime()),
+    [prescriptions, selectedPlan?.patientId]
+  );
+  const totalPages = Math.max(1, Math.ceil(filteredPlans.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pagedPlans = filteredPlans.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
+
+  const syncedCount = sortedPlans.filter((plan) => plan.status === "已同步").length;
+  const pendingCount = sortedPlans.length - syncedCount;
+  const highRiskCount = sortedPlans.filter((plan) => plan.risk.includes("高")).length;
+
+  const resetFilters = () => {
+    setKeyword("");
+    setPatientFilter("");
+    setStageFilter("");
+    setRiskFilter("");
+    setStatusFilter("");
+    setPage(1);
+  };
+
+  const openPlanEdit = (plan: RehabPlan) => {
+    const patient = patients.find((item) => item.id === plan.patientId) ?? null;
+    if (patient) {
+      writePatientWorkspace(patient);
+    }
+    writeState(planWorkspaceContextKey, { planId: plan.id });
+    navigateTo(navigate, "/patients/plans/edit");
+  };
+
+  const openPatientFlow = (plan: RehabPlan) => {
+    const patient = patients.find((item) => item.id === plan.patientId) ?? null;
+    if (!patient) {
+      return;
+    }
+
+    writePatientWorkspace(patient);
+    writeState(planWorkspaceContextKey, { planId: plan.id });
+    navigateTo(navigate, patientPlansPath(patient.id));
+  };
+
+  const handleDeletePlan = async () => {
+    if (!deletePlanTarget) {
+      return;
+    }
+
+    await deletePlanMutation.mutateAsync(deletePlanTarget.id);
+    setDeletePlanTarget(null);
+  };
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <PageHeader
+        eyebrow="患者档案管理 > 康复方案"
+        title="康复方案"
+        description="面向全部患者的康复方案管理页，支持按患者、阶段、风险和同步状态统一管理。"
+        className="mb-1"
+        actions={
+          <>
+            <Button variant="secondary">
+              <Sparkles className="h-4 w-4" />
+              AI生成方案
+            </Button>
+            <Button onClick={() => navigateTo(navigate, "/patients/plans/create")}>
+              <Plus className="h-4 w-4" />
+              新增方案
+            </Button>
+            <Button variant="outline" onClick={() => navigateTo(navigate, "/patients/plans/export")}>
+              <FileOutput className="h-4 w-4" />
+              导出方案
+            </Button>
+          </>
+        }
+      />
+
+      <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+        <MetricCard label="方案总数" value={sortedPlans.length} hint="当前库内全部康复方案" />
+        <MetricCard label="覆盖患者" value={coveredPatients.length} hint="已有方案的患者人数" />
+        <MetricCard label="已同步方案" value={syncedCount} hint="已确认并同步到治疗流程" />
+        <MetricCard label="高风险方案" value={highRiskCount} hint={`待同步 ${pendingCount} 条`} />
+      </div>
+
+      <FilterBar
+        singleLine
+        actions={
+          <>
+            <Button variant="secondary" onClick={resetFilters}>
+              重置
+            </Button>
+            <Button onClick={() => setPage(1)}>查询</Button>
+          </>
+        }
+      >
+        <Field label="关键字检索">
+          <Input
+            value={keyword}
+            placeholder="方案编号 / 患者 / 类型 / 医护"
+            onChange={(event) => setKeyword(event.target.value)}
+          />
+        </Field>
+        <Field label="患者">
+          <select
+            className="native-select"
+            value={patientFilter}
+            onChange={(event) => setPatientFilter(event.target.value)}
+          >
+            <option value="">全部患者</option>
+            {coveredPatients.map((patient) => (
+              <option key={patient.id} value={patient.id}>
+                {patient.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="阶段">
+          <select
+            className="native-select"
+            value={stageFilter}
+            onChange={(event) => setStageFilter(event.target.value)}
+          >
+            <option value="">全部阶段</option>
+            {stageOptions.map((stage) => (
+              <option key={stage} value={stage}>
+                {stage}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="风险">
+          <select
+            className="native-select"
+            value={riskFilter}
+            onChange={(event) => setRiskFilter(event.target.value)}
+          >
+            <option value="">全部风险</option>
+            <option value="低风险">低风险</option>
+            <option value="中风险">中风险</option>
+            <option value="高风险">高风险</option>
+          </select>
+        </Field>
+        <Field label="同步状态">
+          <select
+            className="native-select"
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+          >
+            <option value="">全部状态</option>
+            <option value="已同步">已同步</option>
+            <option value="待同步">待同步</option>
+          </select>
+        </Field>
+      </FilterBar>
+
+      <CollapsibleSplitLayout
+        label="方案详情"
+        sideWidthClassName="w-full xl:w-[380px]"
+        main={
+          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <div>
+                <CardTitle>全员方案列表</CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  共 {filteredPlans.length} 条方案，覆盖 {new Set(filteredPlans.map((plan) => plan.patientId)).size} 位患者
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+              {filteredPlans.length ? (
+                <Table className="min-w-full">
+                  <TableHeader className="sticky top-0 z-10 bg-white">
+                    <TableRow>
+                      <TableHead>方案编号</TableHead>
+                      <TableHead>患者</TableHead>
+                      <TableHead>阶段</TableHead>
+                      <TableHead>类型</TableHead>
+                      <TableHead>训练目标</TableHead>
+                      <TableHead>风险</TableHead>
+                      <TableHead>状态</TableHead>
+                      <TableHead>医生</TableHead>
+                      <TableHead>更新时间</TableHead>
+                      <TableHead>操作</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pagedPlans.map((plan) => {
+                      return (
+                        <TableRow
+                          key={plan.id}
+                          className="cursor-pointer"
+                          data-state={selectedPlan?.id === plan.id ? "selected" : undefined}
+                          onClick={() => setSelectedPlanId(plan.id)}
+                        >
+                          <TableCell className="font-medium">{plan.id}</TableCell>
+                          <TableCell>{plan.patientName}</TableCell>
+                          <TableCell>{plan.stage}</TableCell>
+                          <TableCell>{plan.type}</TableCell>
+                          <TableCell className="max-w-[220px] truncate">{plan.goal}</TableCell>
+                          <TableCell>
+                            <Badge className={planRiskBadgeClass(plan.risk)}>{plan.risk}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={planStatusBadgeClass(plan.status)}>{plan.status}</Badge>
+                          </TableCell>
+                          <TableCell>{plan.doctor}</TableCell>
+                          <TableCell>{formatDateTime(plan.updatedAt)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  openPatientFlow(plan);
+                                }}
+                              >
+                                患者链路
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  openPlanEdit(plan);
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                                编辑
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="text-rose-600 hover:text-rose-700"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setDeletePlanTarget(plan);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                删除
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="p-6">
+                  <EmptyState title="暂无康复方案" description="调整筛选条件后重试，或直接新增方案。" />
+                </div>
+              )}
+            </CardContent>
+            <PaginationBar
+              total={filteredPlans.length}
+              page={safePage}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </Card>
+        }
+        side={
+          <DetailPanel title="方案详情" className="h-full">
+            {selectedPlan ? (
+              <>
+                <PropertyList
+                  items={[
+                    { label: "患者姓名", value: selectedPlan.patientName },
+                    { label: "患者ID", value: selectedPatient?.id ?? selectedPlan.patientId },
+                    { label: "方案编号", value: selectedPlan.id },
+                    { label: "方案类型", value: selectedPlan.type },
+                    { label: "阶段", value: selectedPlan.stage },
+                    { label: "确认医生", value: selectedPlan.doctor },
+                    { label: "责任护士", value: selectedPlan.nurse },
+                    { label: "设备", value: selectedPlan.deviceId },
+                    { label: "同步状态", value: selectedPlan.status },
+                    { label: "最近更新", value: formatDateTime(selectedPlan.updatedAt) }
+                  ]}
+                />
+                <SectionCard title="训练目标">
+                  <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3 text-sm leading-7 text-surface-900">
+                    {selectedPlan.goal}
+                  </div>
+                </SectionCard>
+                <SectionCard title="方案说明">
+                  <p className="text-sm leading-7 text-muted-foreground">{selectedPlan.description}</p>
+                </SectionCard>
+                <SectionCard title="AI 推荐依据">
+                  <p className="text-sm leading-7 text-muted-foreground">{selectedPlan.aiReference}</p>
+                </SectionCard>
+                <SectionCard title="相关处方">
+                  <div className="space-y-3">
+                    {selectedPatientPrescriptions.length ? (
+                      selectedPatientPrescriptions.slice(0, 3).map((prescription) => (
+                        <div
+                          key={prescription.id}
+                          className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-medium text-surface-900">{prescription.id}</p>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {prescription.sequenceName} · {prescription.frequency}
+                              </p>
+                            </div>
+                            <Badge>{prescription.status}</Badge>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="rounded-[1rem] border border-dashed border-border/70 bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
+                        当前患者还没有关联处方，可先进入患者链路继续配置。
+                      </div>
+                    )}
+                  </div>
+                </SectionCard>
+                <div className="flex gap-2">
+                  <Button onClick={() => openPatientFlow(selectedPlan)}>进入患者链路</Button>
+                  <Button variant="outline" onClick={() => openPlanEdit(selectedPlan)}>
+                    编辑方案
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <EmptyState title="请选择方案" description="从左侧列表选择一条方案后查看详情。" />
+            )}
+          </DetailPanel>
+        }
+      />
+
+      <DialogFormShell
+        open={Boolean(deletePlanTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletePlanTarget(null);
+          }
+        }}
+        title="删除康复方案"
+        description={`确认删除“${deletePlanTarget?.id ?? ""}”后，列表会立即刷新。`}
+        onSubmit={handleDeletePlan}
+        submitLabel="确认删除"
+      >
+        <p className="text-sm leading-7 text-muted-foreground">当前原型会直接从本地列表中移除该康复方案。</p>
+      </DialogFormShell>
     </div>
   );
 }

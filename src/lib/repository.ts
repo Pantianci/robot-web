@@ -35,6 +35,19 @@ const fallbackDatabase: AppDatabase = {
 };
 
 const fallbackDashboard = dashboardSeed as DashboardSeed;
+const REHAB_PLAN_SEED_BACKFILL_KEY = "robot-web-prototype::rehab-plan-seed-v2";
+
+function shouldBackfillRehabPlans() {
+  return typeof window === "undefined" || !window.localStorage.getItem(REHAB_PLAN_SEED_BACKFILL_KEY);
+}
+
+function markRehabPlansBackfilled() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(REHAB_PLAN_SEED_BACKFILL_KEY, "1");
+}
 
 function normalizeDatabase(database: AppDatabase): AppDatabase {
   const next = structuredClone(database);
@@ -83,6 +96,16 @@ function normalizeDatabase(database: AppDatabase): AppDatabase {
     if (!next.knowledge.tags.some((record) => record.id === tag.id)) {
       next.knowledge.tags.push(tag);
     }
+  }
+
+  if (shouldBackfillRehabPlans()) {
+    for (const plan of fallbackDatabase.carePath.plans) {
+      if (!next.carePath.plans.some((record) => record.id === plan.id)) {
+        next.carePath.plans.push(plan);
+      }
+    }
+
+    markRehabPlansBackfilled();
   }
 
   return next;
