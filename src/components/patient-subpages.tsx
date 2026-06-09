@@ -39,7 +39,7 @@ import type {
 } from "@/lib/types";
 import { CollapsibleSplitLayout } from "@/components/collapsible-side-panel";
 import { Field } from "@/components/field";
-import { PageHeader } from "@/components/page-header";
+import { PageBreadcrumbs, PageHeader } from "@/components/page-header";
 import { PropertyList } from "@/components/property-list";
 import { SectionCard } from "@/components/section-card";
 import { Button } from "@/components/ui/button";
@@ -166,6 +166,165 @@ function patientPrescriptionCurrentPath(patientId: string, planId: string, presc
   return `/patients/${patientId}/plans/${planId}/prescriptions/${prescriptionId}/current`;
 }
 
+function openPatientBase(
+  navigate: ReturnType<typeof useNavigate>,
+  patient: Patient | null
+) {
+  if (patient) {
+    writeState(patientWorkspaceContextKey, {
+      selectedId: patient.id,
+      patientId: patient.id,
+      patientName: patient.name
+    });
+  }
+
+  navigateTo(navigate, "/patients/base");
+}
+
+function openPatientPlanList(
+  navigate: ReturnType<typeof useNavigate>,
+  patient: Patient,
+  plan?: RehabPlan | null
+) {
+  writeState(patientWorkspaceContextKey, {
+    selectedId: patient.id,
+    patientId: patient.id,
+    patientName: patient.name
+  });
+
+  if (plan) {
+    writeState(planWorkspaceContextKey, { planId: plan.id });
+  }
+
+  navigateTo(navigate, patientPlansPath(patient.id));
+}
+
+function openPatientPrescriptionList(
+  navigate: ReturnType<typeof useNavigate>,
+  patient: Patient,
+  plan: RehabPlan,
+  prescription?: Prescription | null
+) {
+  writeState(patientWorkspaceContextKey, {
+    selectedId: patient.id,
+    patientId: patient.id,
+    patientName: patient.name
+  });
+  writeState(planWorkspaceContextKey, { planId: plan.id });
+
+  if (prescription) {
+    writeState(prescriptionWorkspaceContextKey, { prescriptionId: prescription.id });
+  }
+
+  navigateTo(navigate, patientPlanPrescriptionsPath(patient.id, plan.id));
+}
+
+function openPatientCurrentActionList(
+  navigate: ReturnType<typeof useNavigate>,
+  patient: Patient,
+  plan: RehabPlan,
+  prescription: Prescription
+) {
+  writeState(patientWorkspaceContextKey, {
+    selectedId: patient.id,
+    patientId: patient.id,
+    patientName: patient.name
+  });
+  writeState(planWorkspaceContextKey, { planId: plan.id });
+  writeState(prescriptionWorkspaceContextKey, { prescriptionId: prescription.id });
+  navigateTo(navigate, patientPrescriptionCurrentPath(patient.id, plan.id, prescription.id));
+}
+
+function buildPlanBreadcrumb({
+  navigate,
+  patient,
+  plan,
+  currentLabel,
+  scope
+}: {
+  navigate: ReturnType<typeof useNavigate>;
+  patient: Patient | null;
+  plan?: RehabPlan | null;
+  currentLabel: string;
+  scope: CarePathScope;
+}) {
+  return (
+    <PageBreadcrumbs
+      items={
+        scope === "all"
+          ? [
+              { label: "患者档案管理", to: "/patients/base" },
+              { label: "康复方案", to: "/patients/plans" },
+              { label: currentLabel, active: true }
+            ]
+          : [
+              { label: "患者档案管理", to: "/patients/base" },
+              { label: "基础档案", onClick: () => openPatientBase(navigate, patient) },
+              { label: patient?.name ?? "患者", onClick: () => openPatientBase(navigate, patient) },
+              { label: "康复方案", onClick: () => patient && openPatientPlanList(navigate, patient, plan) },
+              { label: currentLabel, active: true }
+            ]
+      }
+    />
+  );
+}
+
+function buildPrescriptionBreadcrumb({
+  navigate,
+  patient,
+  plan,
+  currentLabel
+}: {
+  navigate: ReturnType<typeof useNavigate>;
+  patient: Patient | null;
+  plan: RehabPlan | null;
+  currentLabel: string;
+}) {
+  return (
+    <PageBreadcrumbs
+      items={[
+        { label: "患者档案管理", to: "/patients/base" },
+        { label: "基础档案", onClick: () => openPatientBase(navigate, patient) },
+        { label: patient?.name ?? "患者", onClick: () => patient && plan && openPatientPlanList(navigate, patient, plan) },
+        { label: "康复方案", onClick: () => patient && plan && openPatientPlanList(navigate, patient, plan) },
+        { label: plan?.id ?? "方案", onClick: () => patient && plan && openPatientPlanList(navigate, patient, plan) },
+        { label: "处方列表", onClick: () => patient && plan && openPatientPrescriptionList(navigate, patient, plan) },
+        { label: currentLabel, active: true }
+      ]}
+    />
+  );
+}
+
+function buildCurrentBreadcrumb({
+  navigate,
+  patient,
+  plan,
+  prescription,
+  currentLabel
+}: {
+  navigate: ReturnType<typeof useNavigate>;
+  patient: Patient | null;
+  plan: RehabPlan | null;
+  prescription: Prescription | null;
+  currentLabel: string;
+}) {
+  return (
+    <PageBreadcrumbs
+      items={[
+        { label: "患者档案管理", to: "/patients/base" },
+        { label: "基础档案", onClick: () => openPatientBase(navigate, patient) },
+        { label: patient?.name ?? "患者", onClick: () => patient && plan && openPatientPlanList(navigate, patient, plan) },
+        { label: "康复方案", onClick: () => patient && plan && openPatientPlanList(navigate, patient, plan) },
+        { label: plan?.id ?? "方案", onClick: () => patient && plan && openPatientPlanList(navigate, patient, plan) },
+        { label: "处方列表", onClick: () => patient && plan && openPatientPrescriptionList(navigate, patient, plan, prescription) },
+        { label: prescription?.id ?? "处方", onClick: () => patient && plan && prescription && openPatientPrescriptionList(navigate, patient, plan, prescription) },
+        { label: "当前处方", onClick: () => patient && plan && prescription && openPatientCurrentActionList(navigate, patient, plan, prescription) },
+        { label: currentLabel, active: true }
+      ]}
+    />
+  );
+}
+
 function SubPageLayout({
   eyebrow,
   title,
@@ -175,7 +334,7 @@ function SubPageLayout({
   right,
   bottom
 }: {
-  eyebrow: string;
+  eyebrow: React.ReactNode;
   title: string;
   description: string;
   actions?: React.ReactNode;
@@ -197,7 +356,7 @@ function SubPageLayout({
         label="摘要"
         sideWidthClassName="w-full xl:w-[360px]"
         main={
-          <div className="flex min-h-0 flex-col gap-4">
+          <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
             {left}
             <Card className="shrink-0 border-primary/15 bg-primary/5">
               <CardContent className="flex items-center justify-between gap-4 p-5">
@@ -663,7 +822,7 @@ export function PlanCreatePage({
 
   return (
     <SubPageLayout
-      eyebrow="患者档案管理 > 康复方案 > 新增方案"
+      eyebrow={buildPlanBreadcrumb({ navigate, patient, plan: summaryPlan, currentLabel: "新增方案", scope })}
       title="新增方案"
       description={scope === "all" ? "从全员康复方案页新增方案，可选择目标患者后提交。" : "从患者档案进入的专属新增方案页，默认绑定当前患者。"}
       left={
@@ -835,7 +994,7 @@ export function PlanEditPage({
 
   return (
     <SubPageLayout
-      eyebrow="患者档案管理 > 康复方案 > 修改方案"
+      eyebrow={buildPlanBreadcrumb({ navigate, patient, plan: summaryPlan, currentLabel: "修改方案", scope })}
       title="修改方案"
       description={scope === "all" ? "从全员康复方案页编辑选中的方案。" : "从患者专属康复方案页编辑当前方案。"}
       left={
@@ -1039,7 +1198,7 @@ export function PrescriptionCreatePage({
 
   return (
     <SubPageLayout
-      eyebrow="患者档案管理 > 处方列表 > 新增动作处方"
+      eyebrow={buildPrescriptionBreadcrumb({ navigate, patient, plan: summaryPlan, currentLabel: "新增运动处方" })}
       title="新增动作处方"
       description="默认加载当前患者和当前方案，支持对动作序列中的各动作参数进行二次编辑。"
       left={
@@ -1050,11 +1209,11 @@ export function PrescriptionCreatePage({
             prescription={null}
             currentAction={null}
           />
-          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <Card className="shrink-0 overflow-hidden">
             <CardHeader className="border-b border-border/60">
               <CardTitle>处方表单字段</CardTitle>
             </CardHeader>
-            <CardContent className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-5 md:grid-cols-2">
+            <CardContent className="grid gap-4 p-5 md:grid-cols-2">
               <Field label="患者姓名">
                 <Input value={patient?.name ?? defaultPatientWorkspace.patientName} disabled />
               </Field>
@@ -1086,11 +1245,11 @@ export function PrescriptionCreatePage({
               </div>
             </CardContent>
           </Card>
-          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border-border/70 shadow-none">
+          <Card className="shrink-0 overflow-hidden border-border/70 shadow-none">
             <CardHeader className="border-b border-border/60">
               <CardTitle>各动作详情编辑</CardTitle>
             </CardHeader>
-            <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
+            <CardContent className="space-y-4 p-5">
               {draft.movements.map((movement, index) => (
                 <div key={movement.id} className="grid gap-4 rounded-[1rem] border border-border/70 bg-surface-50 p-4 md:grid-cols-4">
                   <Field label="动作名称">
@@ -1238,7 +1397,7 @@ export function PrescriptionEditPage({
 
   return (
     <SubPageLayout
-      eyebrow="患者档案管理 > 处方列表 > 修改运动处方"
+      eyebrow={buildPrescriptionBreadcrumb({ navigate, patient, plan: summaryPlan, currentLabel: "修改运动处方" })}
       title="修改运动处方"
       description="默认加载当前选中的运动处方，支持修改主字段和各动作参数。"
       left={
@@ -1427,7 +1586,7 @@ export function CurrentActionCreatePage({
 
   return (
     <SubPageLayout
-      eyebrow="患者档案管理 > 当前处方 > 新增单体动作"
+      eyebrow={buildCurrentBreadcrumb({ navigate, patient, plan: summaryPlan, prescription: summaryPrescription, currentLabel: "新增单体动作" })}
       title="新增单体动作"
       description="当前原型页用于补充单体动作信息与视频预览位，提交后返回当前处方动作页。"
       left={
@@ -1656,7 +1815,7 @@ export function CurrentActionEditPage({
 
   return (
     <SubPageLayout
-      eyebrow="患者档案管理 > 当前处方 > 修改单体动作"
+      eyebrow={buildCurrentBreadcrumb({ navigate, patient, plan: summaryPlan, prescription: summaryPrescription, currentLabel: "修改单体动作" })}
       title="修改单体动作"
       description="默认加载当前选中的单体动作，支持修改动作字段并保持右侧视频预览。"
       left={
@@ -1758,7 +1917,7 @@ function ExportSubPage({
   exportHint,
   onGenerate
 }: {
-  eyebrow: string;
+  eyebrow: React.ReactNode;
   title: string;
   description: string;
   draftKey: string;
@@ -1871,12 +2030,21 @@ export function PrescriptionExportPage({
   planId,
   returnTo
 }: CarePathSubPageProps = {}) {
+  const navigate = useNavigate();
+  const { data: patients = [] } = usePatientsQuery();
+  const { data: plans = [] } = usePlansQuery();
+  const summaryPlan =
+    plans.find((item) => item.id === planId) ??
+    plans.find((item) => item.id === readState<{ planId: string }>(planWorkspaceContextKey)?.planId) ??
+    null;
+  const patient =
+    resolveWorkspacePatient(patients, plans, [], patientId ?? summaryPlan?.patientId) ?? patients[0] ?? null;
   const targetReturnTo =
     returnTo ?? (patientId && planId ? patientPlanPrescriptionsPath(patientId, planId) : "/patients/prescriptions");
 
   return (
     <ExportSubPage
-      eyebrow="患者档案管理 > 处方列表 > 导出运动处方"
+      eyebrow={buildPrescriptionBreadcrumb({ navigate, patient, plan: summaryPlan, currentLabel: "导出运动处方" })}
       title="导出运动处方"
       description="支持按当前筛选结果或选中记录导出，并配置导出时间范围、对象和条件。"
       draftKey={prescriptionExportDraftKey}
@@ -1903,11 +2071,16 @@ export function PlanExportPage({
   patientId,
   returnTo
 }: CarePathSubPageProps = {}) {
+  const navigate = useNavigate();
+  const { data: patients = [] } = usePatientsQuery();
+  const { data: plans = [] } = usePlansQuery();
+  const patient = resolveWorkspacePatient(patients, plans, [], patientId) ?? patients[0] ?? null;
+  const summaryPlan = plans.find((item) => item.patientId === patient?.id) ?? null;
   const targetReturnTo = returnTo ?? (scope === "patient" && patientId ? patientPlansPath(patientId) : "/patients/plans");
 
   return (
     <ExportSubPage
-      eyebrow="患者档案管理 > 康复方案 > 导出方案"
+      eyebrow={buildPlanBreadcrumb({ navigate, patient, plan: summaryPlan, currentLabel: "导出方案", scope })}
       title="导出方案"
       description="支持当前筛选结果或当前方案导出，并配置时间范围、导出对象和条件。"
       draftKey={planExportDraftKey}
@@ -1935,6 +2108,25 @@ export function CurrentActionExportPage({
   prescriptionId,
   returnTo
 }: CarePathSubPageProps = {}) {
+  const navigate = useNavigate();
+  const { data: patients = [] } = usePatientsQuery();
+  const { data: plans = [] } = usePlansQuery();
+  const { data: prescriptions = [] } = usePrescriptionsQuery();
+  const summaryPlan =
+    plans.find((item) => item.id === planId) ??
+    plans.find((item) => item.id === readState<{ planId: string }>(planWorkspaceContextKey)?.planId) ??
+    null;
+  const summaryPrescription =
+    prescriptions.find((item) => item.id === prescriptionId) ??
+    prescriptions.find((item) => item.id === readState<{ prescriptionId: string }>(prescriptionWorkspaceContextKey)?.prescriptionId) ??
+    null;
+  const patient =
+    resolveWorkspacePatient(
+      patients,
+      plans,
+      prescriptions,
+      patientId ?? summaryPrescription?.patientId ?? summaryPlan?.patientId
+    ) ?? patients[0] ?? null;
   const targetReturnTo =
     returnTo ??
     (patientId && planId && prescriptionId
@@ -1943,7 +2135,7 @@ export function CurrentActionExportPage({
 
   return (
     <ExportSubPage
-      eyebrow="患者档案管理 > 当前处方 > 导出单体动作"
+      eyebrow={buildCurrentBreadcrumb({ navigate, patient, plan: summaryPlan, prescription: summaryPrescription, currentLabel: "导出单体动作" })}
       title="导出单体动作"
       description="支持导出当前单体动作列表，并配置导出时间范围、对象和条件。"
       draftKey={currentActionExportDraftKey}

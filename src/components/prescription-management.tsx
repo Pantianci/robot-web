@@ -27,8 +27,7 @@ import { DialogFormShell } from "@/components/dialog-form-shell";
 import { EmptyState } from "@/components/empty-state";
 import { Field } from "@/components/field";
 import { FilterBar } from "@/components/filter-bar";
-import { MetricCard } from "@/components/metric-card";
-import { PageHeader } from "@/components/page-header";
+import { PageBreadcrumbs, PageHeader } from "@/components/page-header";
 import { PropertyList } from "@/components/property-list";
 import { SectionCard } from "@/components/section-card";
 import { Badge } from "@/components/ui/badge";
@@ -77,6 +76,54 @@ function patientPlanPrescriptionsPath(patientId: string, planId: string) {
 
 function patientPrescriptionCurrentPath(patientId: string, planId: string, prescriptionId: string) {
   return `/patients/${patientId}/plans/${planId}/prescriptions/${prescriptionId}/current`;
+}
+
+function openPatientBase(
+  navigate: ReturnType<typeof useNavigate>,
+  patient: Patient | null
+) {
+  if (patient) {
+    writePatientWorkspace(patient);
+  }
+  navigateTo(navigate, "/patients/base");
+}
+
+function openPatientPlanList(
+  navigate: ReturnType<typeof useNavigate>,
+  patient: Patient,
+  plan?: RehabPlan | null
+) {
+  writePatientWorkspace(patient);
+  if (plan) {
+    writeState(planWorkspaceContextKey, { planId: plan.id });
+  }
+  navigateTo(navigate, patientPlansPath(patient.id));
+}
+
+function openPatientPrescriptionList(
+  navigate: ReturnType<typeof useNavigate>,
+  patient: Patient,
+  plan: RehabPlan,
+  prescription?: Prescription | null
+) {
+  writePatientWorkspace(patient);
+  writeState(planWorkspaceContextKey, { planId: plan.id });
+  if (prescription) {
+    writeState(prescriptionWorkspaceContextKey, { prescriptionId: prescription.id });
+  }
+  navigateTo(navigate, patientPlanPrescriptionsPath(patient.id, plan.id));
+}
+
+function openPatientCurrentActionList(
+  navigate: ReturnType<typeof useNavigate>,
+  patient: Patient,
+  plan: RehabPlan,
+  prescription: Prescription
+) {
+  writePatientWorkspace(patient);
+  writeState(planWorkspaceContextKey, { planId: plan.id });
+  writeState(prescriptionWorkspaceContextKey, { prescriptionId: prescription.id });
+  navigateTo(navigate, patientPrescriptionCurrentPath(patient.id, plan.id, prescription.id));
 }
 
 function resolveWorkspacePatient(
@@ -318,10 +365,6 @@ export function RehabPlanManagement() {
     setPage((current) => Math.min(current, totalPages));
   }, [totalPages]);
 
-  const syncedCount = sortedPlans.filter((plan) => plan.status === "已同步").length;
-  const pendingCount = sortedPlans.length - syncedCount;
-  const highRiskCount = sortedPlans.filter((plan) => plan.risk.includes("高")).length;
-
   const resetFilters = () => {
     setKeyword("");
     setPatientFilter("");
@@ -363,7 +406,14 @@ export function RehabPlanManagement() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <PageHeader
-        eyebrow="患者档案管理 > 康复方案"
+        eyebrow={
+          <PageBreadcrumbs
+            items={[
+              { label: "患者档案管理", to: "/patients/base" },
+              { label: "康复方案", active: true }
+            ]}
+          />
+        }
         title="康复方案"
         description="面向全部患者的康复方案管理页，支持按患者、阶段、风险和同步状态统一管理。"
         className="mb-1"
@@ -384,13 +434,6 @@ export function RehabPlanManagement() {
           </>
         }
       />
-
-      <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
-        <MetricCard label="方案总数" value={sortedPlans.length} hint="当前库内全部康复方案" />
-        <MetricCard label="覆盖患者" value={coveredPatients.length} hint="已有方案的患者人数" />
-        <MetricCard label="已同步方案" value={syncedCount} hint="已确认并同步到治疗流程" />
-        <MetricCard label="高风险方案" value={highRiskCount} hint={`待同步 ${pendingCount} 条`} />
-      </div>
 
       <FilterBar
         singleLine
@@ -944,14 +987,6 @@ export function PrescriptionManagement({
       </Button>
     </>
   );
-  const headerEyebrow =
-    scope === "all" && view === "plans"
-      ? "患者档案管理 > 康复方案"
-      : view === "plans"
-        ? `患者档案管理 > 基础档案 > ${activePatient?.name ?? "患者"} > 康复方案`
-        : view === "prescriptions"
-          ? `患者档案管理 > 基础档案 > ${activePatient?.name ?? "患者"} > 康复方案 > ${summaryPlan?.id ?? "方案"} > 处方列表`
-          : `患者档案管理 > 基础档案 > ${activePatient?.name ?? "患者"} > 康复方案 > ${summaryPlan?.id ?? "方案"} > 处方列表 > ${summaryPrescription?.id ?? "处方"} > 当前处方`;
   const headerTitle =
     scope === "all" && view === "plans"
       ? "康复方案"
@@ -968,6 +1003,43 @@ export function PrescriptionManagement({
         : view === "prescriptions"
           ? "从患者方案进入的运动处方列表，点击某一条处方进入当前处方动作页。"
           : "从运动处方进入的当前处方动作页，用于查看、编辑和维护单体动作。";
+  const headerEyebrow = (
+    <PageBreadcrumbs
+      items={
+        scope === "all" && view === "plans"
+          ? [
+              { label: "患者档案管理", to: "/patients/base" },
+              { label: "康复方案", active: true }
+            ]
+          : view === "plans"
+            ? [
+                { label: "患者档案管理", to: "/patients/base" },
+                { label: "基础档案", onClick: () => openPatientBase(navigate, activePatient) },
+                { label: activePatient?.name ?? "患者", onClick: () => openPatientBase(navigate, activePatient) },
+                { label: "康复方案", active: true }
+              ]
+            : view === "prescriptions"
+              ? [
+                  { label: "患者档案管理", to: "/patients/base" },
+                  { label: "基础档案", onClick: () => openPatientBase(navigate, activePatient) },
+                  { label: activePatient?.name ?? "患者", onClick: () => activePatient && summaryPlan && openPatientPlanList(navigate, activePatient, summaryPlan) },
+                  { label: "康复方案", onClick: () => activePatient && summaryPlan && openPatientPlanList(navigate, activePatient, summaryPlan) },
+                  { label: summaryPlan?.id ?? "方案", onClick: () => activePatient && summaryPlan && openPatientPlanList(navigate, activePatient, summaryPlan) },
+                  { label: "处方列表", active: true }
+                ]
+              : [
+                  { label: "患者档案管理", to: "/patients/base" },
+                  { label: "基础档案", onClick: () => openPatientBase(navigate, activePatient) },
+                  { label: activePatient?.name ?? "患者", onClick: () => activePatient && summaryPlan && openPatientPlanList(navigate, activePatient, summaryPlan) },
+                  { label: "康复方案", onClick: () => activePatient && summaryPlan && openPatientPlanList(navigate, activePatient, summaryPlan) },
+                  { label: summaryPlan?.id ?? "方案", onClick: () => activePatient && summaryPlan && openPatientPlanList(navigate, activePatient, summaryPlan) },
+                  { label: "处方列表", onClick: () => activePatient && summaryPlan && openPatientPrescriptionList(navigate, activePatient, summaryPlan, selectedPrescription) },
+                  { label: summaryPrescription?.id ?? "处方", onClick: () => activePatient && summaryPlan && selectedPrescription && openPatientPrescriptionList(navigate, activePatient, summaryPlan, selectedPrescription) },
+                  { label: "当前处方", active: true }
+                ]
+      }
+    />
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
@@ -1058,7 +1130,7 @@ export function PrescriptionManagement({
                                 writePatientWorkspace(planPatient);
                               }
                               if (scope === "patient" && planPatient) {
-                                navigateTo(navigate, patientPlanPrescriptionsPath(planPatient.id, item.id));
+                                openPatientPrescriptionList(navigate, planPatient, item);
                               }
                             }}
                           >
@@ -1333,16 +1405,13 @@ export function PrescriptionManagement({
                           key={item.id}
                           className="cursor-pointer"
                           data-state={selectedPrescription?.id === item.id ? "selected" : undefined}
-                          onClick={() => {
-                            setSelectedPrescriptionId(item.id);
-                            writeState(prescriptionWorkspaceContextKey, { prescriptionId: item.id });
-                            if (activePatient && summaryPlan) {
-                              navigateTo(
-                                navigate,
-                                patientPrescriptionCurrentPath(activePatient.id, summaryPlan.id, item.id)
-                              );
-                            }
-                          }}
+                            onClick={() => {
+                              setSelectedPrescriptionId(item.id);
+                              writeState(prescriptionWorkspaceContextKey, { prescriptionId: item.id });
+                              if (activePatient && summaryPlan) {
+                                openPatientCurrentActionList(navigate, activePatient, summaryPlan, item);
+                              }
+                            }}
                         >
                           <TableCell className="font-medium">{item.id}</TableCell>
                           <TableCell>{item.doctor}</TableCell>
