@@ -68,7 +68,7 @@ export function CollapsibleSplitLayout({
         {collapsed ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
       </Button>
 
-      <div className="flex min-h-0 h-full flex-col gap-4 xl:flex-row">
+      <div className="flex min-h-0 h-full flex-col gap-3 xl:flex-row">
         <div
           className={cn(
             "min-h-0 min-w-0 flex-1 [&>*]:h-full [&>*]:min-h-0",

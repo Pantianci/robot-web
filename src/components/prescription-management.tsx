@@ -547,7 +547,7 @@ export function RehabPlanManagement() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <PageHeader
         eyebrow={
           <PageBreadcrumbs
@@ -559,7 +559,6 @@ export function RehabPlanManagement() {
         }
         title="康复方案"
         description="面向全部患者的康复方案管理页，支持按患者、阶段、风险和同步状态统一管理。"
-        className="mb-1"
         actions={
           <>
             <Button variant="secondary" disabled={!patients.length} onClick={openAiPlanDialog}>
@@ -1348,12 +1347,11 @@ export function PrescriptionManagement({
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <PageHeader
         eyebrow={headerEyebrow}
         title={headerTitle}
         description={headerDescription}
-        className="mb-1"
         actions={view === "plans" ? planActions : view === "current" ? currentActionsButtons : prescriptionActions}
       />
 

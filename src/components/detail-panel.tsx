@@ -20,7 +20,7 @@ export function DetailPanel({
       <CardHeader className="border-b border-border/60 pb-4">
         <CardTitle>{title}</CardTitle>
       </CardHeader>
-      <CardContent className={cn("flex-1 min-h-0 space-y-4 overflow-y-auto p-4", contentClassName)}>
+      <CardContent className={cn("flex-1 min-h-0 space-y-3 overflow-y-auto p-4", contentClassName)}>
         {children}
         {footer}
       </CardContent>

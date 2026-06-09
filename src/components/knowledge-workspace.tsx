@@ -664,12 +664,11 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
   ).length;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <PageHeader
         eyebrow={meta.eyebrow}
         title={meta.title}
         description={meta.listDescription}
-        className="mb-1"
         actions={
           <>
             {meta.aiActionLabel ? (

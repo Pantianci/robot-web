@@ -108,12 +108,11 @@ export function ReportManagement() {
   }, [selected]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <PageHeader
         eyebrow="患者档案管理 > 评估报告管理"
         title="评估报告管理"
         description="评估报告保持全局统一检索，不挂患者上下文；列表、详情和审核入口按 Figma 管理页结构组织。"
-        className="mb-1"
         actions={
           <>
             <Button asChild>

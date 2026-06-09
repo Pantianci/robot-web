@@ -409,7 +409,7 @@ function ActionPreviewPanel({
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
             {tags.length ? tags.map((tag) => <PathBadge key={tag}>{tag}</PathBadge>) : <PathBadge>待补充标签</PathBadge>}
           </div>
@@ -459,7 +459,7 @@ function ActionPreviewPanel({
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="rounded-[1.5rem] border border-border/70 bg-white p-5">
             <p className="text-sm font-medium text-surface-900">相似问题召回</p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -562,7 +562,7 @@ function ActionPreviewPanel({
           </Table>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="rounded-[1.5rem] border border-border/70 bg-surface-50 p-5">
             <p className="text-sm font-medium text-surface-900">序列阶段</p>
             <p className="mt-2 text-xl font-semibold text-surface-900">{readValue("阶段") || "术后1周"}</p>
@@ -694,7 +694,7 @@ function ActionPreviewPanel({
           </Table>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="rounded-[1.5rem] border border-border/70 bg-surface-50 p-5">
             <p className="text-sm font-medium text-surface-900">处方频率</p>
             <p className="mt-2 text-xl font-semibold text-surface-900">{readValue("频率") || "3-5 次/周"}</p>
@@ -717,7 +717,7 @@ function ActionPreviewPanel({
 
     return (
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="space-y-4 rounded-[1.5rem] border border-border/70 bg-white p-5">
+        <div className="space-y-3 rounded-[1.5rem] border border-border/70 bg-white p-5">
           <div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">训练完成率</span>
@@ -747,7 +747,7 @@ function ActionPreviewPanel({
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="rounded-[1.5rem] border border-border/70 bg-surface-50 p-5">
             <p className="text-sm font-medium text-surface-900">医生评价</p>
             <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -865,9 +865,9 @@ export function SubPageScaffold({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <PageHeader eyebrow={eyebrow} title={title} description={description} badge={status} actions={actions} />
-      <div className="flex min-h-0 flex-1 flex-col gap-4">{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col gap-3">{children}</div>
     </div>
   );
 }
@@ -1263,7 +1263,7 @@ export function ActionFormPage({
         label="摘要"
         sideWidthClassName="w-full xl:w-[360px]"
         main={
-          <div className="space-y-4">
+          <div className="space-y-3">
           <SectionCard title="核心配置" description="对齐 Figma 子页结构，左侧主表单承载核心录入字段。">
             <div className="grid gap-4 md:grid-cols-2">
               {baseFields.map((field) => {
@@ -1309,7 +1309,7 @@ export function ActionFormPage({
 
           {textFields.length ? (
             <SectionCard title={detailCardTitles[scenario]} description="较长内容单独成区，贴近原始设计稿中的信息块结构。">
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {textFields.map((field) => (
                   <Field key={field.label} label={field.label} required={field.required}>
                     <Textarea
@@ -1350,7 +1350,7 @@ export function ActionFormPage({
           </div>
         }
         side={
-          <div className="space-y-4">
+          <div className="space-y-3">
           <DetailPanel title="页面摘要">
             <PropertyList items={summaryItems} />
           </DetailPanel>
@@ -1463,7 +1463,7 @@ export function ExportPage({
         label="摘要"
         sideWidthClassName="w-full xl:w-[360px]"
         main={
-          <div className="space-y-4">
+          <div className="space-y-3">
           <SectionCard title="导出配置" description="左侧主区承接范围、格式和内容项设置。">
             <div className="grid gap-4 md:grid-cols-2">
               {options.map((option) => (
@@ -1531,7 +1531,7 @@ export function ExportPage({
           </div>
         }
         side={
-          <div className="space-y-4">
+          <div className="space-y-3">
           <DetailPanel title="任务摘要">
             <PropertyList
               items={[
@@ -1630,7 +1630,7 @@ export function QaPage({
         label="问答"
         sideWidthClassName="w-full xl:w-[360px]"
         main={
-          <div className="space-y-4">
+          <div className="space-y-3">
           <SectionCard title="知识问答输入台" description="主输入区补成更接近 Figma 的问答工作台。">
             <Field label="输入问题" required>
               <Textarea value={question} onChange={(event) => setQuestion(event.target.value)} />
@@ -1667,7 +1667,7 @@ export function QaPage({
           </div>
         }
         side={
-          <div className="space-y-4">
+          <div className="space-y-3">
           <DetailPanel title="推荐问题">
             <div className="space-y-3">
               {prompts.map((prompt) => (

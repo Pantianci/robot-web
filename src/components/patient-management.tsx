@@ -157,12 +157,11 @@ export function PatientManagement() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <PageHeader
         eyebrow="患者档案管理 > 基础档案"
         title="基础档案"
         description="支持患者档案检索、右侧详情预览、新增档案与编辑删除操作。"
-        className="mb-1"
         actions={
           <>
             <Button

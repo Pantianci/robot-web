@@ -83,12 +83,11 @@ export function RobotManagement() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <PageHeader
         eyebrow="机器人管理 > 机器人列表"
         title="机器人列表"
         description="管理机器人设备检索、概况卡片、列表和详情页预览。"
-        className="mb-1"
         actions={
           <Button onClick={() => setOpen(true)}>
             <Plus className="h-4 w-4" />

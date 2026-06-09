@@ -352,13 +352,12 @@ function SubPageLayout({
   fixedBottom?: boolean;
 }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <PageHeader
         eyebrow={eyebrow}
         title={title}
         description={description}
         badge="子页面"
-        className="mb-1"
         actions={actions}
       />
       <CollapsibleSplitLayout
@@ -366,9 +365,9 @@ function SubPageLayout({
         sideWidthClassName="w-full xl:w-[360px]"
         main={
           fixedBottom ? (
-            <div className="flex min-h-0 flex-col gap-4">
+            <div className="flex min-h-0 flex-col gap-3">
               <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                <div className="space-y-4">{left}</div>
+                <div className="space-y-3">{left}</div>
               </div>
               <Card className="shrink-0 border-primary/15 bg-primary/5">
                 <CardContent className="flex items-center justify-between gap-4 p-5">
@@ -377,8 +376,8 @@ function SubPageLayout({
               </Card>
             </div>
           ) : (
-            <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
-              <div className="space-y-4">{left}</div>
+            <div className="flex min-h-0 flex-col gap-3 overflow-y-auto pr-1">
+              <div className="space-y-3">{left}</div>
               <Card className="shrink-0 border-primary/15 bg-primary/5">
                 <CardContent className="flex items-center justify-between gap-4 p-5">
                   {bottom}
@@ -452,7 +451,7 @@ function CarePathVideoPreviewDialog({
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             <SectionCard title="预览信息">
               <PropertyList items={details} />
             </SectionCard>
@@ -1361,7 +1360,7 @@ export function PrescriptionCreatePage({
             <CardHeader className="border-b border-border/60">
               <CardTitle>各动作详情编辑</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 p-5">
+            <CardContent className="space-y-3 p-5">
               {draft.movements.map((movement, index) => (
                 <div key={movement.id} className="grid gap-4 rounded-[1rem] border border-border/70 bg-surface-50 p-4 md:grid-cols-4">
                   <Field label="动作名称">
@@ -1557,7 +1556,7 @@ export function PrescriptionEditPage({
               <CardHeader className="border-b border-border/60">
                 <CardTitle>各动作详情编辑</CardTitle>
               </CardHeader>
-              <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
+              <CardContent className="min-h-0 flex-1 space-y-3 overflow-y-auto p-5">
                 {draft.movements.map((movement, index) => (
                   <div key={movement.id} className="grid gap-4 rounded-[1rem] border border-border/70 bg-surface-50 p-4 md:grid-cols-4">
                     <Field label="动作名称">
@@ -2385,7 +2384,7 @@ export function ReportReviewPage() {
           <CardHeader className="border-b border-border/60">
             <CardTitle>审核表单字段</CardTitle>
           </CardHeader>
-          <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
+          <CardContent className="min-h-0 flex-1 space-y-3 overflow-y-auto p-5">
             <div className="grid gap-4 md:grid-cols-3">
               <Field label="姓名">
                 <Input value={report?.patientName ?? defaultPatientWorkspace.patientName} disabled />

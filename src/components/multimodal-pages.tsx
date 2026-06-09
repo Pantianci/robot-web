@@ -295,13 +295,14 @@ function QaLibraryTagPicker({
   onChange: (nextValue: string[]) => void;
 }) {
   const selectedTitle = value.length ? value.join("、") : "全部标签";
+  const inlineTitle = tags.length ? `${label}：${selectedTitle}` : `${label}：暂无标签`;
 
   return (
-    <Field label={label}>
+    <div className="w-[220px] min-w-[220px]">
       <select
         className="native-select"
         value=""
-        title={selectedTitle}
+        title={inlineTitle}
         onChange={(event) => {
           const tag = event.target.value;
           if (!tag) {
@@ -311,14 +312,14 @@ function QaLibraryTagPicker({
           onChange(value.includes(tag) ? value.filter((item) => item !== tag) : [...value, tag]);
         }}
       >
-        <option value="">{tags.length ? (value.length ? `已选 ${value.length} 个标签` : "全部标签") : "暂无标签"}</option>
+        <option value="">{inlineTitle}</option>
         {tags.map((tag) => (
           <option key={tag} value={tag}>
             {value.includes(tag) ? `取消 ${tag}` : `选择 ${tag}`}
           </option>
         ))}
       </select>
-    </Field>
+    </div>
   );
 }
 
@@ -625,7 +626,7 @@ function KnowledgeVideoPreviewDialog({
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             <SectionCard title={library === "motion" ? "动作信息" : "序列信息"}>
               <PropertyList
                 items={
@@ -987,13 +988,12 @@ export function MultiModalEditorPage({
   ];
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <PageHeader
         eyebrow={`${meta.eyebrow} > ${mode === "edit" ? meta.editTitle : meta.createTitle}`}
         title={mode === "edit" ? meta.editTitle : meta.createTitle}
         description={meta.createDescription}
         badge={mode === "edit" ? "编辑页" : "新增页"}
-        className="mb-1"
         actions={
           <div className="flex flex-wrap gap-2">
             {mode === "edit" && (library === "motion" || library === "sequence") ? (
@@ -1010,9 +1010,9 @@ export function MultiModalEditorPage({
         }
       />
 
-      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
-        <div className="flex min-h-0 flex-col gap-4">
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+      <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="flex min-h-0 flex-col gap-3">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
           {meta.uploadSpec ? (
             <SectionCard title={`${meta.uploadTitle}上传`} description="当前原型用页面内交互模拟上传和文件名回填。">
               <div className="rounded-[1.5rem] border border-dashed border-primary/30 bg-primary/5 p-6">
@@ -1269,7 +1269,7 @@ export function MultiModalEditorPage({
             <CardHeader className="border-b border-border/60">
               <CardTitle>录入辅助</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 min-h-0 space-y-4 overflow-y-auto p-5">
+            <CardContent className="flex-1 min-h-0 space-y-3 overflow-y-auto p-5">
               <SectionCard title="录入检查">
                 <Checklist items={checklist} />
               </SectionCard>
@@ -1406,13 +1406,12 @@ export function MultiModalExportPage({ library, navigate }: MultiModalExportProp
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <PageHeader
         eyebrow={`${meta.eyebrow} > ${meta.exportTitle}`}
         title={meta.exportTitle}
         description={meta.exportDescription}
         badge="导出页"
-        className="mb-1"
         actions={
           <Button variant="outline" onClick={() => navigate({ to: meta.listPath })}>
             <ArrowLeft className="h-4 w-4" />
@@ -1421,8 +1420,8 @@ export function MultiModalExportPage({ library, navigate }: MultiModalExportProp
         }
       />
 
-      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
-        <div className="flex min-h-0 flex-col gap-4">
+      <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="flex min-h-0 flex-col gap-3">
           <SectionCard title="导出配置">
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="导出对象">
@@ -1540,7 +1539,7 @@ export function MultiModalExportPage({ library, navigate }: MultiModalExportProp
             <CardHeader className="border-b border-border/60">
               <CardTitle>导出上下文与历史</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 min-h-0 space-y-4 overflow-y-auto p-5">
+            <CardContent className="flex-1 min-h-0 space-y-3 overflow-y-auto p-5">
               <SectionCard title="上下文摘要">
                 <div className="space-y-3 text-sm">
                   <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3">
@@ -1736,13 +1735,12 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <PageHeader
         eyebrow="多模态知识库 > 知识库问答"
         title="知识库问答"
         description="支持自由问答、定向问答、多轮对话和结构化答案卡片。"
         badge="问答页"
-        className="mb-1"
         actions={
           <Button variant="outline" onClick={() => navigate({ to: "/knowledge/library" })}>
             <ArrowLeft className="h-4 w-4" />
@@ -1755,7 +1753,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
         label="推荐"
         sideWidthClassName="w-full xl:w-[360px]"
         main={
-          <div className="relative flex min-h-0 flex-col gap-2 pb-2">
+          <div className="relative flex min-h-0 flex-col gap-3 pb-2">
             <FilterBar
               singleLine
               actions={
@@ -1787,10 +1785,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
             </FilterBar>
 
             <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <CardHeader className="shrink-0 border-b border-border/60 px-4 py-3">
-                <CardTitle>我要提问</CardTitle>
-              </CardHeader>
-              <CardContent className="min-h-0 flex-1 overflow-y-auto px-3 pb-[10.5rem] pt-3">
+              <CardContent className="min-h-0 flex-1 overflow-y-auto px-3 py-3 pb-[10.5rem]">
                 <div className="flex min-h-full flex-col justify-end gap-4">
                   {messages.length ? (
                     messages.map((message) => (
@@ -1881,7 +1876,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
             </Card>
 
             <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-background via-background/94 to-transparent px-2 pb-2 pt-10">
-              <Card className="pointer-events-auto mx-auto w-full overflow-hidden border-border/70 shadow-panel">
+              <Card className="pointer-events-auto mx-auto w-full overflow-hidden border-border/70 shadow-panel md:w-1/2">
                 <CardContent className="p-2.5">
                   <div className="relative">
                     <Textarea
@@ -1913,7 +1908,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
             <CardHeader className="border-b border-border/60">
               <CardTitle>推荐与技巧</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 min-h-0 space-y-4 overflow-y-auto p-5">
+            <CardContent className="flex-1 min-h-0 space-y-3 overflow-y-auto p-5">
               <SectionCard title="热门与推荐问题">
                 <div className="space-y-3">
                   {promptPool.slice(0, 6).map((item) => (

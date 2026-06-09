@@ -18,7 +18,7 @@ function RobotDetailPage() {
   const robot = useMemo(() => robots[0] ?? null, [robots]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <PageHeader
         eyebrow="机器人管理 > 机器人详情"
         title="机器人详情"
@@ -30,7 +30,7 @@ function RobotDetailPage() {
         label="备注"
         sideWidthClassName="w-full xl:w-[360px]"
         main={
-          <div className="flex min-h-0 flex-col gap-4">
+          <div className="flex min-h-0 flex-col gap-3">
             <SectionCard title="设备概览" className="shrink-0">
               {robot ? (
                 <PropertyList

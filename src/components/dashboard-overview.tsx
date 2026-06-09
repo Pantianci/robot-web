@@ -16,7 +16,7 @@ export function DashboardOverview() {
   const summary = data?.summary;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         eyebrow="首页概览"
         title="智慧康复机器人后台"
@@ -58,7 +58,7 @@ export function DashboardOverview() {
           <CardHeader>
             <CardTitle>重点通知</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {dashboard?.announcements.map((item) => (
               <div key={item.id} className="rounded-2xl border border-border/70 bg-white p-4">
                 <div className="flex items-center justify-between gap-3">
@@ -96,7 +96,7 @@ export function DashboardOverview() {
           <CardHeader>
             <CardTitle>业务快照</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 text-sm">
+          <CardContent className="space-y-3 text-sm">
             <div className="rounded-2xl bg-surface-50 p-4">
               <p className="stat-kicker">康复方案</p>
               <p className="mt-2 text-2xl font-semibold text-surface-900">{plans.length}</p>

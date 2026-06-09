@@ -23,7 +23,7 @@ export function FilterBar({
         <div
           className={cn(
             singleLine
-              ? "flex min-w-0 flex-1 items-end gap-3 overflow-x-auto pb-1 pr-1 [&>*]:min-w-[148px] [&>*]:shrink-0 [&>*]:gap-1.5 [&>*:first-child]:min-w-[220px]"
+              ? "flex min-w-0 flex-1 items-end gap-3 overflow-x-auto pb-1 pr-1 [&>*]:min-w-[220px] [&>*]:shrink-0 [&>*]:gap-1.5"
               : "grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-4"
           )}
         >
