@@ -225,6 +225,14 @@ export function createMultiModalQaStateKey() {
   return "multimodal:qa";
 }
 
+export function getKnowledgeStatusLabel(library: KnowledgeLibrary, status: string) {
+  if ((library === "motion" || library === "sequence") && status === "草稿") {
+    return "未生效";
+  }
+
+  return status;
+}
+
 export function normalizeTagNames(value: string) {
   return value
     .split(/[\n,，、;；]/)

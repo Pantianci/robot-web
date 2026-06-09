@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
+  useCreateKnowledgeMutation,
   useDeleteKnowledgeMutation,
   useKnowledgeQaQuery,
   useKnowledgeQuery,
@@ -18,6 +19,7 @@ import {
 import {
   createMultiModalListContextKey,
   defaultMultiModalListFilters,
+  getKnowledgeStatusLabel,
   isInDateRange,
   knowledgeLibraryMeta,
   multiModalPageSizeOptions,
@@ -41,6 +43,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -79,6 +82,268 @@ function createDefaultListContext(): MultiModalListContext {
     pageSize: 10,
     editId: null
   };
+}
+
+type AiKnowledgeDraft = {
+  knowledgeTags: string[];
+  motionTags: string[];
+  uploadName: string;
+  prompt: string;
+};
+
+function createDefaultAiKnowledgeDraft(): AiKnowledgeDraft {
+  return {
+    knowledgeTags: [],
+    motionTags: [],
+    uploadName: "",
+    prompt: ""
+  };
+}
+
+function uniqueStrings(values: string[]) {
+  return Array.from(new Set(values.map((item) => item.trim()).filter(Boolean)));
+}
+
+function toggleTagSelection(values: string[], nextValue: string) {
+  return values.includes(nextValue)
+    ? values.filter((item) => item !== nextValue)
+    : [...values, nextValue];
+}
+
+function createTagOptionNames(
+  tags: Array<{ name: string }>,
+  items: KnowledgeItem[]
+) {
+  return uniqueStrings([...tags.map((tag) => tag.name), ...items.flatMap((item) => item.tags)]);
+}
+
+function inferMotionPart(text: string) {
+  if (/踝|膝|髋|下肢|腿|步态/.test(text)) {
+    return "下肢";
+  }
+
+  return "上肢";
+}
+
+function inferMotionDirection(text: string) {
+  if (/踝泵|跖屈|背屈/.test(text)) {
+    return "跖屈/背屈";
+  }
+
+  if (/内收/.test(text)) {
+    return "内收";
+  }
+
+  if (/外展|抬臂/.test(text)) {
+    return "外展";
+  }
+
+  return "屈伸";
+}
+
+function inferMotionAngle(text: string) {
+  if (/踝|跖屈|背屈/.test(text)) {
+    return "15-20 度";
+  }
+
+  if (/肘/.test(text)) {
+    return "45-90 度";
+  }
+
+  if (/肩|外展|抬臂/.test(text)) {
+    return "30-60 度";
+  }
+
+  return "10-30 度";
+}
+
+function inferMotionBaseName(text: string, fallbackTag: string) {
+  if (/踝|跖屈|背屈|下肢/.test(text)) {
+    return "踝泵训练";
+  }
+
+  if (/肘|屈伸/.test(text)) {
+    return "肘屈伸训练";
+  }
+
+  if (/肩|外展|抬臂|肩关节/.test(text)) {
+    return "肩外展训练";
+  }
+
+  return fallbackTag ? `${fallbackTag}训练` : "AI生成标准动作";
+}
+
+function inferSequenceStage(prompt: string, knowledgeTags: string[]) {
+  const knowledgeStage = knowledgeTags.find((tag) => /术后|阶段|周|月/.test(tag));
+  if (knowledgeStage) {
+    return knowledgeStage;
+  }
+
+  const matched = prompt.match(/术后\d+周|术后第?\d+周|术后\d+月|术后第?\d+月|早期|中期|后期/);
+  return matched?.[0] ?? "阶段待确认";
+}
+
+function buildAiMotionPayload({
+  prompt,
+  knowledgeTags,
+  uploadName,
+  knowledgeMatches,
+  motionTagOptions
+}: {
+  prompt: string;
+  knowledgeTags: string[];
+  uploadName: string;
+  knowledgeMatches: KnowledgeItem[];
+  motionTagOptions: string[];
+}): Omit<KnowledgeItem, "id" | "library" | "uploadedAt" | "updatedAt"> {
+  const summaryText = `${prompt} ${knowledgeTags.join(" ")} ${knowledgeMatches
+    .map((item) => `${item.title} ${item.description}`)
+    .join(" ")}`;
+  const part = inferMotionPart(summaryText);
+  const actionName = inferMotionBaseName(summaryText, knowledgeTags[0] ?? "");
+  const matchedMotionTags = motionTagOptions.filter((tag) => summaryText.includes(tag));
+  const finalTags = uniqueStrings([
+    ...matchedMotionTags,
+    ...knowledgeTags.slice(0, 3),
+    part,
+    "AI生成"
+  ]);
+  const referenceSummary = knowledgeMatches.length
+    ? `参考知识：${knowledgeMatches
+        .slice(0, 2)
+        .map((item) => item.title)
+        .join("、")}`
+    : "未限定康复知识标签";
+  const uploadSummary = uploadName ? `；参考上传：${uploadName}` : "";
+
+  return {
+    title: `${actionName}视频`,
+    fileName: `AI-${actionName}.mp4`,
+    category: "标准动作",
+    format: "MP4",
+    size: "18.60 MB",
+    tags: finalTags,
+    status: "草稿",
+    operator: "AI生成助手",
+    description: `AI 根据康复知识标签与补充说明生成标准动作视频。${referenceSummary}；补充说明：${prompt}${uploadSummary}`,
+    preview: `${actionName}建议按 8-10 次/组执行，组间休息 30 秒，先慢后稳，重点观察动作代偿。`,
+    actionName,
+    part,
+    angle: inferMotionAngle(summaryText),
+    direction: inferMotionDirection(summaryText),
+    durationMinutes: part === "下肢" ? 5 : 6,
+    indication:
+      knowledgeMatches[0]?.description ?? `${part}康复训练场景下的标准动作演示与宣教。`,
+    contraindication: "急性疼痛明显、局部肿胀或医生明确禁止时暂停执行。"
+  };
+}
+
+function buildAiSequencePayload({
+  prompt,
+  knowledgeTags,
+  motionTags,
+  uploadName,
+  knowledgeMatches,
+  motionMatches
+}: {
+  prompt: string;
+  knowledgeTags: string[];
+  motionTags: string[];
+  uploadName: string;
+  knowledgeMatches: KnowledgeItem[];
+  motionMatches: KnowledgeItem[];
+}): Omit<KnowledgeItem, "id" | "library" | "uploadedAt" | "updatedAt"> {
+  const steps = uniqueStrings(
+    motionMatches.map((item) => item.actionName ?? item.title)
+  ).slice(0, 6);
+  const totalDuration =
+    motionMatches
+      .slice(0, 6)
+      .reduce((sum, item) => sum + (item.durationMinutes ?? 4), 0) || 12;
+  const stage = inferSequenceStage(prompt, knowledgeTags);
+  const title = `${stage === "阶段待确认" ? motionTags[0] ?? "标准动作" : stage}动作序列`;
+  const knowledgeSummary = knowledgeMatches.length
+    ? `参考知识：${knowledgeMatches
+        .slice(0, 2)
+        .map((item) => item.title)
+        .join("、")}`
+    : "未限定康复知识标签";
+  const uploadSummary = uploadName ? `；参考上传：${uploadName}` : "";
+
+  return {
+    title,
+    fileName: `AI-${title}.json`,
+    category: "动作序列",
+    format: "JSON",
+    size: "0.32 MB",
+    tags: uniqueStrings([...motionTags, ...knowledgeTags, "AI生成"]),
+    status: "草稿",
+    operator: "AI生成助手",
+    description: `AI 根据标准动作库标签生成动作序列。${knowledgeSummary}；补充说明：${prompt}${uploadSummary}`,
+    preview: steps.join(" → "),
+    stage,
+    goal: prompt,
+    sequenceSteps: steps,
+    durationMinutes: totalDuration
+  };
+}
+
+function TagSelectionField({
+  label,
+  required,
+  tags,
+  value,
+  emptyText,
+  onChange
+}: {
+  label: string;
+  required?: boolean;
+  tags: string[];
+  value: string[];
+  emptyText: string;
+  onChange: (nextValue: string[]) => void;
+}) {
+  return (
+    <Field label={label} required={required}>
+      <div className="space-y-2">
+        <select
+          className="native-select"
+          value=""
+          onChange={(event) => {
+            const nextTag = event.target.value;
+            if (!nextTag) {
+              return;
+            }
+
+            onChange(toggleTagSelection(value, nextTag));
+          }}
+        >
+          <option value="">{tags.length ? (value.length ? `已选 ${value.length} 个标签` : "请选择标签") : "暂无标签"}</option>
+          {tags.map((tag) => (
+            <option key={tag} value={tag}>
+              {value.includes(tag) ? `取消 ${tag}` : `选择 ${tag}`}
+            </option>
+          ))}
+        </select>
+        <div className="flex min-h-[44px] flex-wrap gap-2 rounded-[1rem] border border-border/70 bg-surface-50 px-3 py-2">
+          {value.length ? (
+            value.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                className="rounded-full border border-primary/20 bg-white px-3 py-1 text-xs font-medium text-primary"
+                onClick={() => onChange(value.filter((item) => item !== tag))}
+              >
+                {tag}
+              </button>
+            ))
+          ) : (
+            <span className="text-xs text-muted-foreground">{emptyText}</span>
+          )}
+        </div>
+      </div>
+    </Field>
+  );
 }
 
 function normalizeKeywordFields(item: KnowledgeItem) {
@@ -143,7 +408,7 @@ function libraryTableRow(
       item.standardQuestion ?? item.title,
       item.category,
       item.tags.join("、"),
-      item.status,
+      getKnowledgeStatusLabel(library, item.status),
       formatDateTime(item.updatedAt)
     ];
   }
@@ -160,7 +425,7 @@ function libraryTableRow(
       item.indication ?? "-",
       item.contraindication ?? "-",
       item.tags.join("、"),
-      item.status
+      getKnowledgeStatusLabel(library, item.status)
     ];
   }
 
@@ -172,7 +437,7 @@ function libraryTableRow(
       item.goal ?? "-",
       item.sequenceSteps?.join(" → ") ?? "-",
       item.durationMinutes ? `${item.durationMinutes} 分钟` : "-",
-      item.status
+      getKnowledgeStatusLabel(library, item.status)
     ];
   }
 
@@ -181,7 +446,7 @@ function libraryTableRow(
     item.format,
     item.size,
     item.tags.join("、"),
-    item.status,
+    getKnowledgeStatusLabel(library, item.status),
     formatDateTime(item.updatedAt)
   ];
 }
@@ -208,11 +473,19 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
   const [context, setContext] = useState<MultiModalListContext>(
     () => readState<MultiModalListContext>(contextKey) ?? createDefaultListContext()
   );
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [aiDraft, setAiDraft] = useState<AiKnowledgeDraft>(createDefaultAiKnowledgeDraft);
+  const [aiErrorMessage, setAiErrorMessage] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<KnowledgeItem | null>(null);
 
   const { data: items = [] } = useKnowledgeQuery(library);
   const { data: tags = [] } = useKnowledgeTagsQuery(library);
   const { data: qaContexts = [] } = useKnowledgeQaQuery(library);
+  const { data: knowledgeReferenceItems = [] } = useKnowledgeQuery("knowledge");
+  const { data: knowledgeReferenceTags = [] } = useKnowledgeTagsQuery("knowledge");
+  const { data: motionReferenceItems = [] } = useKnowledgeQuery("motion");
+  const { data: motionReferenceTags = [] } = useKnowledgeTagsQuery("motion");
+  const createKnowledgeMutation = useCreateKnowledgeMutation(library);
   const deleteKnowledgeMutation = useDeleteKnowledgeMutation(library);
 
   useEffect(() => {
@@ -227,8 +500,34 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
         : [],
     [library, sortedItems]
   );
-  const tagNames = useMemo(() => tags.map((tag) => tag.name), [tags]);
+  const tagNames = useMemo(() => createTagOptionNames(tags, sortedItems), [sortedItems, tags]);
+  const knowledgeReferenceTagNames = useMemo(
+    () => createTagOptionNames(knowledgeReferenceTags, knowledgeReferenceItems),
+    [knowledgeReferenceItems, knowledgeReferenceTags]
+  );
+  const motionReferenceTagNames = useMemo(
+    () => createTagOptionNames(motionReferenceTags, motionReferenceItems),
+    [motionReferenceItems, motionReferenceTags]
+  );
   const statusColumnIndex = statusColumnIndexForLibrary(library);
+  const matchedKnowledgeReferenceItems = useMemo(
+    () =>
+      aiDraft.knowledgeTags.length
+        ? knowledgeReferenceItems.filter((item) =>
+            aiDraft.knowledgeTags.some((tag) => item.tags.includes(tag))
+          )
+        : [],
+    [aiDraft.knowledgeTags, knowledgeReferenceItems]
+  );
+  const matchedMotionReferenceItems = useMemo(
+    () =>
+      aiDraft.motionTags.length
+        ? motionReferenceItems.filter((item) =>
+            aiDraft.motionTags.some((tag) => item.tags.includes(tag))
+          )
+        : [],
+    [aiDraft.motionTags, motionReferenceItems]
+  );
 
   const filteredItems = useMemo(() => {
     return sortedItems.filter((item) => {
@@ -291,6 +590,66 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
     setDeleteTarget(null);
   };
 
+  const openAiDialog = () => {
+    setAiDraft(createDefaultAiKnowledgeDraft());
+    setAiErrorMessage("");
+    setAiDialogOpen(true);
+  };
+
+  const handleCreateAiKnowledge = async () => {
+    const trimmedPrompt = aiDraft.prompt.trim();
+
+    if (!trimmedPrompt) {
+      setAiErrorMessage("请先补充生成说明后再确认。");
+      return;
+    }
+
+    if (library === "sequence" && !aiDraft.motionTags.length) {
+      setAiErrorMessage("请至少选择一个标准动作库标签。");
+      return;
+    }
+
+    if (library === "sequence" && !matchedMotionReferenceItems.length) {
+      setAiErrorMessage("所选标准动作库标签下暂无可编排动作，请调整标签后重试。");
+      return;
+    }
+
+    if (library !== "motion" && library !== "sequence") {
+      return;
+    }
+
+    setAiErrorMessage("");
+
+    const payload =
+      library === "motion"
+        ? buildAiMotionPayload({
+            prompt: trimmedPrompt,
+            knowledgeTags: aiDraft.knowledgeTags,
+            uploadName: aiDraft.uploadName,
+            knowledgeMatches: matchedKnowledgeReferenceItems,
+            motionTagOptions: motionReferenceTagNames
+          })
+        : buildAiSequencePayload({
+            prompt: trimmedPrompt,
+            knowledgeTags: aiDraft.knowledgeTags,
+            motionTags: aiDraft.motionTags,
+            uploadName: aiDraft.uploadName,
+            knowledgeMatches: matchedKnowledgeReferenceItems,
+            motionMatches: matchedMotionReferenceItems
+          });
+
+    const created = await createKnowledgeMutation.mutateAsync(payload);
+
+    setContext((current) => ({
+      ...current,
+      filters: defaultMultiModalListFilters,
+      selectedId: created.id,
+      page: 1
+    }));
+    setAiDialogOpen(false);
+    setAiDraft(createDefaultAiKnowledgeDraft());
+  };
+
   const toggleSelected = (id: string) => {
     setContext((current) => ({
       ...current,
@@ -314,7 +673,7 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
         actions={
           <>
             {meta.aiActionLabel ? (
-              <Button variant="secondary">
+              <Button variant="secondary" onClick={openAiDialog}>
                 <Sparkles className="h-4 w-4" />
                 {meta.aiActionLabel}
               </Button>
@@ -437,7 +796,7 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
             <option value="">全部</option>
             <option value="生效">生效</option>
             <option value="失效">失效</option>
-            <option value="草稿">草稿</option>
+            <option value="草稿">{getKnowledgeStatusLabel(library, "草稿")}</option>
           </select>
         </Field>
         <Field label="开始日期">
@@ -631,7 +990,7 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
                     { label: "格式", value: selectedItem.format },
                     { label: "文件大小", value: selectedItem.size },
                     { label: "标签", value: selectedItem.tags },
-                    { label: "状态", value: selectedItem.status },
+                    { label: "状态", value: getKnowledgeStatusLabel(library, selectedItem.status) },
                     { label: "上传时间", value: formatDateTime(selectedItem.uploadedAt) },
                     { label: "最近操作", value: formatDateTime(selectedItem.updatedAt) }
                   ]}
@@ -718,6 +1077,134 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
           </DetailPanel>
         }
       />
+
+      <DialogFormShell
+        open={aiDialogOpen}
+        onOpenChange={(open) => {
+          setAiDialogOpen(open);
+          if (!open) {
+            setAiErrorMessage("");
+          }
+        }}
+        title={library === "motion" ? "AI生成标准动作视频" : "AI生成动作序列"}
+        description={
+          library === "motion"
+            ? "可选康复知识标签和上传资料，再补充生成说明，确认后会自动加入一条未生效标准动作记录。"
+            : "可选康复知识标签，必须选择标准动作标签，再补充生成说明，确认后会自动加入一条未生效动作序列记录。"
+        }
+        onSubmit={() => {
+          void handleCreateAiKnowledge();
+        }}
+        submitLabel="确认生成"
+      >
+        {(library === "motion" || library === "sequence") ? (
+          <>
+            <div className="grid gap-4 md:grid-cols-2">
+              <TagSelectionField
+                label="本地康复知识库标签"
+                tags={knowledgeReferenceTagNames}
+                value={aiDraft.knowledgeTags}
+                emptyText="可多选，不强制选择。"
+                onChange={(nextValue) => {
+                  setAiDraft((current) => ({ ...current, knowledgeTags: nextValue }));
+                  setAiErrorMessage("");
+                }}
+              />
+              {library === "sequence" ? (
+                <TagSelectionField
+                  label="本地标准动作库标签"
+                  required
+                  tags={motionReferenceTagNames}
+                  value={aiDraft.motionTags}
+                  emptyText="至少选择一个标准动作标签。"
+                  onChange={(nextValue) => {
+                    setAiDraft((current) => ({ ...current, motionTags: nextValue }));
+                    setAiErrorMessage("");
+                  }}
+                />
+              ) : null}
+            </div>
+
+            <Field label="上传文件">
+              <div className="space-y-2">
+                <Input
+                  type="file"
+                  accept=".png,.jpg,.jpeg,.txt,.md,.pdf,.mp4,.mov,.avi"
+                  className="h-auto file:mr-3 file:rounded-lg file:border-0 file:bg-primary/10 file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary"
+                  onChange={(event) =>
+                    setAiDraft((current) => ({
+                      ...current,
+                      uploadName: event.target.files?.[0]?.name ?? ""
+                    }))
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  支持图片、文本、视频资料，当前原型仅记录文件名，不强制上传。
+                </p>
+                {aiDraft.uploadName ? (
+                  <p className="text-xs text-surface-900">当前选择：{aiDraft.uploadName}</p>
+                ) : null}
+              </div>
+            </Field>
+
+            <Field label="生成说明" required>
+              <Textarea
+                value={aiDraft.prompt}
+                placeholder={
+                  library === "motion"
+                    ? "请输入需要生成的动作重点、适用阶段、注意事项等说明"
+                    : "请输入动作序列目标、阶段、先后顺序和注意事项等说明"
+                }
+                onChange={(event) => {
+                  setAiDraft((current) => ({ ...current, prompt: event.target.value }));
+                  setAiErrorMessage("");
+                }}
+              />
+            </Field>
+
+            <SectionCard title="生成参考摘要">
+              <PropertyList
+                items={
+                  library === "motion"
+                    ? [
+                        { label: "知识标签", value: aiDraft.knowledgeTags },
+                        { label: "匹配知识", value: `${matchedKnowledgeReferenceItems.length} 条` },
+                        { label: "生成状态", value: "未生效" }
+                      ]
+                    : [
+                        { label: "知识标签", value: aiDraft.knowledgeTags },
+                        { label: "标准动作标签", value: aiDraft.motionTags },
+                        { label: "匹配动作", value: `${matchedMotionReferenceItems.length} 条` },
+                        { label: "生成状态", value: "未生效" }
+                      ]
+                }
+              />
+            </SectionCard>
+
+            {library === "sequence" && matchedMotionReferenceItems.length ? (
+              <SectionCard title="拟生成动作顺序">
+                <div className="flex flex-wrap gap-2">
+                  {uniqueStrings(
+                    matchedMotionReferenceItems.map((item) => item.actionName ?? item.title)
+                  )
+                    .slice(0, 6)
+                    .map((item) => (
+                      <Badge key={item} className="bg-surface-50 text-surface-700">
+                        {item}
+                      </Badge>
+                    ))}
+                </div>
+              </SectionCard>
+            ) : null}
+
+            {aiErrorMessage ? (
+              <Card className="border-rose-200 bg-rose-50">
+                <CardContent className="p-4 text-sm text-rose-700">{aiErrorMessage}</CardContent>
+              </Card>
+            ) : null}
+          </>
+        ) : null}
+      </DialogFormShell>
 
       <DialogFormShell
         open={Boolean(deleteTarget)}
