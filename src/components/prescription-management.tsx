@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { FileOutput, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+import { Eye, FileOutput, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   useCreatePlanMutation,
@@ -514,6 +514,155 @@ function PreviewConfirmDialog({
   );
 }
 
+function RehabPlanPreviewDialog({
+  plan,
+  open,
+  onOpenChange
+}: {
+  plan: RehabPlan | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  if (!plan) {
+    return null;
+  }
+
+  const goals = [
+    `围绕${plan.goal}，降低疼痛与疲劳反馈`,
+    `改善${plan.stage}阶段活动度，逐步增加有效角度`,
+    "增强核心肌群力量，提高关节稳定性",
+    "改善平衡功能，降低跌倒风险",
+    "恢复日常生活活动能力"
+  ];
+  const phases = [
+    {
+      title: "第一阶段（第1-2周）：疼痛控制与基础激活",
+      items: ["呼吸训练与腹横肌激活", "无痛范围内的关节活动度训练", "仰卧位骨盆倾斜练习", "静态核心稳定性训练（平板支撑变式）"]
+    },
+    {
+      title: "第二阶段（第3-4周）：力量建立与稳定性",
+      items: ["动态核心训练（鸟狗式、死虫式）", "臀肌激活与力量训练", "渐进式抗阻训练", "平衡训练（单腿站立）"]
+    },
+    {
+      title: "第三阶段（第5-6周）：功能整合与预防",
+      items: ["功能性动作模式训练", "动态平衡与协调训练", "日常生活活动模拟", "自我管理教育"]
+    }
+  ];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92vh] w-[min(94vw,1040px)] overflow-y-auto p-0">
+        <DialogHeader className="sr-only">
+          <DialogTitle>康复方案预览</DialogTitle>
+          <DialogDescription>预览智能引擎推荐康复方案。</DialogDescription>
+        </DialogHeader>
+        <div className="bg-white p-6 text-surface-800 md:p-8">
+          <div className="flex flex-col gap-4 border-b border-slate-100 pb-6 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-2xl">●</div>
+              <div>
+                <p className="text-2xl font-bold text-surface-900 md:text-3xl">智能引擎推荐康复方案</p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  方案编号：{plan.id}　患者：{plan.patientName}
+                </p>
+              </div>
+            </div>
+            <div className="rounded-xl bg-emerald-50 px-5 py-3 text-lg font-bold text-emerald-600">
+              匹配度：87%
+            </div>
+          </div>
+
+          <div className="grid gap-7 py-7 xl:grid-cols-[1fr_0.95fr]">
+            <div className="space-y-7">
+              <section>
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="text-2xl text-slate-700">▥</span>
+                  <h3 className="text-xl font-bold text-surface-900">康复方案</h3>
+                </div>
+                <p className="text-base leading-8 text-muted-foreground">
+                  基于患者{plan.stage}、{plan.type}与当前诊断信息，智能引擎推荐“{plan.goal}”综合方案。
+                  该方案针对核心肌群力量减弱、平衡功能受损和疼痛控制问题，通过渐进式训练改善稳定性。
+                </p>
+              </section>
+
+              <section>
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="text-2xl text-slate-700">◎</span>
+                  <h3 className="text-xl font-bold text-surface-900">训练目标</h3>
+                </div>
+                <div className="space-y-4">
+                  {goals.map((goal) => (
+                    <div key={goal} className="flex gap-3 text-base leading-7 text-muted-foreground">
+                      <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-xs text-white">✓</span>
+                      <span>{goal}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section>
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="text-2xl text-slate-700">▣</span>
+                  <h3 className="text-xl font-bold text-surface-900">训练周期与频率</h3>
+                </div>
+                <div className="grid gap-4 rounded-2xl bg-slate-50 p-5 md:grid-cols-2">
+                  {[
+                    ["总周期", "6周"],
+                    ["每周频率", "3-4次"],
+                    ["每次时长", "30-45分钟"],
+                    ["强度分级", plan.risk === "高风险" ? "初级" : "初级→中级"]
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-muted-foreground">{label}：</span>
+                      <span className="text-lg font-bold text-surface-900">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            <div className="space-y-7">
+              <section>
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="text-2xl text-slate-700">▤</span>
+                  <h3 className="text-xl font-bold text-surface-900">训练内容概要</h3>
+                </div>
+                <div className="space-y-4">
+                  {phases.map((phase) => (
+                    <div key={phase.title} className="rounded-2xl border-l-4 border-slate-600 bg-slate-50 p-5">
+                      <p className="font-bold text-surface-900">{phase.title}</p>
+                      <ul className="mt-4 space-y-2 text-sm leading-7 text-muted-foreground">
+                        {phase.items.map((item) => (
+                          <li key={item}>• {item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section>
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="text-2xl text-slate-700">▲</span>
+                  <h3 className="text-xl font-bold text-surface-900">注意事项与禁忌</h3>
+                </div>
+                <div className="rounded-2xl border-l-4 border-rose-500 bg-rose-50 p-5">
+                  <ul className="space-y-2 text-sm leading-7 text-muted-foreground">
+                    <li>• 避免腰椎过度前屈和旋转动作</li>
+                    <li>• 训练中出现放射性疼痛应立即停止</li>
+                    <li>• 根据疼痛反应调整训练强度</li>
+                    <li>• 训练前后进行适当的拉伸和放松</li>
+                  </ul>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function RehabPlanManagement() {
   const navigate = useNavigate();
   const { data: patients = [] } = usePatientsQuery();
@@ -559,6 +708,7 @@ export function RehabPlanManagement() {
     useState<PrescriptionGenerationSnapshot | null>(null);
   const [chainPrescriptionPlan, setChainPrescriptionPlan] = useState<RehabPlan | null>(null);
   const [chainPrescriptionPatient, setChainPrescriptionPatient] = useState<Patient | null>(null);
+  const [previewPlan, setPreviewPlan] = useState<RehabPlan | null>(null);
   const [deletePlanTarget, setDeletePlanTarget] = useState<RehabPlan | null>(null);
 
   const sortedPlans = useMemo(
@@ -1049,7 +1199,22 @@ export function RehabPlanManagement() {
                           <TableCell>{plan.patientId}</TableCell>
                           <TableCell>{plan.patientName}</TableCell>
                           <TableCell>{plan.doctor}</TableCell>
-                          <TableCell>{prescriptionCount}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <span>{prescriptionCount}</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  openPlanPrescriptions(plan);
+                                }}
+                              >
+                                查看
+                              </Button>
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <Badge>{resolvePlanAdoptionLabel(plan, planGenerationStatus[plan.id])}</Badge>
                           </TableCell>
@@ -1068,10 +1233,11 @@ export function RehabPlanManagement() {
                                 size="sm"
                                 onClick={(event) => {
                                   event.stopPropagation();
-                                  openPlanPrescriptions(plan);
+                                  setPreviewPlan(plan);
                                 }}
                               >
-                                处方列表
+                                <Eye className="h-4 w-4" />
+                                方案预览
                               </Button>
                               <Button
                                 type="button"
@@ -1177,13 +1343,13 @@ export function RehabPlanManagement() {
                       ))
                     ) : (
                       <div className="rounded-[1rem] border border-dashed border-border/70 bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
-                        当前患者还没有关联处方，点击上方方案编号或“处方列表”可进入该方案的处方页继续配置。
+                        当前患者还没有关联处方，点击上方方案编号或处方数列中的“查看”可进入该方案的处方页继续配置。
                       </div>
                     )}
                   </div>
                 </SectionCard>
                 <div className="flex gap-2">
-                  <Button onClick={() => openPlanPrescriptions(selectedPlan)}>进入处方列表</Button>
+                  <Button onClick={() => openPlanPrescriptions(selectedPlan)}>查看处方</Button>
                   <Button variant="outline" onClick={() => openPlanEdit(selectedPlan)}>
                     编辑方案
                   </Button>
@@ -1270,6 +1436,16 @@ export function RehabPlanManagement() {
           />
         </Field>
       </DialogFormShell>
+
+      <RehabPlanPreviewDialog
+        plan={previewPlan}
+        open={Boolean(previewPlan)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewPlan(null);
+          }
+        }}
+      />
 
       <GenerationProgressDialog
         open={Boolean(planGeneration)}
@@ -1509,6 +1685,7 @@ export function PrescriptionManagement({
   const [planPage, setPlanPage] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [prescriptionPage, setPrescriptionPage] = useState(1);
+  const [previewPlan, setPreviewPlan] = useState<RehabPlan | null>(null);
   const [deletePlanTarget, setDeletePlanTarget] = useState<RehabPlan | null>(null);
   const [deleteActionTarget, setDeleteActionTarget] = useState<CurrentAction | null>(null);
   const [deletePrescriptionTarget, setDeletePrescriptionTarget] = useState<Prescription | null>(null);
@@ -2003,6 +2180,10 @@ export function PrescriptionManagement({
                         const prescriptionCount = patientPrescriptions.filter(
                           (prescription) => prescription.patientId === item.patientId
                         ).length;
+                        const totalPrescriptionCount =
+                          scope === "all"
+                            ? prescriptions.filter((prescription) => prescription.patientId === item.patientId).length
+                            : prescriptionCount;
                         return (
                           <TableRow
                             key={item.id}
@@ -2032,9 +2213,22 @@ export function PrescriptionManagement({
                             {scope === "all" ? <TableCell>{item.patientName}</TableCell> : null}
                             <TableCell>{item.doctor}</TableCell>
                             <TableCell>
-                              {scope === "all"
-                                ? prescriptions.filter((prescription) => prescription.patientId === item.patientId).length
-                                : prescriptionCount}
+                              <div className="flex items-center gap-2">
+                                <span>{totalPrescriptionCount}</span>
+                                {planPatient ? (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      openPatientPrescriptionList(navigate, planPatient, item);
+                                    }}
+                                  >
+                                    查看
+                                  </Button>
+                                ) : null}
+                              </div>
                             </TableCell>
                             <TableCell>
                               <Badge>{resolvePlanAdoptionLabel(item)}</Badge>
@@ -2044,6 +2238,18 @@ export function PrescriptionManagement({
                             <TableCell>{item.risk}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setPreviewPlan(item);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                  方案预览
+                                </Button>
                                 <Button
                                   type="button"
                                   variant="ghost"
@@ -2464,6 +2670,16 @@ export function PrescriptionManagement({
           }
         />
       ) : null}
+
+      <RehabPlanPreviewDialog
+        plan={previewPlan}
+        open={Boolean(previewPlan)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewPlan(null);
+          }
+        }}
+      />
 
       <DialogFormShell
         open={aiPlanOpen}
