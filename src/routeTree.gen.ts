@@ -56,7 +56,6 @@ import { Route as PatientsPrescriptionsCreateRouteImport } from './routes/patien
 import { Route as PatientsPlansExportRouteImport } from './routes/patients.plans.export'
 import { Route as PatientsPlansEditRouteImport } from './routes/patients.plans.edit'
 import { Route as PatientsPlansCreateRouteImport } from './routes/patients.plans.create'
-import { Route as PatientsCurrentExportRouteImport } from './routes/patients.current.export'
 import { Route as PatientsCurrentEditRouteImport } from './routes/patients.current.edit'
 import { Route as PatientsCurrentCreateRouteImport } from './routes/patients.current.create'
 import { Route as PatientsBaseExportRouteImport } from './routes/patients.base.export'
@@ -86,7 +85,6 @@ import { Route as PatientsPatientIdPlansPlanIdPrescriptionsEditRouteImport } fro
 import { Route as PatientsPatientIdPlansPlanIdPrescriptionsCreateRouteImport } from './routes/patients.$patientId.plans.$planId.prescriptions.create'
 import { Route as PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentRouteImport } from './routes/patients.$patientId.plans.$planId.prescriptions.$prescriptionId.current'
 import { Route as PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentIndexRouteImport } from './routes/patients.$patientId.plans.$planId.prescriptions.$prescriptionId.current.index'
-import { Route as PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentExportRouteImport } from './routes/patients.$patientId.plans.$planId.prescriptions.$prescriptionId.current.export'
 import { Route as PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentEditRouteImport } from './routes/patients.$patientId.plans.$planId.prescriptions.$prescriptionId.current.edit'
 import { Route as PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentCreateRouteImport } from './routes/patients.$patientId.plans.$planId.prescriptions.$prescriptionId.current.create'
 
@@ -329,11 +327,6 @@ const PatientsPlansCreateRoute = PatientsPlansCreateRouteImport.update({
   path: '/create',
   getParentRoute: () => PatientsPlansRoute,
 } as any)
-const PatientsCurrentExportRoute = PatientsCurrentExportRouteImport.update({
-  id: '/export',
-  path: '/export',
-  getParentRoute: () => PatientsCurrentRoute,
-} as any)
 const PatientsCurrentEditRoute = PatientsCurrentEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -495,15 +488,6 @@ const PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentIndexRoute =
         PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentRoute,
     } as any,
   )
-const PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentExportRoute =
-  PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentExportRouteImport.update(
-    {
-      id: '/export',
-      path: '/export',
-      getParentRoute: () =>
-        PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentRoute,
-    } as any,
-  )
 const PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentEditRoute =
   PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentEditRouteImport.update(
     {
@@ -568,7 +552,6 @@ export interface FileRoutesByFullPath {
   '/patients/base/export': typeof PatientsBaseExportRoute
   '/patients/current/create': typeof PatientsCurrentCreateRoute
   '/patients/current/edit': typeof PatientsCurrentEditRoute
-  '/patients/current/export': typeof PatientsCurrentExportRoute
   '/patients/plans/create': typeof PatientsPlansCreateRoute
   '/patients/plans/edit': typeof PatientsPlansEditRoute
   '/patients/plans/export': typeof PatientsPlansExportRoute
@@ -602,7 +585,6 @@ export interface FileRoutesByFullPath {
   '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current': typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentRouteWithChildren
   '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/create': typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentCreateRoute
   '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/edit': typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentEditRoute
-  '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/export': typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentExportRoute
   '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/': typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentIndexRoute
 }
 export interface FileRoutesByTo {
@@ -637,7 +619,6 @@ export interface FileRoutesByTo {
   '/patients/base/export': typeof PatientsBaseExportRoute
   '/patients/current/create': typeof PatientsCurrentCreateRoute
   '/patients/current/edit': typeof PatientsCurrentEditRoute
-  '/patients/current/export': typeof PatientsCurrentExportRoute
   '/patients/plans/create': typeof PatientsPlansCreateRoute
   '/patients/plans/edit': typeof PatientsPlansEditRoute
   '/patients/plans/export': typeof PatientsPlansExportRoute
@@ -669,7 +650,6 @@ export interface FileRoutesByTo {
   '/patients/$patientId/plans/$planId/prescriptions': typeof PatientsPatientIdPlansPlanIdPrescriptionsIndexRoute
   '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/create': typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentCreateRoute
   '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/edit': typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentEditRoute
-  '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/export': typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentExportRoute
   '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current': typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentIndexRoute
 }
 export interface FileRoutesById {
@@ -718,7 +698,6 @@ export interface FileRoutesById {
   '/patients/base/export': typeof PatientsBaseExportRoute
   '/patients/current/create': typeof PatientsCurrentCreateRoute
   '/patients/current/edit': typeof PatientsCurrentEditRoute
-  '/patients/current/export': typeof PatientsCurrentExportRoute
   '/patients/plans/create': typeof PatientsPlansCreateRoute
   '/patients/plans/edit': typeof PatientsPlansEditRoute
   '/patients/plans/export': typeof PatientsPlansExportRoute
@@ -752,7 +731,6 @@ export interface FileRoutesById {
   '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current': typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentRouteWithChildren
   '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/create': typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentCreateRoute
   '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/edit': typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentEditRoute
-  '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/export': typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentExportRoute
   '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/': typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentIndexRoute
 }
 export interface FileRouteTypes {
@@ -802,7 +780,6 @@ export interface FileRouteTypes {
     | '/patients/base/export'
     | '/patients/current/create'
     | '/patients/current/edit'
-    | '/patients/current/export'
     | '/patients/plans/create'
     | '/patients/plans/edit'
     | '/patients/plans/export'
@@ -836,7 +813,6 @@ export interface FileRouteTypes {
     | '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current'
     | '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/create'
     | '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/edit'
-    | '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/export'
     | '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -871,7 +847,6 @@ export interface FileRouteTypes {
     | '/patients/base/export'
     | '/patients/current/create'
     | '/patients/current/edit'
-    | '/patients/current/export'
     | '/patients/plans/create'
     | '/patients/plans/edit'
     | '/patients/plans/export'
@@ -903,7 +878,6 @@ export interface FileRouteTypes {
     | '/patients/$patientId/plans/$planId/prescriptions'
     | '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/create'
     | '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/edit'
-    | '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/export'
     | '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current'
   id:
     | '__root__'
@@ -951,7 +925,6 @@ export interface FileRouteTypes {
     | '/patients/base/export'
     | '/patients/current/create'
     | '/patients/current/edit'
-    | '/patients/current/export'
     | '/patients/plans/create'
     | '/patients/plans/edit'
     | '/patients/plans/export'
@@ -985,7 +958,6 @@ export interface FileRouteTypes {
     | '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current'
     | '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/create'
     | '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/edit'
-    | '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/export'
     | '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/'
   fileRoutesById: FileRoutesById
 }
@@ -1333,13 +1305,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatientsPlansCreateRouteImport
       parentRoute: typeof PatientsPlansRoute
     }
-    '/patients/current/export': {
-      id: '/patients/current/export'
-      path: '/export'
-      fullPath: '/patients/current/export'
-      preLoaderRoute: typeof PatientsCurrentExportRouteImport
-      parentRoute: typeof PatientsCurrentRoute
-    }
     '/patients/current/edit': {
       id: '/patients/current/edit'
       path: '/edit'
@@ -1543,13 +1508,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentIndexRouteImport
       parentRoute: typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentRoute
     }
-    '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/export': {
-      id: '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/export'
-      path: '/export'
-      fullPath: '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/export'
-      preLoaderRoute: typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentExportRouteImport
-      parentRoute: typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentRoute
-    }
     '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/edit': {
       id: '/patients/$patientId/plans/$planId/prescriptions/$prescriptionId/current/edit'
       path: '/edit'
@@ -1680,14 +1638,12 @@ const PatientsBaseRouteWithChildren = PatientsBaseRoute._addFileChildren(
 interface PatientsCurrentRouteChildren {
   PatientsCurrentCreateRoute: typeof PatientsCurrentCreateRoute
   PatientsCurrentEditRoute: typeof PatientsCurrentEditRoute
-  PatientsCurrentExportRoute: typeof PatientsCurrentExportRoute
   PatientsCurrentIndexRoute: typeof PatientsCurrentIndexRoute
 }
 
 const PatientsCurrentRouteChildren: PatientsCurrentRouteChildren = {
   PatientsCurrentCreateRoute: PatientsCurrentCreateRoute,
   PatientsCurrentEditRoute: PatientsCurrentEditRoute,
-  PatientsCurrentExportRoute: PatientsCurrentExportRoute,
   PatientsCurrentIndexRoute: PatientsCurrentIndexRoute,
 }
 
@@ -1751,7 +1707,6 @@ const PatientsReportsRouteWithChildren = PatientsReportsRoute._addFileChildren(
 interface PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentRouteChildren {
   PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentCreateRoute: typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentCreateRoute
   PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentEditRoute: typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentEditRoute
-  PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentExportRoute: typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentExportRoute
   PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentIndexRoute: typeof PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentIndexRoute
 }
 
@@ -1761,8 +1716,6 @@ const PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentRouteChildre
       PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentCreateRoute,
     PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentEditRoute:
       PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentEditRoute,
-    PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentExportRoute:
-      PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentExportRoute,
     PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentIndexRoute:
       PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentIndexRoute,
   }
@@ -1926,12 +1879,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

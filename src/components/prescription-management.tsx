@@ -405,7 +405,8 @@ export function RehabPlanManagement() {
   const createPlanMutation = useCreatePlanMutation();
   const deletePlanMutation = useDeletePlanMutation();
   const [keyword, setKeyword] = useState("");
-  const [patientFilter, setPatientFilter] = useState("");
+  const [archiveDateFrom, setArchiveDateFrom] = useState("");
+  const [archiveDateTo, setArchiveDateTo] = useState("");
   const [stageFilter, setStageFilter] = useState("");
   const [riskFilter, setRiskFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -425,10 +426,6 @@ export function RehabPlanManagement() {
   const sortedPlans = useMemo(
     () => [...plans].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
     [plans]
-  );
-  const coveredPatients = useMemo(
-    () => patients.filter((patient) => sortedPlans.some((plan) => plan.patientId === patient.id)),
-    [patients, sortedPlans]
   );
   const stageOptions = useMemo(
     () => Array.from(new Set(sortedPlans.map((plan) => plan.stage))).filter(Boolean),
@@ -454,14 +451,25 @@ export function RehabPlanManagement() {
             .join(" ")
             .toLowerCase()
             .includes(keyword.toLowerCase());
-        const matchesPatient = !patientFilter || plan.patientId === patientFilter;
+        const createdAt = patient ? new Date(patient.createdAt) : null;
+        const matchesArchiveDateFrom =
+          !archiveDateFrom || (createdAt && createdAt >= new Date(`${archiveDateFrom}T00:00:00`));
+        const matchesArchiveDateTo =
+          !archiveDateTo || (createdAt && createdAt <= new Date(`${archiveDateTo}T23:59:59`));
         const matchesStage = !stageFilter || plan.stage === stageFilter;
         const matchesRisk = !riskFilter || plan.risk === riskFilter;
         const matchesStatus = !statusFilter || plan.status === statusFilter;
 
-        return matchesKeyword && matchesPatient && matchesStage && matchesRisk && matchesStatus;
+        return (
+          matchesKeyword &&
+          matchesArchiveDateFrom &&
+          matchesArchiveDateTo &&
+          matchesStage &&
+          matchesRisk &&
+          matchesStatus
+        );
       }),
-    [keyword, patientFilter, patients, riskFilter, sortedPlans, stageFilter, statusFilter]
+    [archiveDateFrom, archiveDateTo, keyword, patients, riskFilter, sortedPlans, stageFilter, statusFilter]
   );
 
   useEffect(() => {
@@ -510,7 +518,8 @@ export function RehabPlanManagement() {
 
   const resetFilters = () => {
     setKeyword("");
-    setPatientFilter("");
+    setArchiveDateFrom("");
+    setArchiveDateTo("");
     setStageFilter("");
     setRiskFilter("");
     setStatusFilter("");
@@ -518,7 +527,7 @@ export function RehabPlanManagement() {
   };
 
   const openAiPlanDialog = () => {
-    const initialPatient = selectedPatient ?? coveredPatients[0] ?? patients[0] ?? null;
+    const initialPatient = selectedPatient ?? patients[0] ?? null;
     const initialTemplate =
       sortedPlans.find((plan) => plan.patientId === initialPatient?.id) ?? null;
     setAiPlanDraft(buildAiPlanDraft(initialPatient, initialTemplate));
@@ -576,7 +585,8 @@ export function RehabPlanManagement() {
     writePatientWorkspace(aiPlanPatient);
     writeState(planWorkspaceContextKey, { planId: createdPlan.id });
     setKeyword("");
-    setPatientFilter("");
+    setArchiveDateFrom("");
+    setArchiveDateTo("");
     setStageFilter("");
     setRiskFilter("");
     setStatusFilter("");
@@ -634,19 +644,21 @@ export function RehabPlanManagement() {
             onChange={(event) => setKeyword(event.target.value)}
           />
         </Field>
-        <Field label="患者">
-          <select
-            className="native-select"
-            value={patientFilter}
-            onChange={(event) => setPatientFilter(event.target.value)}
-          >
-            <option value="">全部患者</option>
-            {coveredPatients.map((patient) => (
-              <option key={patient.id} value={patient.id}>
-                {patient.name}
-              </option>
-            ))}
-          </select>
+        <Field label="建档时间">
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              type="date"
+              value={archiveDateFrom}
+              aria-label="建档开始时间"
+              onChange={(event) => setArchiveDateFrom(event.target.value)}
+            />
+            <Input
+              type="date"
+              value={archiveDateTo}
+              aria-label="建档结束时间"
+              onChange={(event) => setArchiveDateTo(event.target.value)}
+            />
+          </div>
         </Field>
         <Field label="阶段">
           <select
@@ -1361,7 +1373,6 @@ export function PrescriptionManagement({
       : "/patients/current";
   const currentCreatePath = `${currentRoot}/create`;
   const currentEditPath = `${currentRoot}/edit`;
-  const currentExportPath = `${currentRoot}/export`;
 
   const openAiPlanDialog = () => {
     if (!activePatient) {
@@ -1415,10 +1426,6 @@ export function PrescriptionManagement({
       <Button onClick={() => navigateTo(navigate, currentCreatePath)}>
         <Plus className="h-4 w-4" />
         新增单体动作
-      </Button>
-      <Button variant="outline" onClick={() => navigateTo(navigate, currentExportPath)}>
-        <FileOutput className="h-4 w-4" />
-        导出单体动作
       </Button>
     </>
   );

@@ -131,7 +131,6 @@ const prescriptionExportDraftKey = "patients:prescription-export-page";
 const reportExportDraftKey = "patients:report-export-page";
 const currentActionCreateDraftKey = "patients:current-action-create-page";
 const currentActionEditDraftKey = "patients:current-action-edit-page";
-const currentActionExportDraftKey = "patients:current-action-export-page";
 const planExportDraftKey = "patients:plan-export-page";
 const patientEditDraftKey = "patients:edit-page";
 const patientExportDraftKey = "patients:base-export-page";
@@ -2257,61 +2256,6 @@ export function PlanExportPage({
       onGenerate={async () => {
         const result = await api.exportPrescriptions(1);
         return `已生成 ${result.fileName.replace("prescriptions", "plans")}，生成时间 ${formatDateTime(result.generatedAt)}`;
-      }}
-    />
-  );
-}
-
-export function CurrentActionExportPage({
-  patientId,
-  planId,
-  prescriptionId,
-  returnTo
-}: CarePathSubPageProps = {}) {
-  const navigate = useNavigate();
-  const { data: patients = [] } = usePatientsQuery();
-  const { data: plans = [] } = usePlansQuery();
-  const { data: prescriptions = [] } = usePrescriptionsQuery();
-  const summaryPlan =
-    plans.find((item) => item.id === planId) ??
-    plans.find((item) => item.id === readState<{ planId: string }>(planWorkspaceContextKey)?.planId) ??
-    null;
-  const summaryPrescription =
-    prescriptions.find((item) => item.id === prescriptionId) ??
-    prescriptions.find((item) => item.id === readState<{ prescriptionId: string }>(prescriptionWorkspaceContextKey)?.prescriptionId) ??
-    null;
-  const patient =
-    resolveWorkspacePatient(
-      patients,
-      plans,
-      prescriptions,
-      patientId ?? summaryPrescription?.patientId ?? summaryPlan?.patientId
-    ) ?? patients[0] ?? null;
-  const targetReturnTo =
-    returnTo ??
-    (patientId && planId && prescriptionId
-      ? patientPrescriptionCurrentPath(patientId, planId, prescriptionId)
-      : "/patients/current");
-
-  return (
-    <ExportSubPage
-      eyebrow={buildCurrentBreadcrumb({ navigate, patient, plan: summaryPlan, prescription: summaryPrescription, currentLabel: "导出单体动作" })}
-      title="导出单体动作"
-      description="支持导出当前单体动作列表，并配置导出时间范围、对象和条件。"
-      draftKey={currentActionExportDraftKey}
-      returnTo={targetReturnTo}
-      detailTitle="导出任务摘要"
-      initialDraft={{
-        exportScope: "当前单体动作",
-        dateRange: "近30天",
-        exportObject: "当前标准动作处方列表",
-        exportCondition: "按最近操作时间排序",
-        format: "PDF / XLSX / DOCX"
-      }}
-      exportHint="适合用于病区床旁演示、动作单页打印和教学视频同步。"
-      onGenerate={async () => {
-        const result = await api.exportPrescriptions(1);
-        return `已生成 ${result.fileName.replace("prescriptions", "current-actions")}，生成时间 ${formatDateTime(result.generatedAt)}`;
       }}
     />
   );

@@ -155,12 +155,26 @@ type QaTagSelection = Record<KnowledgeLibrary, string[]>;
 
 type QaMediaItem = NonNullable<MultiModalQaMessage["media"]>[number];
 
+type QaTagFilterDraft = {
+  library: KnowledgeLibrary;
+  parent: string;
+  tag: string;
+};
+
 function createDefaultQaTagSelection(): QaTagSelection {
   return {
     knowledge: [],
     voice: [],
     motion: [],
     sequence: []
+  };
+}
+
+function createDefaultQaTagFilterDraft(): QaTagFilterDraft {
+  return {
+    library: "knowledge",
+    parent: "",
+    tag: ""
   };
 }
 
@@ -172,8 +186,8 @@ function getSelectedQaLibraries(value: QaTagSelection) {
   return qaLibraries.filter((library) => value[library].length > 0);
 }
 
-function getQaTagNames(tags: TagItem[], items: KnowledgeItem[]) {
-  return Array.from(new Set([...tags.map((tag) => tag.name), ...items.flatMap((item) => item.tags)])).filter(Boolean);
+function getQaParentNames(tags: TagItem[]) {
+  return Array.from(new Set(tags.map((tag) => tag.parent).filter(Boolean)));
 }
 
 function normalizeQaSearchText(value: string) {
@@ -282,46 +296,6 @@ function buildQaCandidates({
     seen.add(key);
     return true;
   });
-}
-
-function QaLibraryTagPicker({
-  label,
-  tags,
-  value,
-  onChange
-}: {
-  label: string;
-  tags: string[];
-  value: string[];
-  onChange: (nextValue: string[]) => void;
-}) {
-  const selectedTitle = value.length ? value.join("、") : "全部标签";
-  const inlineTitle = tags.length ? `${label}：${selectedTitle}` : `${label}：暂无标签`;
-
-  return (
-    <div className="w-[220px] min-w-[220px]">
-      <select
-        className="native-select"
-        value=""
-        title={inlineTitle}
-        onChange={(event) => {
-          const tag = event.target.value;
-          if (!tag) {
-            return;
-          }
-
-          onChange(value.includes(tag) ? value.filter((item) => item !== tag) : [...value, tag]);
-        }}
-      >
-        <option value="">{inlineTitle}</option>
-        {tags.map((tag) => (
-          <option key={tag} value={tag}>
-            {value.includes(tag) ? `取消 ${tag}` : `选择 ${tag}`}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
 }
 
 const qaImageMediaExample: QaMediaItem = {
@@ -1661,17 +1635,30 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
   );
   const [question, setQuestion] = useState("");
   const [selectedQaTags, setSelectedQaTags] = useState<QaTagSelection>(() => createDefaultQaTagSelection());
+  const [tagFilterDraft, setTagFilterDraft] = useState<QaTagFilterDraft>(() => createDefaultQaTagFilterDraft());
   const [deepThinking, setDeepThinking] = useState(false);
   const [previewMedia, setPreviewMedia] = useState<QaMediaItem | null>(null);
 
-  const qaTagOptionsByLibrary = useMemo(
+  const qaTagsByLibrary = useMemo(
     () => ({
-      knowledge: getQaTagNames(knowledgeTags, knowledgeItems),
-      voice: getQaTagNames(voiceTags, voiceItems),
-      motion: getQaTagNames(motionTags, motionItems),
-      sequence: getQaTagNames(sequenceTags, sequenceItems)
+      knowledge: knowledgeTags,
+      voice: voiceTags,
+      motion: motionTags,
+      sequence: sequenceTags
     }),
-    [knowledgeItems, knowledgeTags, motionItems, motionTags, sequenceItems, sequenceTags, voiceItems, voiceTags]
+    [knowledgeTags, motionTags, sequenceTags, voiceTags]
+  );
+
+  const qaParentOptions = useMemo(
+    () => getQaParentNames(qaTagsByLibrary[tagFilterDraft.library]),
+    [qaTagsByLibrary, tagFilterDraft.library]
+  );
+  const qaChildTagOptions = useMemo(
+    () =>
+      qaTagsByLibrary[tagFilterDraft.library]
+        .filter((tag) => !tagFilterDraft.parent || tag.parent === tagFilterDraft.parent)
+        .map((tag) => tag.name),
+    [qaTagsByLibrary, tagFilterDraft.library, tagFilterDraft.parent]
   );
 
   const qaCandidatesByLibrary = useMemo(
@@ -1707,6 +1694,13 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
   const hasTagFilters = hasSelectedQaTags(selectedQaTags);
   const selectedTagCount = qaLibraries.reduce((count, library) => count + selectedQaTags[library].length, 0);
   const selectedLibraries = hasTagFilters ? getSelectedQaLibraries(selectedQaTags) : [];
+  const selectedFilterBadges = qaLibraries.flatMap((library) =>
+    selectedQaTags[library].map((tag) => ({
+      library,
+      tag,
+      label: qaLibraryOptions.find((item) => item.value === library)?.label ?? library
+    }))
+  );
 
   const promptPool = useMemo(() => {
     return qaLibraries
@@ -1719,6 +1713,25 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
   useEffect(() => {
     writeState(qaStateKey, messages);
   }, [messages]);
+
+  const confirmTagFilter = () => {
+    if (!tagFilterDraft.tag) {
+      return;
+    }
+
+    setSelectedQaTags((current) => ({
+      ...current,
+      [tagFilterDraft.library]: current[tagFilterDraft.library].includes(tagFilterDraft.tag)
+        ? current[tagFilterDraft.library]
+        : [...current[tagFilterDraft.library], tagFilterDraft.tag]
+    }));
+    setTagFilterDraft((current) => ({ ...current, tag: "" }));
+  };
+
+  const resetTagFilters = () => {
+    setSelectedQaTags(createDefaultQaTagSelection());
+    setTagFilterDraft(createDefaultQaTagFilterDraft());
+  };
 
   const sendQuestion = () => {
     const trimmed = question.trim();
@@ -1838,28 +1851,75 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
                 <>
                   <Button
                     variant="secondary"
-                    onClick={() => setSelectedQaTags(createDefaultQaTagSelection())}
+                    onClick={resetTagFilters}
                   >
                     重置
                   </Button>
-                  <Button>查询</Button>
+                  <Button onClick={confirmTagFilter} disabled={!tagFilterDraft.tag}>
+                    确认
+                  </Button>
                 </>
               }
             >
-              {qaLibraryOptions.map((item) => (
-                <QaLibraryTagPicker
-                  key={item.value}
-                  label={item.label}
-                  tags={qaTagOptionsByLibrary[item.value]}
-                  value={selectedQaTags[item.value]}
-                  onChange={(nextValue) =>
-                    setSelectedQaTags((current) => ({
+              <Field label="库选择">
+                <select
+                  className="native-select"
+                  value={tagFilterDraft.library}
+                  onChange={(event) =>
+                    setTagFilterDraft({
+                      library: event.target.value as KnowledgeLibrary,
+                      parent: "",
+                      tag: ""
+                    })
+                  }
+                >
+                  {qaLibraryOptions.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="上级标签">
+                <select
+                  className="native-select"
+                  value={tagFilterDraft.parent}
+                  onChange={(event) =>
+                    setTagFilterDraft((current) => ({
                       ...current,
-                      [item.value]: nextValue
+                      parent: event.target.value,
+                      tag: ""
                     }))
                   }
-                />
-              ))}
+                >
+                  <option value="">请选择上级标签</option>
+                  {qaParentOptions.map((parent) => (
+                    <option key={parent} value={parent}>
+                      {parent}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="标签">
+                <select
+                  className="native-select"
+                  value={tagFilterDraft.tag}
+                  disabled={!tagFilterDraft.parent}
+                  onChange={(event) =>
+                    setTagFilterDraft((current) => ({
+                      ...current,
+                      tag: event.target.value
+                    }))
+                  }
+                >
+                  <option value="">{tagFilterDraft.parent ? "请选择标签" : "请先选择上级标签"}</option>
+                  {qaChildTagOptions.map((tag) => (
+                    <option key={tag} value={tag}>
+                      {tag}
+                    </option>
+                  ))}
+                </select>
+              </Field>
             </FilterBar>
 
             <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -1999,6 +2059,29 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
               <Card className="pointer-events-auto mx-auto w-full overflow-hidden border-border/70 shadow-panel md:w-1/2">
                 <CardContent className="p-2.5">
                   <div className="relative">
+                    {selectedFilterBadges.length ? (
+                      <div className="mb-2 flex flex-wrap gap-2 px-1">
+                        {selectedFilterBadges.map((item) => (
+                          <button
+                            key={`${item.library}-${item.tag}`}
+                            type="button"
+                            className="inline-flex max-w-full items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+                            onClick={() =>
+                              setSelectedQaTags((current) => ({
+                                ...current,
+                                [item.library]: current[item.library].filter((tag) => tag !== item.tag)
+                              }))
+                            }
+                            title={`移除 ${item.label} / ${item.tag}`}
+                          >
+                            <span className="max-w-[12rem] truncate">
+                              {item.label} / {item.tag}
+                            </span>
+                            <X className="h-3 w-3" />
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                     <Textarea
                       value={question}
                       placeholder="请输入问题，支持连续追问和上下文承接"
