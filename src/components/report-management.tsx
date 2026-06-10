@@ -12,15 +12,11 @@ import {
   toggleSelection
 } from "@/lib/table-selection";
 import { formatDateTime } from "@/lib/utils";
-import { CollapsibleSplitLayout } from "@/components/collapsible-side-panel";
-import { DetailPanel } from "@/components/detail-panel";
 import { DialogFormShell } from "@/components/dialog-form-shell";
 import { EmptyState } from "@/components/empty-state";
 import { Field } from "@/components/field";
 import { FilterBar } from "@/components/filter-bar";
 import { PageHeader } from "@/components/page-header";
-import { PropertyList } from "@/components/property-list";
-import { SectionCard } from "@/components/section-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -320,7 +316,7 @@ export function ReportManagement() {
       <PageHeader
         eyebrow="患者档案管理 > 评估报告管理"
         title="评估报告管理"
-        description="评估报告保持全局统一检索，不挂患者上下文；列表、详情和审核入口按 Figma 管理页结构组织。"
+        description="评估报告保持全局统一检索，不挂患者上下文；列表、预览和审核入口按 Figma 管理页结构组织。"
         actions={
           <>
             <Button asChild>
@@ -394,11 +390,7 @@ export function ReportManagement() {
         </Field>
       </FilterBar>
 
-      <CollapsibleSplitLayout
-        label="报告"
-        sideWidthClassName="w-full xl:w-[360px]"
-        main={
-          <Card className="flex min-h-0 flex-col overflow-hidden">
+      <Card className="flex min-h-0 flex-col overflow-hidden">
             <CardHeader className="border-b border-border/60">
               <div>
                 <CardTitle>评估报告列表</CardTitle>
@@ -522,60 +514,7 @@ export function ReportManagement() {
                 </div>
               </div>
             ) : null}
-          </Card>
-        }
-        side={
-          <DetailPanel title="患者评估详情看板" className="h-full">
-            {selected ? (
-              <>
-                <PropertyList
-                  items={[
-                    { label: "报告标题", value: `${selected.patientName} 评估报告` },
-                    { label: "报告编号", value: selected.id },
-                    { label: "创建时间", value: formatDateTime(selected.reviewedAt) },
-                    { label: "患者", value: selected.patientName },
-                    { label: "状态", value: selected.status }
-                  ]}
-                />
-                <SectionCard title="核心指标">
-                  <div className="grid gap-3 md:grid-cols-3">
-                    {[
-                      { title: "完成率", value: selected.completionRate },
-                      { title: "关节活动度", value: selected.romChange },
-                      { title: "疼痛评分", value: selected.painScore }
-                    ].map((item) => (
-                      <div key={item.title} className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-4">
-                        <p className="text-xs text-muted-foreground">{item.title}</p>
-                        <p className="mt-2 text-lg font-semibold text-surface-900">{item.value}</p>
-                      </div>
-                    ))}
-                  </div>
-                </SectionCard>
-                <SectionCard title="医护反馈">
-                  <div className="space-y-3">
-                    <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3">
-                      <p className="text-sm font-medium text-surface-900">医生反馈</p>
-                      <p className="mt-2 text-sm leading-7 text-muted-foreground">{selected.doctorComment}</p>
-                    </div>
-                    <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3">
-                      <p className="text-sm font-medium text-surface-900">护士反馈</p>
-                      <p className="mt-2 text-sm leading-7 text-muted-foreground">{selected.nurseComment}</p>
-                    </div>
-                  </div>
-                </SectionCard>
-                <SectionCard title="AI 提醒与记录">
-                  <p className="text-sm leading-7 text-muted-foreground">{selected.aiReference}</p>
-                  <p className="mt-3 text-xs leading-6 text-muted-foreground">
-                    最近处理记录：{`于 ${formatDateTime(selected.reviewedAt)} 完成状态更新，当前为${selected.status}。`}
-                  </p>
-                </SectionCard>
-              </>
-            ) : (
-              <EmptyState title="请选择一份评估报告" />
-            )}
-          </DetailPanel>
-        }
-      />
+      </Card>
 
       <ReportPreviewDialog
         report={previewTarget}

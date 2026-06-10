@@ -12,14 +12,11 @@ import {
 } from "@/lib/table-selection";
 import { formatDateTime } from "@/lib/utils";
 import type { Patient } from "@/lib/types";
-import { CollapsibleSplitLayout } from "@/components/collapsible-side-panel";
-import { DetailPanel } from "@/components/detail-panel";
 import { DialogFormShell } from "@/components/dialog-form-shell";
 import { EmptyState } from "@/components/empty-state";
 import { Field } from "@/components/field";
 import { FilterBar } from "@/components/filter-bar";
 import { PageHeader } from "@/components/page-header";
-import { PropertyList } from "@/components/property-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -175,7 +172,7 @@ export function PatientManagement() {
       <PageHeader
         eyebrow="患者档案管理 > 基础档案"
         title="基础档案"
-        description="支持患者档案检索、右侧详情预览、新增档案与编辑删除操作。"
+        description="支持患者档案检索、新增档案与编辑删除操作。"
         actions={
           <>
             <Button
@@ -258,11 +255,7 @@ export function PatientManagement() {
         </Field>
       </FilterBar>
 
-      <CollapsibleSplitLayout
-        label="档案"
-        sideWidthClassName="w-full xl:w-[360px]"
-        main={
-          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <CardHeader className="border-b border-border/60">
               <div>
                 <CardTitle>患者列表</CardTitle>
@@ -385,47 +378,7 @@ export function PatientManagement() {
                 </div>
               </div>
             ) : null}
-          </Card>
-        }
-        side={
-          <DetailPanel title="患者档案" className="h-full">
-            {selected ? (
-              <>
-                <PropertyList
-                  items={[
-                    { label: "患者", value: selected.name },
-                    { label: "患者ID", value: selected.id },
-                    { label: "年龄", value: selected.age },
-                    { label: "性别", value: selected.gender },
-                    { label: "病种", value: selected.diagnosis },
-                    { label: "病床号", value: selected.bedNo },
-                    { label: "建档人", value: selected.createdBy },
-                    { label: "建档时间", value: formatDateTime(selected.createdAt) }
-                  ]}
-                />
-                <Card className="border-border/60 bg-surface-50 shadow-none">
-                  <CardHeader>
-                    <CardTitle className="text-base">患者备注</CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0 text-sm leading-7 text-muted-foreground">
-                    {selected.note}
-                  </CardContent>
-                </Card>
-                <Card className="border-border/60 bg-surface-50 shadow-none">
-                  <CardHeader>
-                    <CardTitle className="text-base">最近操作</CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0 text-sm leading-7 text-muted-foreground">
-                    {`${selected.createdBy} 于 ${formatDateTime(selected.createdAt)} 完成建档，当前患者已同步为后续康复方案与处方页上下文。`}
-                  </CardContent>
-                </Card>
-              </>
-            ) : (
-              <EmptyState title="请选择一位患者" />
-            )}
-          </DetailPanel>
-        }
-      />
+      </Card>
 
       <DialogFormShell
         open={Boolean(deleteTarget)}

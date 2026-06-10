@@ -55,6 +55,14 @@ export function CollapsibleSplitLayout({
 }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
+  if (side == null) {
+    return (
+      <div className={cn("min-h-0 flex-1 [&>*]:h-full [&>*]:min-h-0", className, mainClassName)}>
+        {main}
+      </div>
+    );
+  }
+
   return (
     <div className={cn("relative min-h-0 flex-1", className)}>
       <Button

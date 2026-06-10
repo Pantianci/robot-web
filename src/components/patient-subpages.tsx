@@ -923,7 +923,7 @@ export function PatientEditPage() {
       bottom={
         <>
           <div>
-            {errorMessage ? <p className="text-sm text-rose-700">{errorMessage}</p> : <p className="text-sm text-primary">修改完成后会返回基础档案列表，并刷新右侧详情。</p>}
+            {errorMessage ? <p className="text-sm text-rose-700">{errorMessage}</p> : <p className="text-sm text-primary">修改完成后会返回基础档案列表，并刷新列表数据。</p>}
           </div>
           <div className="flex gap-3">
             <Button variant="secondary" onClick={() => writeDraft(patientEditDraftKey, draft)}>
@@ -1287,7 +1287,7 @@ export function PlanEditPage({
         bottom={
           <>
             <div>
-              {errorMessage ? <p className="text-sm text-rose-700">{errorMessage}</p> : <p className="text-sm text-primary">修改完成后会返回康复方案列表，并更新右侧详情。</p>}
+              {errorMessage ? <p className="text-sm text-rose-700">{errorMessage}</p> : <p className="text-sm text-primary">修改完成后会返回康复方案列表，并更新列表数据。</p>}
             </div>
             <div className="flex gap-3">
               <Button variant="secondary" onClick={() => writeDraft(planEditDraftKey, draft)}>
@@ -1738,7 +1738,7 @@ export function PrescriptionEditPage({
         bottom={
           <>
             <div>
-              {errorMessage ? <p className="text-sm text-rose-700">{errorMessage}</p> : <p className="text-sm text-primary">修改完成后会返回运动处方列表，并更新详情侧栏。</p>}
+              {errorMessage ? <p className="text-sm text-rose-700">{errorMessage}</p> : <p className="text-sm text-primary">修改完成后会返回运动处方列表，并更新列表数据。</p>}
             </div>
             <div className="flex gap-3">
               <Button variant="secondary" onClick={() => writeDraft(prescriptionEditDraftKey, draft)}>
@@ -2162,7 +2162,7 @@ export function CurrentActionEditPage({
               {errorMessage ? (
                 <p className="text-sm text-rose-700">{errorMessage}</p>
               ) : (
-                <p className="text-sm text-primary">修改完成后会返回当前处方列表，并更新右侧详情。</p>
+                <p className="text-sm text-primary">修改完成后会返回当前处方列表，并更新列表数据。</p>
               )}
             </div>
             <div className="flex gap-3">

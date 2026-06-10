@@ -30,7 +30,6 @@ import {
 import { formatDateTime } from "@/lib/utils";
 import type { CurrentAction, Patient, Prescription, RehabPlan } from "@/lib/types";
 import { CollapsibleSplitLayout } from "@/components/collapsible-side-panel";
-import { DetailPanel } from "@/components/detail-panel";
 import { DialogFormShell } from "@/components/dialog-form-shell";
 import { EmptyState } from "@/components/empty-state";
 import { Field } from "@/components/field";
@@ -1509,81 +1508,7 @@ export function RehabPlanManagement() {
             />
           </Card>
         }
-        side={
-          <DetailPanel title="方案详情" className="h-full">
-            {selectedPlan ? (
-              <>
-                <PropertyList
-                  items={[
-                    { label: "患者姓名", value: selectedPlan.patientName },
-                    { label: "患者ID", value: selectedPatient?.id ?? selectedPlan.patientId },
-                    { label: "方案编号", value: selectedPlan.id },
-                    { label: "方案类型", value: selectedPlan.type },
-                    { label: "阶段", value: selectedPlan.stage },
-                    { label: "确认医生", value: selectedPlan.doctor },
-                    { label: "责任护士", value: selectedPlan.nurse },
-                    { label: "设备", value: selectedPlan.deviceId },
-                    {
-                      label: "采纳状态",
-                      value: resolvePlanAdoptionLabel(selectedPlan, planGenerationStatus[selectedPlan.id])
-                    },
-                    { label: "最近更新", value: formatDateTime(selectedPlan.updatedAt) }
-                  ]}
-                />
-                <SectionCard title="训练目标">
-                  <div className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3 text-sm leading-7 text-surface-900">
-                    {selectedPlan.goal}
-                  </div>
-                </SectionCard>
-                <SectionCard title="方案说明">
-                  <p className="text-sm leading-7 text-muted-foreground">{selectedPlan.description}</p>
-                </SectionCard>
-                <SectionCard title="AI 推荐依据">
-                  <p className="text-sm leading-7 text-muted-foreground">{selectedPlan.aiReference}</p>
-                </SectionCard>
-                <SectionCard title="相关处方">
-                  <div className="space-y-3">
-                    {selectedPatientPrescriptions.length ? (
-                      selectedPatientPrescriptions.slice(0, 3).map((prescription) => (
-                        <div
-                          key={prescription.id}
-                          className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <p className="text-sm font-medium text-surface-900">{prescription.id}</p>
-                              <p className="mt-1 text-xs text-muted-foreground">
-                                {prescription.sequenceName} · {prescription.frequency}
-                              </p>
-                            </div>
-                            <Badge>
-                              {resolvePrescriptionAdoptionLabel(
-                                prescription,
-                                prescriptionGenerationStatus[prescription.id]
-                              )}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="rounded-[1rem] border border-dashed border-border/70 bg-surface-50 px-4 py-3 text-sm text-muted-foreground">
-                        当前患者还没有关联处方，点击上方方案编号或处方数列中的“查看”可进入该方案的处方页继续配置。
-                      </div>
-                    )}
-                  </div>
-                </SectionCard>
-                <div className="flex gap-2">
-                  <Button onClick={() => openPlanPrescriptions(selectedPlan)}>查看处方</Button>
-                  <Button variant="outline" onClick={() => openPlanEdit(selectedPlan)}>
-                    编辑方案
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <EmptyState title="请选择方案" description="从左侧列表选择一条方案后查看详情。" />
-            )}
-          </DetailPanel>
-        }
+        side={null}
       />
 
       <DialogFormShell
@@ -2267,8 +2192,8 @@ export function PrescriptionManagement({
       : view === "plans"
         ? `${activePatient?.name ?? "患者"}的康复方案`
         : view === "prescriptions"
-          ? `${activePatient?.name ?? "患者"}的运动处方列表`
-          : `${activePatient?.name ?? "患者"}的当前处方`;
+          ? "运动处方列表"
+          : "当前处方";
   const headerDescription =
     scope === "all" && view === "plans"
       ? "展示所有患者的康复方案，支持新增、编辑、删除、导出和全局检索。"
@@ -2533,46 +2458,7 @@ export function PrescriptionManagement({
               />
             </Card>
           }
-          side={
-            <DetailPanel title="智能推荐康复方案" className="h-full">
-              {selectedPlan ? (
-                <>
-                  <PropertyList
-                    items={[
-                      { label: "方案编号", value: selectedPlan.id },
-                      { label: "确认医生", value: selectedPlan.doctor },
-                      { label: "方案类型", value: selectedPlan.type },
-                      { label: "风险等级", value: selectedPlan.risk },
-                      { label: "最近处理", value: formatDateTime(selectedPlan.updatedAt) }
-                    ]}
-                  />
-                  <SectionCard title="康复方案">
-                    <p className="text-sm leading-7 text-muted-foreground">{selectedPlan.aiReference}</p>
-                  </SectionCard>
-                  <SectionCard title="训练目标">
-                    <div className="space-y-3">
-                      {[
-                        selectedPlan.goal,
-                        "改善关节活动度和疼痛反馈，建立稳定训练节奏。",
-                        "结合病区观察结果逐步调整强度和训练频率。"
-                      ].map((item) => (
-                        <div key={item} className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3 text-sm leading-7 text-surface-900">
-                          {item}
-                        </div>
-                      ))}
-                    </div>
-                  </SectionCard>
-                  <SectionCard title="最近操作记录">
-                    <p className="text-sm leading-7 text-muted-foreground">
-                      {`${selectedPlan.doctor} 于 ${formatDateTime(selectedPlan.updatedAt)} 更新了方案类型、风险与说明。`}
-                    </p>
-                  </SectionCard>
-                </>
-              ) : (
-                <EmptyState title="请选择方案" />
-              )}
-            </DetailPanel>
-          }
+          side={null}
         />
       ) : null}
 
@@ -2697,43 +2583,7 @@ export function PrescriptionManagement({
               />
             </Card>
           }
-          side={
-            <DetailPanel title="动作详情与视频预览" className="h-full">
-              {selectedAction ? (
-                <>
-                  <SectionCard title="康复训练教学视频">
-                    <div className="rounded-[1.25rem] border border-border/70 bg-surface-950 px-4 py-5 text-white">
-                      <p className="text-base font-semibold">
-                        {selectedPrescription?.videoTitle ?? "核心稳定性训练 - 基础动作教学"}
-                      </p>
-                      <p className="mt-2 text-sm text-white/70">
-                        时长：{selectedPrescription?.videoDuration ?? "15分30秒"} | 难度：初级
-                      </p>
-                      <div className="mt-5 rounded-full bg-white/10 px-4 py-2 text-xs text-white/80">
-                        05:30 / {selectedPrescription?.videoDuration ?? "15:30"}
-                      </div>
-                    </div>
-                  </SectionCard>
-                  <PropertyList
-                    items={[
-                      { label: "动作说明", value: selectedAction.note },
-                      { label: "动作部位", value: selectedAction.part },
-                      { label: "执行时间", value: selectedAction.duration },
-                      { label: "执行强度", value: selectedAction.intensity },
-                      { label: "最近处理", value: formatDateTime(selectedAction.updatedAt) }
-                    ]}
-                  />
-                  <SectionCard title="最近处理记录">
-                    <p className="text-sm leading-7 text-muted-foreground">
-                      {`护理侧于 ${formatDateTime(selectedAction.updatedAt)} 更新了动作参数与注意事项。`}
-                    </p>
-                  </SectionCard>
-                </>
-              ) : (
-                <EmptyState title="请选择一个动作" />
-              )}
-            </DetailPanel>
-          }
+          side={null}
         />
       ) : null}
 
@@ -2893,49 +2743,7 @@ export function PrescriptionManagement({
               />
             </Card>
           }
-          side={
-            <DetailPanel title="当前处方详情" className="h-full">
-              {selectedPrescription ? (
-                <>
-                  <PropertyList
-                    items={[
-                      { label: "处方ID", value: selectedPrescription.id },
-                      { label: "确认医生", value: selectedPrescription.doctor },
-                      { label: "处方执行状态", value: selectedPrescription.status },
-                      { label: "参数摘要", value: `${selectedPrescription.movements.length} 个动作 / ${selectedPrescription.frequency}` },
-                      { label: "视频名称", value: selectedPrescription.videoTitle },
-                      { label: "最近操作", value: formatDateTime(selectedPrescription.issuedAt) }
-                    ]}
-                  />
-                  <SectionCard title="处方说明">
-                    <p className="text-sm leading-7 text-muted-foreground">{selectedPrescription.note}</p>
-                  </SectionCard>
-                  <SectionCard title="动作视频与参数">
-                    <div className="space-y-3">
-                      {selectedPrescription.movements.map((movement) => (
-                        <div
-                          key={movement.id}
-                          className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3"
-                        >
-                          <p className="text-sm font-medium text-surface-900">{movement.name}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            角度 {movement.angle} · 次数 {movement.repetitions} · 时长 {movement.duration}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </SectionCard>
-                  <SectionCard title="执行状态与处理记录">
-                    <p className="text-sm leading-7 text-muted-foreground">
-                      {`${selectedPrescription.doctor} 于 ${formatDateTime(selectedPrescription.issuedAt)} 提交处方，当前状态为${selectedPrescription.status}。`}
-                    </p>
-                  </SectionCard>
-                </>
-              ) : (
-                <EmptyState title="请选择一条处方" />
-              )}
-            </DetailPanel>
-          }
+          side={null}
         />
       ) : null}
 
