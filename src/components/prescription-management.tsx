@@ -663,6 +663,134 @@ function RehabPlanPreviewDialog({
   );
 }
 
+function PrescriptionPreviewDialog({
+  prescription,
+  open,
+  onOpenChange
+}: {
+  prescription: Prescription | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  if (!prescription) {
+    return null;
+  }
+
+  const prescriptionDetails = [
+    ["目的", prescription.goal],
+    ["方式", prescription.sequenceName],
+    ["强度", `抗阻运动：${prescription.risk === "高风险" ? "RPE 8-10 分" : "RPE 10-12 分"}`],
+    ["时间", "每次 30-60min"],
+    ["频率", prescription.frequency],
+    ["运动量", "累计 150min/周"],
+    ["运动进阶", "每 2 周调整 1 次运动量，先增加组数，再增加阻力"],
+    ["周期", "8-12 周"]
+  ];
+  const contentText =
+    prescription.note ||
+    `热身：5 min（原地踏步、动态拉伸、关节活动度练习）；正式运动：${prescription.sequenceName}；整理运动：5 min 静态拉伸。`;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92vh] w-[min(94vw,1080px)] overflow-y-auto p-0">
+        <DialogHeader className="sr-only">
+          <DialogTitle>处方预览</DialogTitle>
+          <DialogDescription>预览当前运动处方详情。</DialogDescription>
+        </DialogHeader>
+        <div className="bg-white p-6 text-surface-800 md:p-8">
+          <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="border-l-8 border-primary pl-5">
+              <h2 className="text-3xl font-bold text-surface-900">当前处方详情：</h2>
+            </div>
+            <Badge className="w-fit rounded-full border border-emerald-500 bg-emerald-50 px-8 py-3 text-lg font-bold text-emerald-600">
+              执行中
+            </Badge>
+          </div>
+
+          <div className="grid gap-8 xl:grid-cols-[0.85fr_1.15fr]">
+            <div className="space-y-6">
+              <div className="grid grid-cols-[120px_1fr] gap-y-5 text-lg">
+                {[
+                  ["患者姓名", prescription.patientName],
+                  ["处方编号", prescription.id.toUpperCase()],
+                  ["开具医生", prescription.doctor],
+                  ["开具日期", formatDateTime(prescription.issuedAt).split(" ")[0]]
+                ].map(([label, value]) => (
+                  <div key={label} className="contents">
+                    <span className="text-muted-foreground">{label}</span>
+                    <span className="font-bold text-surface-900">{value}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border border-slate-200">
+                {prescriptionDetails.map(([label, value]) => (
+                  <div key={label} className="grid grid-cols-[120px_1fr] border-b border-slate-200 last:border-b-0">
+                    <div className="bg-slate-50 px-5 py-4 text-center font-semibold text-muted-foreground">
+                      {label}
+                    </div>
+                    <div className="px-5 py-4 font-semibold text-surface-900">{value}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
+                <p className="mb-2 text-lg font-bold text-muted-foreground">运动处方具体内容</p>
+                <p className="text-base leading-8 text-surface-800">{contentText}</p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="overflow-hidden rounded-2xl bg-slate-200 shadow-soft">
+                <div className="relative flex h-80 items-center justify-center bg-gradient-to-br from-slate-300 to-slate-500 text-white">
+                  <div className="absolute inset-0 bg-black/10" />
+                  <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-white/90 text-surface-900 shadow-panel">
+                    <div className="ml-1 h-0 w-0 border-y-[18px] border-l-[28px] border-y-transparent border-l-surface-900" />
+                  </div>
+                  <div className="absolute bottom-8 left-8 right-8 text-center">
+                    <p className="text-lg text-white/75">康复训练教学视频</p>
+                    <p className="mt-3 text-3xl font-bold">{prescription.videoTitle}</p>
+                    <p className="mt-4 text-lg">时长：{prescription.videoDuration} | 难度：初级</p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-4 bg-white px-6 py-5 md:flex-row md:items-center">
+                  <div className="flex gap-4">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">◀</div>
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">▶</div>
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">🔊</div>
+                  </div>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-full w-[32%] rounded-full bg-emerald-500" />
+                  </div>
+                  <span className="text-lg font-medium text-muted-foreground">05:30 / {prescription.videoDuration}</span>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border-2 border-primary bg-primary/5 p-5">
+                <p className="text-xl font-bold text-primary">效果评估</p>
+                <p className="mt-4 text-lg leading-8 text-surface-800">
+                  12 周规律运动后：体重降低 6kg，平均睡眠时长增加 40min，动作完成度预计提升至 {prescription.movements.length >= 3 ? "90%" : "80%"} 以上。
+                </p>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                {prescription.movements.slice(0, 4).map((movement) => (
+                  <div key={movement.id} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="font-semibold text-surface-900">{movement.name}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {movement.angle} · {movement.repetitions} · {movement.duration}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function RehabPlanManagement() {
   const navigate = useNavigate();
   const { data: patients = [] } = usePatientsQuery();
@@ -1206,6 +1334,7 @@ export function RehabPlanManagement() {
                                 type="button"
                                 variant="ghost"
                                 size="sm"
+                                className="text-primary hover:text-primary/80"
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   openPlanPrescriptions(plan);
@@ -1686,6 +1815,7 @@ export function PrescriptionManagement({
   const [currentPage, setCurrentPage] = useState(1);
   const [prescriptionPage, setPrescriptionPage] = useState(1);
   const [previewPlan, setPreviewPlan] = useState<RehabPlan | null>(null);
+  const [previewPrescription, setPreviewPrescription] = useState<Prescription | null>(null);
   const [deletePlanTarget, setDeletePlanTarget] = useState<RehabPlan | null>(null);
   const [deleteActionTarget, setDeleteActionTarget] = useState<CurrentAction | null>(null);
   const [deletePrescriptionTarget, setDeletePrescriptionTarget] = useState<Prescription | null>(null);
@@ -2220,6 +2350,7 @@ export function PrescriptionManagement({
                                     type="button"
                                     variant="ghost"
                                     size="sm"
+                                    className="text-primary hover:text-primary/80"
                                     onClick={(event) => {
                                       event.stopPropagation();
                                       openPatientPrescriptionList(navigate, planPatient, item);
@@ -2567,7 +2698,25 @@ export function PrescriptionManagement({
                           </TableCell>
                           <TableCell className="font-medium">{item.id}</TableCell>
                           <TableCell>{item.doctor}</TableCell>
-                          <TableCell>{item.movements.length}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <span>{item.movements.length}</span>
+                              {activePatient && summaryPlan ? (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-primary hover:text-primary/80"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    openPatientCurrentActionList(navigate, activePatient, summaryPlan, item);
+                                  }}
+                                >
+                                  查看
+                                </Button>
+                              ) : null}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <Badge>{item.status === "已完成" ? "已采纳" : "待采纳"}</Badge>
                           </TableCell>
@@ -2576,6 +2725,18 @@ export function PrescriptionManagement({
                           <TableCell>{item.goal}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setPreviewPrescription(item);
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                                处方预览
+                              </Button>
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -2677,6 +2838,16 @@ export function PrescriptionManagement({
         onOpenChange={(open) => {
           if (!open) {
             setPreviewPlan(null);
+          }
+        }}
+      />
+
+      <PrescriptionPreviewDialog
+        prescription={previewPrescription}
+        open={Boolean(previewPrescription)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewPrescription(null);
           }
         }}
       />
