@@ -144,7 +144,6 @@ const patientArchiveRichTextLabels = {
   gender: "性别",
   diagnosis: "病种",
   stage: "阶段",
-  robotId: "机器人编号",
   bedNo: "病床号",
   createdBy: "建档人",
   note: "档案备注"
@@ -171,7 +170,9 @@ function mergePatientArchiveRichText(currentText: string | undefined, draft: Pat
     return buildPatientArchiveRichText(draft);
   }
 
-  const lines = currentText.split("\n");
+  const lines = currentText
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("机器人编号："));
 
   for (const field of patientArchiveRichTextFields) {
     const label = patientArchiveRichTextLabels[field];
@@ -415,6 +416,7 @@ function SubPageLayout({
   left,
   right,
   bottom,
+  fixedTop = false,
   fixedBottom = false
 }: {
   eyebrow: React.ReactNode;
@@ -424,6 +426,7 @@ function SubPageLayout({
   left: React.ReactNode;
   right: React.ReactNode;
   bottom: React.ReactNode;
+  fixedTop?: boolean;
   fixedBottom?: boolean;
 }) {
   return (
@@ -439,7 +442,18 @@ function SubPageLayout({
         label="摘要"
         sideWidthClassName="w-full xl:w-[360px]"
         main={
-          fixedBottom ? (
+          fixedTop ? (
+            <div className="flex min-h-0 flex-col gap-3">
+              <Card className="shrink-0 border-primary/15 bg-primary/5">
+                <CardContent className="flex items-center justify-between gap-4 p-5">
+                  {bottom}
+                </CardContent>
+              </Card>
+              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                <div className="space-y-3">{left}</div>
+              </div>
+            </div>
+          ) : fixedBottom ? (
             <div className="flex min-h-0 flex-col gap-3">
               <div className="min-h-0 flex-1 overflow-y-auto pr-1">
                 <div className="space-y-3">{left}</div>
@@ -574,7 +588,7 @@ export function PatientCreatePage() {
   );
   const [errorMessage, setErrorMessage] = useState("");
 
-  const richTextValue = draft.richText ?? buildPatientArchiveRichText(draft);
+  const richTextValue = mergePatientArchiveRichText(draft.richText, draft);
 
   const persist = (patch: Partial<PatientCreateDraft>) => {
     const nextForm = { ...draft, ...patch };
@@ -604,7 +618,7 @@ export function PatientCreatePage() {
       gender: draft.gender,
       diagnosis: draft.diagnosis,
       stage: draft.stage,
-      robotId: draft.robotId,
+      robotId: "",
       bedNo: draft.bedNo,
       createdBy: draft.createdBy,
       note: draft.note
@@ -623,6 +637,7 @@ export function PatientCreatePage() {
       eyebrow="患者档案管理 > 基础档案 > 新增档案"
       title="新增档案"
       description="用于录入患者基础信息和备注，提交前会校验必填项，并支持草稿恢复。"
+      fixedTop
       left={
         <>
           <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -654,9 +669,6 @@ export function PatientCreatePage() {
               </Field>
               <Field label="阶段">
                 <Input value={draft.stage} onChange={(event) => persist({ stage: event.target.value })} />
-              </Field>
-              <Field label="机器人编号">
-                <Input value={draft.robotId} onChange={(event) => persist({ robotId: event.target.value })} />
               </Field>
               <Field label="病床号">
                 <Input value={draft.bedNo} onChange={(event) => persist({ bedNo: event.target.value })} />
@@ -764,7 +776,7 @@ export function PatientEditPage() {
   );
   const [errorMessage, setErrorMessage] = useState("");
 
-  const richTextValue = draft.richText ?? buildPatientArchiveRichText(draft);
+  const richTextValue = mergePatientArchiveRichText(draft.richText, draft);
 
   const persist = (patch: Partial<PatientCreateDraft>) => {
     const nextForm = { ...draft, ...patch };
@@ -800,7 +812,6 @@ export function PatientEditPage() {
         gender: draft.gender,
         diagnosis: draft.diagnosis,
         stage: draft.stage,
-        robotId: draft.robotId,
         bedNo: draft.bedNo,
         createdBy: draft.createdBy,
         note: draft.note
@@ -820,6 +831,7 @@ export function PatientEditPage() {
       eyebrow="患者档案管理 > 基础档案 > 修改档案"
       title="修改档案"
       description="用于修改当前选中患者的基础信息与备注，保留表单与富文本联动结构。"
+      fixedTop
       left={
         <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <CardHeader className="border-b border-border/60">
@@ -847,9 +859,6 @@ export function PatientEditPage() {
             </Field>
             <Field label="阶段">
               <Input value={draft.stage} onChange={(event) => persist({ stage: event.target.value })} />
-            </Field>
-            <Field label="机器人编号">
-              <Input value={draft.robotId} onChange={(event) => persist({ robotId: event.target.value })} />
             </Field>
             <Field label="病床号">
               <Input value={draft.bedNo} onChange={(event) => persist({ bedNo: event.target.value })} />

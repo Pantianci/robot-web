@@ -41,6 +41,14 @@ import { SectionCard } from "@/components/section-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { TableSelectionCheckbox } from "@/components/ui/table-selection-checkbox";
 import {
@@ -76,6 +84,19 @@ type AiPrescriptionDraft = {
   frequency: string;
   focus: string;
   note: string;
+};
+
+type SimulatedGenerationStatus = "生成中" | "待生成";
+
+type PlanGenerationSnapshot = {
+  patient: Patient;
+  plan: RehabPlan;
+};
+
+type PrescriptionGenerationSnapshot = {
+  patient: Patient;
+  plan: RehabPlan;
+  prescription: Prescription;
 };
 
 const pageSize = 8;
@@ -397,12 +418,109 @@ function planRiskBadgeClass(risk: string) {
   return "bg-emerald-100 text-emerald-700";
 }
 
+function resolvePlanAdoptionLabel(plan: RehabPlan, simulatedStatus?: SimulatedGenerationStatus) {
+  return simulatedStatus ?? (plan.status === "已同步" ? "已采纳" : "待采纳");
+}
+
+function resolvePrescriptionAdoptionLabel(
+  prescription: Prescription,
+  simulatedStatus?: SimulatedGenerationStatus
+) {
+  return simulatedStatus ?? prescription.status;
+}
+
+function GenerationProgressDialog({
+  open,
+  title,
+  description,
+  onOpenChange,
+  onCancel
+}: {
+  open: boolean;
+  title: string;
+  description: string;
+  onOpenChange: (open: boolean) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[min(92vw,560px)]">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="rounded-[1.25rem] border border-primary/20 bg-primary/5 p-4">
+            <div className="flex items-center justify-between text-sm font-medium text-primary">
+              <span>AI 正在生成</span>
+              <span>约 5 秒</span>
+            </div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+              <div className="h-full w-2/3 animate-pulse rounded-full bg-primary" />
+            </div>
+          </div>
+          <p className="text-sm leading-7 text-muted-foreground">
+            关闭弹窗会保留当前条目并继续显示“生成中”。点击取消生成会把采纳状态改为“待生成”。
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            关闭弹窗
+          </Button>
+          <Button variant="secondary" onClick={onCancel}>
+            取消生成
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PreviewConfirmDialog({
+  open,
+  title,
+  description,
+  items,
+  confirmLabel,
+  cancelLabel = "稍后处理",
+  onOpenChange,
+  onConfirm
+}: {
+  open: boolean;
+  title: string;
+  description: string;
+  items: { label: string; value: string | number | string[] | undefined }[];
+  confirmLabel: string;
+  cancelLabel?: string;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <PropertyList items={items} />
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {cancelLabel}
+          </Button>
+          <Button onClick={onConfirm}>{confirmLabel}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function RehabPlanManagement() {
   const navigate = useNavigate();
   const { data: patients = [] } = usePatientsQuery();
   const { data: plans = [] } = usePlansQuery();
   const { data: prescriptions = [] } = usePrescriptionsQuery();
   const createPlanMutation = useCreatePlanMutation();
+  const createPrescriptionMutation = useCreatePrescriptionMutation();
   const deletePlanMutation = useDeletePlanMutation();
   const [keyword, setKeyword] = useState("");
   const [archiveDateFrom, setArchiveDateFrom] = useState("");
@@ -421,6 +539,26 @@ export function RehabPlanManagement() {
     focus: "",
     note: ""
   });
+  const [aiPrescriptionOpen, setAiPrescriptionOpen] = useState(false);
+  const [aiPrescriptionDraft, setAiPrescriptionDraft] = useState<AiPrescriptionDraft>({
+    planId: "",
+    goal: "",
+    frequency: "3-5 次/周",
+    focus: "",
+    note: ""
+  });
+  const [planGenerationStatus, setPlanGenerationStatus] = useState<Record<string, SimulatedGenerationStatus>>({});
+  const [prescriptionGenerationStatus, setPrescriptionGenerationStatus] = useState<
+    Record<string, SimulatedGenerationStatus>
+  >({});
+  const [planGeneration, setPlanGeneration] = useState<PlanGenerationSnapshot | null>(null);
+  const [planPreview, setPlanPreview] = useState<PlanGenerationSnapshot | null>(null);
+  const [prescriptionGeneration, setPrescriptionGeneration] =
+    useState<PrescriptionGenerationSnapshot | null>(null);
+  const [prescriptionPreview, setPrescriptionPreview] =
+    useState<PrescriptionGenerationSnapshot | null>(null);
+  const [chainPrescriptionPlan, setChainPrescriptionPlan] = useState<RehabPlan | null>(null);
+  const [chainPrescriptionPatient, setChainPrescriptionPatient] = useState<Patient | null>(null);
   const [deletePlanTarget, setDeletePlanTarget] = useState<RehabPlan | null>(null);
 
   const sortedPlans = useMemo(
@@ -488,6 +626,15 @@ export function RehabPlanManagement() {
   const aiPlanPatient = patients.find((patient) => patient.id === aiPlanDraft.patientId) ?? null;
   const aiPlanTemplate =
     sortedPlans.find((plan) => plan.patientId === aiPlanPatient?.id) ?? null;
+  const aiPrescriptionPlan =
+    chainPrescriptionPlan ??
+    sortedPlans.find((plan) => plan.id === aiPrescriptionDraft.planId) ??
+    selectedPlan ??
+    null;
+  const aiPrescriptionPatient =
+    chainPrescriptionPatient ??
+    patients.find((patient) => patient.id === aiPrescriptionPlan?.patientId) ??
+    null;
   const selectedPatientPrescriptions = useMemo(
     () =>
       prescriptions
@@ -515,6 +662,42 @@ export function RehabPlanManagement() {
     const filteredPlanIdSet = new Set(filteredPlanIds);
     setSelectedPlanIds((current) => current.filter((id) => filteredPlanIdSet.has(id)));
   }, [filteredPlanIds]);
+
+  useEffect(() => {
+    if (!planGeneration) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setPlanGenerationStatus((current) => {
+        const next = { ...current };
+        delete next[planGeneration.plan.id];
+        return next;
+      });
+      setPlanPreview(planGeneration);
+      setPlanGeneration(null);
+    }, 5000);
+
+    return () => window.clearTimeout(timer);
+  }, [planGeneration]);
+
+  useEffect(() => {
+    if (!prescriptionGeneration) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setPrescriptionGenerationStatus((current) => {
+        const next = { ...current };
+        delete next[prescriptionGeneration.prescription.id];
+        return next;
+      });
+      setPrescriptionPreview(prescriptionGeneration);
+      setPrescriptionGeneration(null);
+    }, 5000);
+
+    return () => window.clearTimeout(timer);
+  }, [prescriptionGeneration]);
 
   const resetFilters = () => {
     setKeyword("");
@@ -592,7 +775,95 @@ export function RehabPlanManagement() {
     setStatusFilter("");
     setPage(1);
     setSelectedPlanId(createdPlan.id);
+    setPlanGenerationStatus((current) => ({ ...current, [createdPlan.id]: "生成中" }));
+    setPlanGeneration({ patient: aiPlanPatient, plan: createdPlan });
     setAiPlanOpen(false);
+  };
+
+  const cancelPlanGeneration = () => {
+    if (!planGeneration) {
+      return;
+    }
+
+    setPlanGenerationStatus((current) => ({
+      ...current,
+      [planGeneration.plan.id]: "待生成"
+    }));
+    setPlanGeneration(null);
+  };
+
+  const continueToPrescriptionGeneration = () => {
+    if (!planPreview) {
+      return;
+    }
+
+    setChainPrescriptionPlan(planPreview.plan);
+    setChainPrescriptionPatient(planPreview.patient);
+    setAiPrescriptionDraft(buildAiPrescriptionDraft(planPreview.plan));
+    setPlanPreview(null);
+    setAiPrescriptionOpen(true);
+  };
+
+  const handleCreateAiPrescription = async () => {
+    if (!aiPrescriptionPlan || !aiPrescriptionPatient || !aiPrescriptionDraft.goal.trim() || !aiPrescriptionDraft.focus.trim()) {
+      return;
+    }
+
+    const createdPrescription = await createPrescriptionMutation.mutateAsync({
+      patientId: aiPrescriptionPatient.id,
+      patientName: aiPrescriptionPatient.name,
+      stage: aiPrescriptionPlan.stage,
+      goal: aiPrescriptionDraft.goal.trim(),
+      risk: aiPrescriptionPlan.risk,
+      sequenceName: `${aiPrescriptionPlan.type} AI处方`,
+      doctor: ensureDoctorSuffix(aiPrescriptionPlan.doctor),
+      status: "待审核",
+      note: `AI 已围绕方案 ${aiPrescriptionPlan.id} 生成处方。训练重点：${aiPrescriptionDraft.focus.trim()}。${aiPrescriptionDraft.note.trim()}`,
+      aiReference: `${aiPrescriptionPlan.aiReference} 处方聚焦：${aiPrescriptionDraft.focus.trim()}。`,
+      videoTitle: `${aiPrescriptionPlan.type} - AI推荐教学视频`,
+      videoDuration: "15分30秒",
+      frequency: aiPrescriptionDraft.frequency.trim() || "3-5 次/周",
+      movements: buildAiPrescriptionMovements(aiPrescriptionPlan)
+    });
+
+    writePatientWorkspace(aiPrescriptionPatient);
+    writeState(planWorkspaceContextKey, { planId: aiPrescriptionPlan.id });
+    writeState(prescriptionWorkspaceContextKey, { prescriptionId: createdPrescription.id });
+    setPrescriptionGenerationStatus((current) => ({ ...current, [createdPrescription.id]: "生成中" }));
+    setPrescriptionGeneration({
+      patient: aiPrescriptionPatient,
+      plan: aiPrescriptionPlan,
+      prescription: createdPrescription
+    });
+    setAiPrescriptionOpen(false);
+    setChainPrescriptionPlan(null);
+    setChainPrescriptionPatient(null);
+  };
+
+  const cancelPrescriptionGeneration = () => {
+    if (!prescriptionGeneration) {
+      return;
+    }
+
+    setPrescriptionGenerationStatus((current) => ({
+      ...current,
+      [prescriptionGeneration.prescription.id]: "待生成"
+    }));
+    setPrescriptionGeneration(null);
+  };
+
+  const enterPrescriptionEditPage = () => {
+    if (!prescriptionPreview) {
+      return;
+    }
+
+    writePatientWorkspace(prescriptionPreview.patient);
+    writeState(planWorkspaceContextKey, { planId: prescriptionPreview.plan.id });
+    writeState(prescriptionWorkspaceContextKey, { prescriptionId: prescriptionPreview.prescription.id });
+    navigateTo(
+      navigate,
+      `${patientPlanPrescriptionsPath(prescriptionPreview.patient.id, prescriptionPreview.plan.id)}/edit`
+    );
   };
 
   return (
@@ -780,7 +1051,7 @@ export function RehabPlanManagement() {
                           <TableCell>{plan.doctor}</TableCell>
                           <TableCell>{prescriptionCount}</TableCell>
                           <TableCell>
-                            <Badge>{plan.status === "已同步" ? "已采纳" : "待采纳"}</Badge>
+                            <Badge>{resolvePlanAdoptionLabel(plan, planGenerationStatus[plan.id])}</Badge>
                           </TableCell>
                           <TableCell>{plan.type}</TableCell>
                           <TableCell>{plan.stage}</TableCell>
@@ -862,7 +1133,10 @@ export function RehabPlanManagement() {
                     { label: "确认医生", value: selectedPlan.doctor },
                     { label: "责任护士", value: selectedPlan.nurse },
                     { label: "设备", value: selectedPlan.deviceId },
-                    { label: "同步状态", value: selectedPlan.status },
+                    {
+                      label: "采纳状态",
+                      value: resolvePlanAdoptionLabel(selectedPlan, planGenerationStatus[selectedPlan.id])
+                    },
                     { label: "最近更新", value: formatDateTime(selectedPlan.updatedAt) }
                   ]}
                 />
@@ -892,7 +1166,12 @@ export function RehabPlanManagement() {
                                 {prescription.sequenceName} · {prescription.frequency}
                               </p>
                             </div>
-                            <Badge>{prescription.status}</Badge>
+                            <Badge>
+                              {resolvePrescriptionAdoptionLabel(
+                                prescription,
+                                prescriptionGenerationStatus[prescription.id]
+                              )}
+                            </Badge>
                           </div>
                         </div>
                       ))
@@ -946,8 +1225,7 @@ export function RehabPlanManagement() {
               { label: "患者ID", value: aiPlanPatient.id },
               { label: "病种", value: aiPlanPatient.diagnosis },
               { label: "阶段", value: aiPlanPatient.stage },
-              { label: "病床号", value: aiPlanPatient.bedNo },
-              { label: "机器人ID", value: aiPlanPatient.robotId || "未绑定" }
+              { label: "病床号", value: aiPlanPatient.bedNo }
             ]}
           />
         ) : null}
@@ -992,6 +1270,132 @@ export function RehabPlanManagement() {
           />
         </Field>
       </DialogFormShell>
+
+      <GenerationProgressDialog
+        open={Boolean(planGeneration)}
+        title="AI 方案生成中"
+        description="系统已在方案列表中保留当前方案，生成完成后会自动进入结果预览。"
+        onOpenChange={(open) => {
+          if (!open) {
+            setPlanGeneration(null);
+          }
+        }}
+        onCancel={cancelPlanGeneration}
+      />
+
+      <PreviewConfirmDialog
+        open={Boolean(planPreview)}
+        title="AI 方案生成成功"
+        description="请预览方案信息。确认后会继续生成该方案内的第一条处方。"
+        items={[
+          { label: "方案编号", value: planPreview?.plan.id ?? "待生成" },
+          { label: "患者姓名", value: planPreview?.patient.name ?? "待生成" },
+          { label: "方案类型", value: planPreview?.plan.type ?? "待生成" },
+          { label: "训练目标", value: planPreview?.plan.goal ?? "待生成" },
+          { label: "风险等级", value: planPreview?.plan.risk ?? "待生成" },
+          { label: "AI 推荐依据", value: planPreview?.plan.aiReference ?? "待生成" }
+        ]}
+        confirmLabel="继续生成处方"
+        onOpenChange={(open) => {
+          if (!open) {
+            setPlanPreview(null);
+          }
+        }}
+        onConfirm={continueToPrescriptionGeneration}
+      />
+
+      <DialogFormShell
+        open={aiPrescriptionOpen}
+        onOpenChange={(open) => {
+          setAiPrescriptionOpen(open);
+          if (!open) {
+            setChainPrescriptionPlan(null);
+            setChainPrescriptionPatient(null);
+          }
+        }}
+        title="AI生成处方"
+        description="已基于刚生成的方案带入处方目标，可继续补充处方重点和执行说明。"
+        onSubmit={handleCreateAiPrescription}
+        submitLabel="确认生成"
+      >
+        {aiPrescriptionPlan ? (
+          <PropertyList
+            items={[
+              { label: "方案编号", value: aiPrescriptionPlan.id },
+              { label: "患者姓名", value: aiPrescriptionPlan.patientName },
+              { label: "方案类型", value: aiPrescriptionPlan.type },
+              { label: "训练目标", value: aiPrescriptionPlan.goal },
+              { label: "风险等级", value: aiPrescriptionPlan.risk },
+              { label: "确认医生", value: aiPrescriptionPlan.doctor }
+            ]}
+          />
+        ) : null}
+        <Field label="AI处方目标" required>
+          <Input
+            value={aiPrescriptionDraft.goal}
+            onChange={(event) =>
+              setAiPrescriptionDraft((current) => ({ ...current, goal: event.target.value }))
+            }
+          />
+        </Field>
+        <Field label="执行频率">
+          <Input
+            value={aiPrescriptionDraft.frequency}
+            onChange={(event) =>
+              setAiPrescriptionDraft((current) => ({ ...current, frequency: event.target.value }))
+            }
+          />
+        </Field>
+        <Field label="处方重点" required>
+          <Textarea
+            value={aiPrescriptionDraft.focus}
+            onChange={(event) =>
+              setAiPrescriptionDraft((current) => ({ ...current, focus: event.target.value }))
+            }
+          />
+        </Field>
+        <Field label="补充说明">
+          <Textarea
+            value={aiPrescriptionDraft.note}
+            onChange={(event) =>
+              setAiPrescriptionDraft((current) => ({ ...current, note: event.target.value }))
+            }
+          />
+        </Field>
+      </DialogFormShell>
+
+      <GenerationProgressDialog
+        open={Boolean(prescriptionGeneration)}
+        title="AI 处方生成中"
+        description="系统已在处方中保留当前记录，生成完成后会自动进入处方结果预览。"
+        onOpenChange={(open) => {
+          if (!open) {
+            setPrescriptionGeneration(null);
+          }
+        }}
+        onCancel={cancelPrescriptionGeneration}
+      />
+
+      <PreviewConfirmDialog
+        open={Boolean(prescriptionPreview)}
+        title="AI 处方生成成功"
+        description="请预览处方信息。确认后会直接进入该处方的编辑子页面。"
+        items={[
+          { label: "处方编号", value: prescriptionPreview?.prescription.id ?? "待生成" },
+          { label: "患者姓名", value: prescriptionPreview?.patient.name ?? "待生成" },
+          { label: "关联方案", value: prescriptionPreview?.plan.id ?? "待生成" },
+          { label: "动作序列", value: prescriptionPreview?.prescription.sequenceName ?? "待生成" },
+          { label: "执行频率", value: prescriptionPreview?.prescription.frequency ?? "待生成" },
+          { label: "处方说明", value: prescriptionPreview?.prescription.note ?? "待生成" }
+        ]}
+        confirmLabel="进入编辑子页面"
+        onOpenChange={(open) => {
+          if (!open) {
+            setPrescriptionPreview(null);
+          }
+        }}
+        onConfirm={enterPrescriptionEditPage}
+      />
 
       <DialogFormShell
         open={Boolean(deletePlanTarget)}
@@ -1633,7 +2037,7 @@ export function PrescriptionManagement({
                                 : prescriptionCount}
                             </TableCell>
                             <TableCell>
-                              <Badge>{item.status === "已同步" ? "已采纳" : "待采纳"}</Badge>
+                              <Badge>{resolvePlanAdoptionLabel(item)}</Badge>
                             </TableCell>
                             <TableCell>{item.type}</TableCell>
                             <TableCell>{formatDateTime(item.updatedAt)}</TableCell>
@@ -2080,8 +2484,7 @@ export function PrescriptionManagement({
               { label: "患者ID", value: activePatient.id },
               { label: "病种", value: activePatient.diagnosis },
               { label: "阶段", value: activePatient.stage },
-              { label: "病床号", value: activePatient.bedNo },
-              { label: "机器人ID", value: activePatient.robotId || "未绑定" }
+              { label: "病床号", value: activePatient.bedNo }
             ]}
           />
         ) : null}
