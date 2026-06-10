@@ -2400,7 +2400,7 @@ export function ReportReviewPage() {
       id: report.id,
       patch: {
         ...draft,
-        status: "已完成"
+        status: "已审核"
       }
     });
     clearDraft(reviewDraftKey);
@@ -2519,7 +2519,7 @@ export function ReportExportPage() {
         exportScope: "当前筛选结果",
         dateRange: "近30天",
         exportObject: "全局评估报告",
-        exportCondition: "医生待评价 + 已完成",
+        exportCondition: "未审核 + 审核中 + 已审核",
         format: "PDF / XLSX / DOCX"
       }}
       exportHint="当前原型保留导出项配置和结果反馈，适合演示查房归档流程。"

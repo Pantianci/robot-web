@@ -168,7 +168,7 @@
       "note": "ROM 提升明显，建议下周期增加节奏训练。",
       "aiReference": "AI 判断完成率高，趋势稳定，建议进入下一阶段。",
       "reviewedAt": "2026-06-04T09:40:00.000Z",
-      "status": "已完成"
+      "status": "已审核"
     },
     {
       "id": "rep-002",
@@ -182,7 +182,35 @@
       "note": "建议优化训练时段并减少连续时长。",
       "aiReference": "AI 建议将训练拆分为两段进行。",
       "reviewedAt": "2026-06-03T16:40:00.000Z",
-      "status": "待审核"
+      "status": "未审核"
+    },
+    {
+      "id": "rep-003",
+      "patientId": "pat-002",
+      "patientName": "李华",
+      "completionRate": "86%",
+      "romChange": "膝屈伸 +12°",
+      "painScore": "2/10",
+      "doctorComment": "医生评价待补充。",
+      "nurseComment": "护士已评价：训练后无明显肿胀，步态节奏较前稳定。",
+      "note": "护士已完成初评，等待医生确认下一阶段训练强度。",
+      "aiReference": "AI 判断下肢循环训练完成稳定，建议继续观察负重反应。",
+      "reviewedAt": "2026-06-02T11:20:00.000Z",
+      "status": "审核中（护士已评价）"
+    },
+    {
+      "id": "rep-004",
+      "patientId": "pat-004",
+      "patientName": "赵薇",
+      "completionRate": "68%",
+      "romChange": "肩前屈 +6°",
+      "painScore": "5/10",
+      "doctorComment": "医生已评价：暂不建议进入大角度牵伸，继续疼痛监测。",
+      "nurseComment": "护士评价待补充。",
+      "note": "医生已完成风险判断，等待护士补充执行反馈。",
+      "aiReference": "AI 提醒高风险患者需降低单次训练时长，并保留疼痛阈值记录。",
+      "reviewedAt": "2026-06-01T15:05:00.000Z",
+      "status": "审核中（医生已评价）"
     }
   ]
 }

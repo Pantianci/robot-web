@@ -1,5 +1,6 @@
 export type RecordStatus = "生效" | "失效" | "草稿";
 export type ReviewStatus = "待审核" | "已完成" | "已退回";
+export type ReportStatus = "未审核" | "审核中（护士已评价）" | "审核中（医生已评价）" | "已审核";
 export type RobotStatus = "执行中" | "正常" | "预警" | "离线";
 export type KnowledgeLibrary =
   | "knowledge"
@@ -141,7 +142,7 @@ export interface Report {
   note: string;
   aiReference: string;
   reviewedAt: string;
-  status: ReviewStatus;
+  status: ReportStatus;
 }
 
 export interface Robot {

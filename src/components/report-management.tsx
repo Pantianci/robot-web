@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { FileOutput, PencilLine, Trash2 } from "lucide-react";
+import { Eye, FileOutput, PencilLine, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { useDeleteReportMutation, useReportsQuery } from "@/lib/hooks";
@@ -24,6 +24,13 @@ import { SectionCard } from "@/components/section-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { TableSelectionCheckbox } from "@/components/ui/table-selection-checkbox";
 import {
@@ -34,8 +41,178 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
+import type { Report } from "@/lib/types";
 
 const pageSize = 8;
+
+const reportStatusOptions = [
+  "未审核",
+  "审核中（护士已评价）",
+  "审核中（医生已评价）",
+  "已审核"
+] as const;
+
+function reportStatusBadgeClass(status: Report["status"]) {
+  if (status === "已审核") {
+    return "bg-emerald-100 text-emerald-700";
+  }
+
+  if (status === "未审核") {
+    return "bg-surface-100 text-surface-700";
+  }
+
+  return "bg-amber-100 text-amber-700";
+}
+
+function ReportPreviewDialog({
+  report,
+  open,
+  onOpenChange
+}: {
+  report: Report | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  if (!report) {
+    return null;
+  }
+
+  const actionRows = [
+    { name: "主动屈伸热身", result: "达标，15次，85°", tone: "success" },
+    { name: "0-90 被动向心", result: "达标，15次，88°", tone: "success" },
+    { name: "左膝等长肌力", result: "欠佳，减阻保护", tone: "warning" },
+    { name: "直腿抬高练习", result: "达标，12次", tone: "success" },
+    { name: "动态关节松动", result: "达标，10次", tone: "success" }
+  ];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92vh] w-[min(94vw,1080px)] overflow-y-auto p-0">
+        <DialogHeader className="sr-only">
+          <DialogTitle>评估报告预览</DialogTitle>
+          <DialogDescription>预览患者总评估报告卡。</DialogDescription>
+        </DialogHeader>
+        <div className="bg-[#f8fbff] p-6 md:p-8">
+          <div className="rounded-[1.75rem] bg-[#1f7fd0] px-6 py-7 text-white shadow-soft md:px-10">
+            <p className="text-center text-2xl font-semibold md:text-4xl">智能康复管理系统</p>
+            <p className="mt-3 text-center text-xl font-semibold md:text-2xl">患者总评估报告卡</p>
+            <div className="mt-6 flex flex-col gap-3 text-sm text-white/80 md:flex-row md:justify-between">
+              <span>报告编号：{report.id.toUpperCase()}</span>
+              <span>生成时间：{formatDateTime(report.reviewedAt)}</span>
+            </div>
+          </div>
+
+          <div className="mt-7 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+            <div className="space-y-6">
+              <section className="rounded-[1.5rem] border border-sky-100 bg-white p-5 shadow-soft">
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1f7fd0] text-white">♥</span>
+                  <h3 className="text-xl font-semibold text-surface-900">患者基本信息</h3>
+                </div>
+                <div className="flex flex-col gap-5 md:flex-row md:items-center">
+                  <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-slate-100">
+                    <div className="h-14 w-14 rounded-full bg-slate-400" />
+                  </div>
+                  <div className="space-y-2 text-base font-medium text-surface-800">
+                    <p>患者：{report.patientName}  |  {report.patientName === "张三" ? "男" : "女"}  |  45岁</p>
+                    <p>病床：骨科302床</p>
+                    <p>临床诊断：左膝前交叉韧带（ACL）术后第4周</p>
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-[1.5rem] border border-sky-100 bg-white p-5 shadow-soft">
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1f7fd0] text-white">★</span>
+                  <h3 className="text-xl font-semibold text-surface-900">机器人训练核心数据</h3>
+                </div>
+                <div className="grid gap-4 md:grid-cols-3">
+                  {[
+                    { label: "训练时长", value: "22 / 20分钟", note: "完成110%" },
+                    { label: "最大屈曲角度", value: "88°", note: "达成率 97.7%" },
+                    { label: "动作完成度", value: report.completionRate, note: "满额完成（共3轮）" }
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4">
+                      <p className="text-sm font-semibold text-surface-700">✓ {item.label}</p>
+                      <p className="mt-2 text-3xl font-bold text-surface-900">{item.value}</p>
+                      <p className="mt-2 text-sm font-semibold text-emerald-600">{item.note}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="rounded-[1.5rem] border border-sky-100 bg-white p-5 shadow-soft">
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1f7fd0] text-white">★</span>
+                  <h3 className="text-xl font-semibold text-surface-900">1-5 动作队列明细</h3>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {actionRows.map((item, index) => (
+                    <div key={item.name} className="grid gap-3 py-3 md:grid-cols-[1fr_1fr]">
+                      <p className="font-semibold text-surface-800">✓ {index + 1}. {item.name}</p>
+                      <p className={item.tone === "success" ? "font-semibold text-emerald-600" : "font-semibold text-amber-500"}>
+                        {item.tone === "success" ? "✓" : "!"} {item.result}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            <div className="space-y-6">
+              <section className="rounded-[1.5rem] border border-sky-100 bg-white p-5 shadow-soft">
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1f7fd0] text-white">★</span>
+                  <h3 className="text-xl font-semibold text-surface-900">实时运动轨迹对比</h3>
+                </div>
+                <div className="relative h-56 rounded-2xl bg-gradient-to-b from-white to-emerald-50 p-5">
+                  <svg viewBox="0 0 420 180" className="h-full w-full">
+                    <path d="M20 150 C70 50, 120 20, 170 88 S250 155, 310 76 S370 50, 400 38" fill="none" stroke="#1f7fd0" strokeDasharray="7 7" strokeWidth="4" />
+                    <path d="M20 154 C70 78, 118 35, 168 95 S250 146, 308 86 S362 70, 400 48" fill="none" stroke="#36b37e" strokeWidth="5" />
+                  </svg>
+                  <div className="absolute right-6 top-5 text-sm font-semibold text-surface-900">方差 8.2% 良好</div>
+                </div>
+                <p className="mt-3 text-center text-sm text-muted-foreground">虚线：标准轨迹　实线：{report.patientName}实测轨迹</p>
+                <div className="mx-auto mt-5 w-fit rounded-xl bg-sky-50 px-8 py-3 text-sm font-semibold text-surface-800">
+                  AI 感知正向语音激励 6次
+                </div>
+              </section>
+
+              <section className="rounded-[1.5rem] border border-sky-100 bg-white p-5 shadow-soft">
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1f7fd0] text-white">♥</span>
+                  <h3 className="text-xl font-semibold text-surface-900">医护反馈与下一阶段</h3>
+                </div>
+                <div className="space-y-5 border-t border-sky-100 pt-5">
+                  <div className="grid gap-3 md:grid-cols-[56px_1fr]">
+                    <div className="h-12 w-12 rounded-full bg-slate-200" />
+                    <div>
+                      <p className="font-semibold text-surface-900">医生反馈</p>
+                      <p className="mt-2 text-sm leading-7 text-muted-foreground">{report.doctorComment}</p>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-[56px_1fr]">
+                    <div className="h-12 w-12 rounded-full bg-slate-200" />
+                    <div>
+                      <p className="font-semibold text-surface-900">护士反馈</p>
+                      <p className="mt-2 text-sm leading-7 text-muted-foreground">{report.nurseComment}</p>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-5 py-5">
+                    <p className="text-lg font-bold text-surface-900">2026-05-29　09:00</p>
+                    <p className="mt-4 text-sm text-muted-foreground">就诊地点：骨科门诊</p>
+                    <p className="mt-2 text-sm font-semibold text-surface-800">就诊医生：王志远</p>
+                    <Button className="mt-5 w-full md:w-auto">解锁下一阶段</Button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export function ReportManagement() {
   const { data: reports = [] } = useReportsQuery();
@@ -45,10 +222,13 @@ export function ReportManagement() {
   );
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("全部");
+  const [createdDateFrom, setCreatedDateFrom] = useState("");
+  const [createdDateTo, setCreatedDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [exportMessage, setExportMessage] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<(typeof reports)[number] | null>(null);
+  const [previewTarget, setPreviewTarget] = useState<Report | null>(null);
 
   const filtered = useMemo(
     () =>
@@ -62,9 +242,14 @@ export function ReportManagement() {
               .toLowerCase()
               .includes(keyword.toLowerCase());
           const statusMatch = statusFilter === "全部" || item.status === statusFilter;
-          return keywordMatch && statusMatch;
+          const createdAt = new Date(item.reviewedAt);
+          const dateFromMatch =
+            !createdDateFrom || createdAt >= new Date(`${createdDateFrom}T00:00:00`);
+          const dateToMatch =
+            !createdDateTo || createdAt <= new Date(`${createdDateTo}T23:59:59`);
+          return keywordMatch && statusMatch && dateFromMatch && dateToMatch;
         }),
-    [keyword, reports, statusFilter]
+    [createdDateFrom, createdDateTo, keyword, reports, statusFilter]
   );
 
   useEffect(() => {
@@ -103,6 +288,8 @@ export function ReportManagement() {
   const resetFilter = () => {
     setKeyword("");
     setStatusFilter("全部");
+    setCreatedDateFrom("");
+    setCreatedDateTo("");
     setPage(1);
   };
 
@@ -139,7 +326,7 @@ export function ReportManagement() {
             <Button asChild>
               <Link to="/patients/reports/review">
                 <PencilLine className="h-4 w-4" />
-                医生评价
+                审核评价
               </Link>
             </Button>
             <Button asChild variant="outline">
@@ -182,9 +369,28 @@ export function ReportManagement() {
             onChange={(event) => setStatusFilter(event.target.value)}
           >
             <option value="全部">全部</option>
-            <option value="待审核">待审核</option>
-            <option value="已完成">已完成</option>
+            {reportStatusOptions.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
           </select>
+        </Field>
+        <Field label="创建时间">
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              type="date"
+              value={createdDateFrom}
+              aria-label="创建开始时间"
+              onChange={(event) => setCreatedDateFrom(event.target.value)}
+            />
+            <Input
+              type="date"
+              value={createdDateTo}
+              aria-label="创建结束时间"
+              onChange={(event) => setCreatedDateTo(event.target.value)}
+            />
+          </div>
         </Field>
       </FilterBar>
 
@@ -221,7 +427,7 @@ export function ReportManagement() {
                       <TableHead>完成率</TableHead>
                       <TableHead>异常</TableHead>
                       <TableHead>疼痛</TableHead>
-                      <TableHead>更新时间</TableHead>
+                      <TableHead>创建时间</TableHead>
                       <TableHead>状态</TableHead>
                       <TableHead>操作</TableHead>
                     </TableRow>
@@ -250,30 +456,21 @@ export function ReportManagement() {
                         <TableCell>{item.painScore}</TableCell>
                         <TableCell>{formatDateTime(item.reviewedAt)}</TableCell>
                         <TableCell>
-                          <Badge
-                            className={
-                              item.status === "已完成"
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-amber-100 text-amber-700"
-                            }
-                          >
-                            {item.status === "待审核" ? "医生待评价" : "护士已评价"}
-                          </Badge>
+                          <Badge className={reportStatusBadgeClass(item.status)}>{item.status}</Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Button asChild variant="ghost" size="sm">
-                              <Link
-                                to="/patients/reports/review"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  writeState(reportWorkspaceContextKey, { reportId: item.id });
-                                  setSelectedId(item.id);
-                                }}
-                              >
-                                <PencilLine className="h-4 w-4" />
-                                编辑
-                              </Link>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setPreviewTarget(item);
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                              预览
                             </Button>
                             <Button
                               type="button"
@@ -335,8 +532,9 @@ export function ReportManagement() {
                   items={[
                     { label: "报告标题", value: `${selected.patientName} 评估报告` },
                     { label: "报告编号", value: selected.id },
-                    { label: "生成时间", value: formatDateTime(selected.reviewedAt) },
-                    { label: "患者", value: selected.patientName }
+                    { label: "创建时间", value: formatDateTime(selected.reviewedAt) },
+                    { label: "患者", value: selected.patientName },
+                    { label: "状态", value: selected.status }
                   ]}
                 />
                 <SectionCard title="核心指标">
@@ -377,6 +575,16 @@ export function ReportManagement() {
             )}
           </DetailPanel>
         }
+      />
+
+      <ReportPreviewDialog
+        report={previewTarget}
+        open={Boolean(previewTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewTarget(null);
+          }
+        }}
       />
 
       <DialogFormShell

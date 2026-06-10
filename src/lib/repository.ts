@@ -36,6 +36,7 @@ const fallbackDatabase: AppDatabase = {
 
 const fallbackDashboard = dashboardSeed as DashboardSeed;
 const REHAB_PLAN_SEED_BACKFILL_KEY = "robot-web-prototype::rehab-plan-seed-v2";
+const REPORT_SEED_BACKFILL_KEY = "robot-web-prototype::report-seed-v2";
 
 function shouldBackfillRehabPlans() {
   return typeof window === "undefined" || !window.localStorage.getItem(REHAB_PLAN_SEED_BACKFILL_KEY);
@@ -47,6 +48,18 @@ function markRehabPlansBackfilled() {
   }
 
   window.localStorage.setItem(REHAB_PLAN_SEED_BACKFILL_KEY, "1");
+}
+
+function shouldBackfillReports() {
+  return typeof window === "undefined" || !window.localStorage.getItem(REPORT_SEED_BACKFILL_KEY);
+}
+
+function markReportsBackfilled() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(REPORT_SEED_BACKFILL_KEY, "1");
 }
 
 function normalizeDatabase(database: AppDatabase): AppDatabase {
@@ -106,6 +119,30 @@ function normalizeDatabase(database: AppDatabase): AppDatabase {
     }
 
     markRehabPlansBackfilled();
+  }
+
+  next.carePath.reports = next.carePath.reports.map((report) => {
+    const status = String(report.status);
+
+    return {
+      ...report,
+      status:
+        status === "已完成"
+          ? "已审核"
+          : status === "待审核" || status === "已退回"
+            ? "未审核"
+            : report.status
+    };
+  });
+
+  if (shouldBackfillReports()) {
+    for (const report of fallbackDatabase.carePath.reports) {
+      if (!next.carePath.reports.some((record) => record.id === report.id)) {
+        next.carePath.reports.push(report);
+      }
+    }
+
+    markReportsBackfilled();
   }
 
   return next;
