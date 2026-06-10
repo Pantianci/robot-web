@@ -64,6 +64,7 @@ type PatientCreateDraft = {
   bedNo: string;
   createdBy: string;
   note: string;
+  richText?: string;
 };
 
 type PlanCreateDraft = {
@@ -136,6 +137,81 @@ const patientEditDraftKey = "patients:edit-page";
 const patientExportDraftKey = "patients:base-export-page";
 const planEditDraftKey = "patients:plan-edit-page";
 const prescriptionEditDraftKey = "patients:prescription-edit-page";
+
+const patientArchiveRichTextLabels = {
+  name: "患者姓名",
+  age: "年龄",
+  gender: "性别",
+  diagnosis: "病种",
+  stage: "阶段",
+  robotId: "机器人编号",
+  bedNo: "病床号",
+  createdBy: "建档人",
+  note: "档案备注"
+} as const;
+
+type PatientArchiveRichTextField = keyof typeof patientArchiveRichTextLabels;
+
+const patientArchiveRichTextFields = Object.keys(
+  patientArchiveRichTextLabels
+) as PatientArchiveRichTextField[];
+
+function buildPatientArchiveRichText(draft: PatientCreateDraft) {
+  return patientArchiveRichTextFields
+    .map((field) => `${patientArchiveRichTextLabels[field]}：${draft[field] ?? ""}`)
+    .join("\n");
+}
+
+function getExpandedTextRows(value: string) {
+  return Math.max(12, value.split("\n").length + 2);
+}
+
+function mergePatientArchiveRichText(currentText: string | undefined, draft: PatientCreateDraft) {
+  if (!currentText) {
+    return buildPatientArchiveRichText(draft);
+  }
+
+  const lines = currentText.split("\n");
+
+  for (const field of patientArchiveRichTextFields) {
+    const label = patientArchiveRichTextLabels[field];
+    const nextLine = `${label}：${draft[field] ?? ""}`;
+    const lineIndex = lines.findIndex((line) => line.trimStart().startsWith(`${label}：`));
+
+    if (lineIndex >= 0) {
+      lines[lineIndex] = nextLine;
+    } else {
+      lines.push(nextLine);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+function parsePatientArchiveRichText(value: string): Partial<PatientCreateDraft> {
+  const parsed: Partial<PatientCreateDraft> = {};
+
+  for (const line of value.split("\n")) {
+    for (const field of patientArchiveRichTextFields) {
+      const label = patientArchiveRichTextLabels[field];
+      if (!line.trimStart().startsWith(`${label}：`)) {
+        continue;
+      }
+
+      const fieldValue = line.slice(line.indexOf("：") + 1).trim();
+
+      if (field === "gender") {
+        if (fieldValue === "男" || fieldValue === "女") {
+          parsed.gender = fieldValue;
+        }
+      } else {
+        parsed[field] = fieldValue;
+      }
+    }
+  }
+
+  return parsed;
+}
 
 function resolveWorkspacePatient(
   patients: Patient[],
@@ -498,21 +574,20 @@ export function PatientCreatePage() {
   );
   const [errorMessage, setErrorMessage] = useState("");
 
-  const notePreview = useMemo(
-    () =>
-      [
-        draft.name ? `患者姓名：${draft.name}` : "",
-        draft.diagnosis ? `病种：${draft.diagnosis}` : "",
-        draft.stage ? `阶段：${draft.stage}` : "",
-        draft.note ? `档案备注：${draft.note}` : "档案备注："
-      ]
-        .filter(Boolean)
-        .join("\n"),
-    [draft]
-  );
+  const richTextValue = draft.richText ?? buildPatientArchiveRichText(draft);
 
   const persist = (patch: Partial<PatientCreateDraft>) => {
-    const next = { ...draft, ...patch };
+    const nextForm = { ...draft, ...patch };
+    const next = {
+      ...nextForm,
+      richText: mergePatientArchiveRichText(draft.richText ?? richTextValue, nextForm)
+    };
+    setDraft(next);
+    writeDraft(patientCreateDraftKey, next);
+  };
+
+  const updateFromRichText = (value: string) => {
+    const next = { ...draft, ...parsePatientArchiveRichText(value), richText: value };
     setDraft(next);
     writeDraft(patientCreateDraftKey, next);
   };
@@ -529,7 +604,7 @@ export function PatientCreatePage() {
       gender: draft.gender,
       diagnosis: draft.diagnosis,
       stage: draft.stage,
-      robotId: "",
+      robotId: draft.robotId,
       bedNo: draft.bedNo,
       createdBy: draft.createdBy,
       note: draft.note
@@ -580,6 +655,9 @@ export function PatientCreatePage() {
               <Field label="阶段">
                 <Input value={draft.stage} onChange={(event) => persist({ stage: event.target.value })} />
               </Field>
+              <Field label="机器人编号">
+                <Input value={draft.robotId} onChange={(event) => persist({ robotId: event.target.value })} />
+              </Field>
               <Field label="病床号">
                 <Input value={draft.bedNo} onChange={(event) => persist({ bedNo: event.target.value })} />
               </Field>
@@ -592,8 +670,13 @@ export function PatientCreatePage() {
                 </Field>
               </div>
               <div className="md:col-span-2">
-                <Field label="富文本自动回填">
-                  <Textarea value={notePreview} onChange={(event) => persist({ note: event.target.value })} />
+                <Field label="富文本自动互填">
+                  <Textarea
+                    value={richTextValue}
+                    rows={getExpandedTextRows(richTextValue)}
+                    className="min-h-[260px] overflow-hidden"
+                    onChange={(event) => updateFromRichText(event.target.value)}
+                  />
                 </Field>
               </div>
             </CardContent>
@@ -681,21 +764,20 @@ export function PatientEditPage() {
   );
   const [errorMessage, setErrorMessage] = useState("");
 
-  const notePreview = useMemo(
-    () =>
-      [
-        draft.name ? `患者姓名：${draft.name}` : "",
-        draft.diagnosis ? `病种：${draft.diagnosis}` : "",
-        draft.stage ? `阶段：${draft.stage}` : "",
-        draft.note ? `档案备注：${draft.note}` : "档案备注："
-      ]
-        .filter(Boolean)
-        .join("\n"),
-    [draft]
-  );
+  const richTextValue = draft.richText ?? buildPatientArchiveRichText(draft);
 
   const persist = (patch: Partial<PatientCreateDraft>) => {
-    const next = { ...draft, ...patch };
+    const nextForm = { ...draft, ...patch };
+    const next = {
+      ...nextForm,
+      richText: mergePatientArchiveRichText(draft.richText ?? richTextValue, nextForm)
+    };
+    setDraft(next);
+    writeDraft(patientEditDraftKey, next);
+  };
+
+  const updateFromRichText = (value: string) => {
+    const next = { ...draft, ...parsePatientArchiveRichText(value), richText: value };
     setDraft(next);
     writeDraft(patientEditDraftKey, next);
   };
@@ -718,6 +800,7 @@ export function PatientEditPage() {
         gender: draft.gender,
         diagnosis: draft.diagnosis,
         stage: draft.stage,
+        robotId: draft.robotId,
         bedNo: draft.bedNo,
         createdBy: draft.createdBy,
         note: draft.note
@@ -765,6 +848,9 @@ export function PatientEditPage() {
             <Field label="阶段">
               <Input value={draft.stage} onChange={(event) => persist({ stage: event.target.value })} />
             </Field>
+            <Field label="机器人编号">
+              <Input value={draft.robotId} onChange={(event) => persist({ robotId: event.target.value })} />
+            </Field>
             <Field label="病床号">
               <Input value={draft.bedNo} onChange={(event) => persist({ bedNo: event.target.value })} />
             </Field>
@@ -777,8 +863,13 @@ export function PatientEditPage() {
               </Field>
             </div>
             <div className="md:col-span-2">
-              <Field label="富文本自动回填">
-                <Textarea value={notePreview} onChange={(event) => persist({ note: event.target.value })} />
+              <Field label="富文本自动互填">
+                <Textarea
+                  value={richTextValue}
+                  rows={getExpandedTextRows(richTextValue)}
+                  className="min-h-[260px] overflow-hidden"
+                  onChange={(event) => updateFromRichText(event.target.value)}
+                />
               </Field>
             </div>
           </CardContent>

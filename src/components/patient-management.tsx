@@ -46,7 +46,8 @@ export function PatientManagement() {
   const [stageFilter, setStageFilter] = useState("全部");
   const [bedFilter, setBedFilter] = useState("");
   const [creatorFilter, setCreatorFilter] = useState("");
-  const [dateFilter, setDateFilter] = useState("全部");
+  const [archiveDateFrom, setArchiveDateFrom] = useState("");
+  const [archiveDateTo, setArchiveDateTo] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(
     readState<{ selectedId: string }>(patientWorkspaceContextKey)?.selectedId ??
       defaultPatientWorkspace.patientId
@@ -71,7 +72,6 @@ export function PatientManagement() {
   }, [patients, selectedId]);
 
   const filtered = useMemo(() => {
-    const now = Date.now();
     return [...patients]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .filter((item) => {
@@ -86,23 +86,15 @@ export function PatientManagement() {
         const creatorMatch =
           !creatorFilter || item.createdBy.toLowerCase().includes(creatorFilter.toLowerCase());
 
-        let dateMatch = true;
-        if (dateFilter !== "全部") {
-          const createdTime = new Date(item.createdAt).getTime();
-          const diff = now - createdTime;
-          const oneDay = 24 * 60 * 60 * 1000;
-          if (dateFilter === "近7天") {
-            dateMatch = diff <= oneDay * 7;
-          } else if (dateFilter === "近30天") {
-            dateMatch = diff <= oneDay * 30;
-          } else if (dateFilter === "近90天") {
-            dateMatch = diff <= oneDay * 90;
-          }
-        }
+        const createdAt = new Date(item.createdAt);
+        const dateFromMatch =
+          !archiveDateFrom || createdAt >= new Date(`${archiveDateFrom}T00:00:00`);
+        const dateToMatch =
+          !archiveDateTo || createdAt <= new Date(`${archiveDateTo}T23:59:59`);
 
-        return keywordMatch && stageMatch && bedMatch && creatorMatch && dateMatch;
+        return keywordMatch && stageMatch && bedMatch && creatorMatch && dateFromMatch && dateToMatch;
       });
-  }, [bedFilter, creatorFilter, dateFilter, patients, query, stageFilter]);
+  }, [archiveDateFrom, archiveDateTo, bedFilter, creatorFilter, patients, query, stageFilter]);
 
   const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0] ?? null;
   const totalPages = Math.max(1, Math.ceil(filtered.length / patientPageSize));
@@ -164,7 +156,8 @@ export function PatientManagement() {
     setStageFilter("全部");
     setBedFilter("");
     setCreatorFilter("");
-    setDateFilter("全部");
+    setArchiveDateFrom("");
+    setArchiveDateTo("");
     setPage(1);
   };
 
@@ -248,16 +241,20 @@ export function PatientManagement() {
           />
         </Field>
         <Field label="建档时间">
-          <select
-            className="native-select"
-            value={dateFilter}
-            onChange={(event) => setDateFilter(event.target.value)}
-          >
-            <option value="全部">全部</option>
-            <option value="近7天">近7天</option>
-            <option value="近30天">近30天</option>
-            <option value="近90天">近90天</option>
-          </select>
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              type="date"
+              value={archiveDateFrom}
+              aria-label="建档开始时间"
+              onChange={(event) => setArchiveDateFrom(event.target.value)}
+            />
+            <Input
+              type="date"
+              value={archiveDateTo}
+              aria-label="建档结束时间"
+              onChange={(event) => setArchiveDateTo(event.target.value)}
+            />
+          </div>
         </Field>
       </FilterBar>
 

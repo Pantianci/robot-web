@@ -644,22 +644,6 @@ export function RehabPlanManagement() {
             onChange={(event) => setKeyword(event.target.value)}
           />
         </Field>
-        <Field label="建档时间">
-          <div className="grid grid-cols-2 gap-2">
-            <Input
-              type="date"
-              value={archiveDateFrom}
-              aria-label="建档开始时间"
-              onChange={(event) => setArchiveDateFrom(event.target.value)}
-            />
-            <Input
-              type="date"
-              value={archiveDateTo}
-              aria-label="建档结束时间"
-              onChange={(event) => setArchiveDateTo(event.target.value)}
-            />
-          </div>
-        </Field>
         <Field label="阶段">
           <select
             className="native-select"
@@ -696,6 +680,22 @@ export function RehabPlanManagement() {
             <option value="已同步">已同步</option>
             <option value="待同步">待同步</option>
           </select>
+        </Field>
+        <Field label="建档时间">
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              type="date"
+              value={archiveDateFrom}
+              aria-label="建档开始时间"
+              onChange={(event) => setArchiveDateFrom(event.target.value)}
+            />
+            <Input
+              type="date"
+              value={archiveDateTo}
+              aria-label="建档结束时间"
+              onChange={(event) => setArchiveDateTo(event.target.value)}
+            />
+          </div>
         </Field>
       </FilterBar>
 
