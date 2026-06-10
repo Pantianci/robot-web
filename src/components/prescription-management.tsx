@@ -2190,7 +2190,7 @@ export function PrescriptionManagement({
     scope === "all" && view === "plans"
       ? "康复方案"
       : view === "plans"
-        ? `${activePatient?.name ?? "患者"}的康复方案`
+        ? "康复方案"
         : view === "prescriptions"
           ? "运动处方列表"
           : "当前处方";

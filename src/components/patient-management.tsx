@@ -323,6 +323,16 @@ export function PatientManagement() {
                               size="sm"
                               onClick={(event) => {
                                 event.stopPropagation();
+                                openPatientPlans(item);
+                              }}
+                            >
+                              查看方案
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(event) => {
+                                event.stopPropagation();
                                 openEditPage(item);
                               }}
                             >

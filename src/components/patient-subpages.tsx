@@ -37,7 +37,6 @@ import type {
   RehabPlan,
   Report
 } from "@/lib/types";
-import { CollapsibleSplitLayout } from "@/components/collapsible-side-panel";
 import { Field } from "@/components/field";
 import { PageBreadcrumbs, PageHeader } from "@/components/page-header";
 import { PropertyList } from "@/components/property-list";
@@ -419,7 +418,6 @@ function SubPageLayout({
   description,
   actions,
   left,
-  right,
   bottom,
   fixedTop = false,
   fixedBottom = false
@@ -443,45 +441,38 @@ function SubPageLayout({
         badge="子页面"
         actions={actions}
       />
-      <CollapsibleSplitLayout
-        label="摘要"
-        sideWidthClassName="w-full xl:w-[360px]"
-        main={
-          fixedTop ? (
-            <div className="flex min-h-0 flex-col gap-3">
-              <Card className="shrink-0 border-primary/15 bg-primary/5">
-                <CardContent className="flex items-center justify-between gap-4 p-5">
-                  {bottom}
-                </CardContent>
-              </Card>
-              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                <div className="space-y-3">{left}</div>
-              </div>
-            </div>
-          ) : fixedBottom ? (
-            <div className="flex min-h-0 flex-col gap-3">
-              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                <div className="space-y-3">{left}</div>
-              </div>
-              <Card className="shrink-0 border-primary/15 bg-primary/5">
-                <CardContent className="flex items-center justify-between gap-4 p-5">
-                  {bottom}
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
-            <div className="flex min-h-0 flex-col gap-3 overflow-y-auto pr-1">
-              <div className="space-y-3">{left}</div>
-              <Card className="shrink-0 border-primary/15 bg-primary/5">
-                <CardContent className="flex items-center justify-between gap-4 p-5">
-                  {bottom}
-                </CardContent>
-              </Card>
-            </div>
-          )
-        }
-        side={right}
-      />
+      {fixedTop ? (
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
+          <Card className="shrink-0 border-primary/15 bg-primary/5">
+            <CardContent className="flex items-center justify-between gap-4 p-5">
+              {bottom}
+            </CardContent>
+          </Card>
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            <div className="space-y-3">{left}</div>
+          </div>
+        </div>
+      ) : fixedBottom ? (
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            <div className="space-y-3">{left}</div>
+          </div>
+          <Card className="shrink-0 border-primary/15 bg-primary/5">
+            <CardContent className="flex items-center justify-between gap-4 p-5">
+              {bottom}
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
+          <div className="space-y-3">{left}</div>
+          <Card className="shrink-0 border-primary/15 bg-primary/5">
+            <CardContent className="flex items-center justify-between gap-4 p-5">
+              {bottom}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
