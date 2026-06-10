@@ -514,7 +514,7 @@ function PreviewConfirmDialog({
   );
 }
 
-function RehabPlanPreviewDialog({
+export function RehabPlanPreviewDialog({
   plan,
   open,
   onOpenChange
@@ -663,7 +663,7 @@ function RehabPlanPreviewDialog({
   );
 }
 
-function PrescriptionPreviewDialog({
+export function PrescriptionPreviewDialog({
   prescription,
   open,
   onOpenChange
@@ -782,6 +782,101 @@ function PrescriptionPreviewDialog({
                     </p>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function CurrentActionPreviewDialog({
+  action,
+  open,
+  onOpenChange,
+  prescription
+}: {
+  action: CurrentAction | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  prescription?: Prescription | null;
+}) {
+  if (!action) {
+    return null;
+  }
+
+  const actionDetails = [
+    ["阶段", prescription?.stage ?? "术后一至六周"],
+    ["时间", action.duration || "五分钟"],
+    ["次数", action.intensity === "中等" ? "每日3轮 每轮10次" : "每日2轮 每轮10次"],
+    ["方向", action.part === "肩带" ? "稳定" : "双侧"],
+    ["角度", action.title.includes("外展") ? "30-60 度" : "自然"]
+  ];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92vh] w-[min(94vw,960px)] overflow-y-auto p-0">
+        <DialogHeader className="sr-only">
+          <DialogTitle>动作预览</DialogTitle>
+          <DialogDescription>预览当前标准动作详情。</DialogDescription>
+        </DialogHeader>
+        <div className="bg-white p-6 text-surface-800 md:p-8">
+          <div className="mb-8 border-l-8 border-primary pl-5">
+            <h2 className="text-3xl font-bold text-surface-900 md:text-4xl">当前标准动作详情：{action.title}</h2>
+          </div>
+
+          <div className="grid gap-8 xl:grid-cols-[0.8fr_1.2fr]">
+            <div className="space-y-7">
+              <div className="grid grid-cols-[120px_1fr] gap-y-8 text-xl">
+                {actionDetails.map(([label, value]) => (
+                  <div key={label} className="contents">
+                    <span className="text-muted-foreground">{label}</span>
+                    <span className="font-bold text-surface-900">{value}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-2xl border-2 border-sky-100 bg-sky-50/60 p-6">
+                <p className="text-2xl font-bold text-primary">处方记录</p>
+                <p className="mt-6 text-lg leading-9 text-muted-foreground">
+                  阶段 / 动作 / 时间 / 轮数 / 每轮次数 / 幅度 / 角度 / 方向
+                </p>
+                <p className="mt-4 text-base leading-8 text-surface-700">
+                  {prescription?.sequenceName ?? "当前处方"} / {action.title} / {action.duration} / 3轮 / 10次 / {action.intensity} / {action.title.includes("外展") ? "30-60度" : "自然"} / {action.part}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-5">
+              <div className="overflow-hidden rounded-2xl bg-slate-200 shadow-soft">
+                <div className="relative flex h-80 items-center justify-center bg-gradient-to-br from-slate-300 to-slate-500 text-white">
+                  <div className="absolute inset-0 bg-black/10" />
+                  <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-white/90 text-surface-900 shadow-panel">
+                    <div className="ml-1 h-0 w-0 border-y-[18px] border-l-[28px] border-y-transparent border-l-surface-900" />
+                  </div>
+                  <div className="absolute bottom-8 left-8 right-8 text-center">
+                    <p className="text-lg text-white/75">康复训练教学视频</p>
+                    <p className="mt-3 text-3xl font-bold">核心稳定性训练 - 基础动作教学</p>
+                    <p className="mt-4 text-lg">时长：15分30秒 | 难度：初级</p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-4 bg-white px-6 py-5 md:flex-row md:items-center">
+                  <div className="flex gap-4">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">◀</div>
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">▶</div>
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">🔊</div>
+                  </div>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-full w-[32%] rounded-full bg-emerald-500" />
+                  </div>
+                  <span className="text-lg font-medium text-muted-foreground">05:30 / 15:30</span>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+                <p className="text-lg font-bold text-surface-900">动作说明</p>
+                <p className="mt-3 text-base leading-8 text-muted-foreground">{action.note}</p>
               </div>
             </div>
           </div>
@@ -1816,6 +1911,7 @@ export function PrescriptionManagement({
   const [prescriptionPage, setPrescriptionPage] = useState(1);
   const [previewPlan, setPreviewPlan] = useState<RehabPlan | null>(null);
   const [previewPrescription, setPreviewPrescription] = useState<Prescription | null>(null);
+  const [previewAction, setPreviewAction] = useState<CurrentAction | null>(null);
   const [deletePlanTarget, setDeletePlanTarget] = useState<RehabPlan | null>(null);
   const [deleteActionTarget, setDeleteActionTarget] = useState<CurrentAction | null>(null);
   const [deletePrescriptionTarget, setDeletePrescriptionTarget] = useState<Prescription | null>(null);
@@ -2550,6 +2646,17 @@ export function PrescriptionManagement({
                                 size="sm"
                                 onClick={(event) => {
                                   event.stopPropagation();
+                                  setPreviewAction(item);
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                                动作预览
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(event) => {
+                                  event.stopPropagation();
                                   writeState(currentActionWorkspaceContextKey, { currentActionId: item.id });
                                   setSelectedActionId(item.id);
                                   navigateTo(navigate, currentEditPath);
@@ -2848,6 +2955,17 @@ export function PrescriptionManagement({
         onOpenChange={(open) => {
           if (!open) {
             setPreviewPrescription(null);
+          }
+        }}
+      />
+
+      <CurrentActionPreviewDialog
+        action={previewAction}
+        prescription={summaryPrescription}
+        open={Boolean(previewAction)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewAction(null);
           }
         }}
       />

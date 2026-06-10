@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { FileOutput, PlayCircle, Save, Sparkles } from "lucide-react";
+import { Eye, FileOutput, PlayCircle, Save, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import {
@@ -42,6 +42,11 @@ import { Field } from "@/components/field";
 import { PageBreadcrumbs, PageHeader } from "@/components/page-header";
 import { PropertyList } from "@/components/property-list";
 import { SectionCard } from "@/components/section-card";
+import {
+  CurrentActionPreviewDialog,
+  PrescriptionPreviewDialog,
+  RehabPlanPreviewDialog
+} from "@/components/prescription-management";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -1169,6 +1174,7 @@ export function PlanEditPage({
     }
   );
   const [errorMessage, setErrorMessage] = useState("");
+  const [planPreviewOpen, setPlanPreviewOpen] = useState(false);
 
   const persist = (patch: Partial<PlanCreateDraft>) => {
     const next = { ...draft, ...patch };
@@ -1201,82 +1207,103 @@ export function PlanEditPage({
     navigateTo(navigate, targetReturnTo);
   };
 
+  const previewPlan: RehabPlan | null = summaryPlan
+    ? {
+        ...summaryPlan,
+        patientName: patient?.name ?? summaryPlan.patientName,
+        type: draft.type || summaryPlan.type,
+        goal: draft.goal || summaryPlan.goal,
+        risk: draft.risk || summaryPlan.risk,
+        description: draft.description || summaryPlan.description,
+        aiReference: draft.aiReference || summaryPlan.aiReference
+      }
+    : null;
+
   return (
-    <SubPageLayout
-      eyebrow={buildPlanBreadcrumb({ navigate, patient, plan: summaryPlan, currentLabel: "修改方案", scope })}
-      title="修改方案"
-      description={scope === "all" ? "从全员康复方案页编辑选中的方案。" : "从患者专属康复方案页编辑当前方案。"}
-      left={
-        <>
-          <PatientSummaryCard patient={patient} plan={summaryPlan} prescription={null} currentAction={null} />
-          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <>
+      <SubPageLayout
+        eyebrow={buildPlanBreadcrumb({ navigate, patient, plan: summaryPlan, currentLabel: "修改方案", scope })}
+        title="修改方案"
+        description={scope === "all" ? "从全员康复方案页编辑选中的方案。" : "从患者专属康复方案页编辑当前方案。"}
+        actions={
+          <Button variant="secondary" disabled={!previewPlan} onClick={() => setPlanPreviewOpen(true)}>
+            <Eye className="h-4 w-4" />
+            方案预览
+          </Button>
+        }
+        left={
+          <>
+            <PatientSummaryCard patient={patient} plan={summaryPlan} prescription={null} currentAction={null} />
+            <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <CardHeader className="border-b border-border/60">
+                <CardTitle>方案表单字段</CardTitle>
+              </CardHeader>
+              <CardContent className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-5 md:grid-cols-2">
+                <Field label="患者姓名">
+                  <Input value={patient?.name ?? defaultPatientWorkspace.patientName} disabled />
+                </Field>
+                <Field label="方案类型" required>
+                  <Input value={draft.type} onChange={(event) => persist({ type: event.target.value })} />
+                </Field>
+                <Field label="目标" required>
+                  <Input value={draft.goal} onChange={(event) => persist({ goal: event.target.value })} />
+                </Field>
+                <Field label="风险" required>
+                  <Input value={draft.risk} onChange={(event) => persist({ risk: event.target.value })} />
+                </Field>
+                <div className="md:col-span-2">
+                  <Field label="处方说明">
+                    <Textarea value={draft.description} onChange={(event) => persist({ description: event.target.value })} />
+                  </Field>
+                </div>
+                <div className="md:col-span-2">
+                  <Field label="富文本自动回填">
+                    <Textarea
+                      value={`${draft.goal ? `目标：${draft.goal}` : ""}\n${draft.description ? `方案备注：${draft.description}` : "方案备注："}`}
+                      onChange={(event) => persist({ description: event.target.value })}
+                    />
+                  </Field>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        }
+        right={
+          <Card className="flex h-full min-h-0 flex-col overflow-hidden">
             <CardHeader className="border-b border-border/60">
-              <CardTitle>方案表单字段</CardTitle>
+              <CardTitle>AI 参考侧栏</CardTitle>
             </CardHeader>
-            <CardContent className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-5 md:grid-cols-2">
-              <Field label="患者姓名">
-                <Input value={patient?.name ?? defaultPatientWorkspace.patientName} disabled />
-              </Field>
-              <Field label="方案类型" required>
-                <Input value={draft.type} onChange={(event) => persist({ type: event.target.value })} />
-              </Field>
-              <Field label="目标" required>
-                <Input value={draft.goal} onChange={(event) => persist({ goal: event.target.value })} />
-              </Field>
-              <Field label="风险" required>
-                <Input value={draft.risk} onChange={(event) => persist({ risk: event.target.value })} />
-              </Field>
-              <div className="md:col-span-2">
-                <Field label="处方说明">
-                  <Textarea value={draft.description} onChange={(event) => persist({ description: event.target.value })} />
-                </Field>
-              </div>
-              <div className="md:col-span-2">
-                <Field label="富文本自动回填">
-                  <Textarea
-                    value={`${draft.goal ? `目标：${draft.goal}` : ""}\n${draft.description ? `方案备注：${draft.description}` : "方案备注："}`}
-                    onChange={(event) => persist({ description: event.target.value })}
-                  />
-                </Field>
-              </div>
+            <CardContent className="flex-1 min-h-0 space-y-5 overflow-y-auto p-5">
+              <SectionCard title="AI加载的方案参考">
+                <Textarea
+                  value={draft.aiReference}
+                  onChange={(event) => persist({ aiReference: event.target.value })}
+                  className="min-h-[220px]"
+                />
+              </SectionCard>
             </CardContent>
           </Card>
-        </>
-      }
-      right={
-        <Card className="flex h-full min-h-0 flex-col overflow-hidden">
-          <CardHeader className="border-b border-border/60">
-            <CardTitle>AI 参考侧栏</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 min-h-0 space-y-5 overflow-y-auto p-5">
-            <SectionCard title="AI加载的方案参考">
-              <Textarea
-                value={draft.aiReference}
-                onChange={(event) => persist({ aiReference: event.target.value })}
-                className="min-h-[220px]"
-              />
-            </SectionCard>
-          </CardContent>
-        </Card>
-      }
-      bottom={
-        <>
-          <div>
-            {errorMessage ? <p className="text-sm text-rose-700">{errorMessage}</p> : <p className="text-sm text-primary">修改完成后会返回康复方案列表，并更新右侧详情。</p>}
-          </div>
-          <div className="flex gap-3">
-            <Button variant="secondary" onClick={() => writeDraft(planEditDraftKey, draft)}>
-              <Save className="h-4 w-4" />
-              草稿保存
-            </Button>
-            <Button variant="outline" onClick={cancel}>
-              取消
-            </Button>
-            <Button onClick={submit}>提交修改</Button>
-          </div>
-        </>
-      }
-    />
+        }
+        bottom={
+          <>
+            <div>
+              {errorMessage ? <p className="text-sm text-rose-700">{errorMessage}</p> : <p className="text-sm text-primary">修改完成后会返回康复方案列表，并更新右侧详情。</p>}
+            </div>
+            <div className="flex gap-3">
+              <Button variant="secondary" onClick={() => writeDraft(planEditDraftKey, draft)}>
+                <Save className="h-4 w-4" />
+                草稿保存
+              </Button>
+              <Button variant="outline" onClick={cancel}>
+                取消
+              </Button>
+              <Button onClick={submit}>提交修改</Button>
+            </div>
+          </>
+        }
+      />
+      <RehabPlanPreviewDialog plan={previewPlan} open={planPreviewOpen} onOpenChange={setPlanPreviewOpen} />
+    </>
   );
 }
 
@@ -1563,7 +1590,7 @@ export function PrescriptionEditPage({
     }
   );
   const [errorMessage, setErrorMessage] = useState("");
-  const [sequencePreviewOpen, setSequencePreviewOpen] = useState(false);
+  const [prescriptionPreviewOpen, setPrescriptionPreviewOpen] = useState(false);
 
   const persist = (patch: Partial<PrescriptionCreateDraft>) => {
     const next = { ...draft, ...patch };
@@ -1606,6 +1633,22 @@ export function PrescriptionEditPage({
     navigateTo(navigate, targetReturnTo);
   };
 
+  const previewPrescription: Prescription | null = summaryPrescription
+    ? {
+        ...summaryPrescription,
+        patientName: patient?.name ?? summaryPrescription.patientName,
+        stage: draft.stage || summaryPrescription.stage,
+        goal: draft.goal || summaryPrescription.goal,
+        risk: draft.risk || summaryPrescription.risk,
+        sequenceName: draft.sequenceName || summaryPrescription.sequenceName,
+        frequency: draft.frequency || summaryPrescription.frequency,
+        note: draft.note || summaryPrescription.note,
+        aiReference: draft.aiReference || summaryPrescription.aiReference,
+        movements: draft.movements.length ? draft.movements : summaryPrescription.movements,
+        videoTitle: summaryPrescription.videoTitle || draft.sequenceName || "康复训练教学视频"
+      }
+    : null;
+
   return (
     <>
       <SubPageLayout
@@ -1613,9 +1656,9 @@ export function PrescriptionEditPage({
         title="修改运动处方"
         description="默认加载当前选中的运动处方，支持修改主字段和各动作参数。"
         actions={
-          <Button variant="secondary" onClick={() => setSequencePreviewOpen(true)}>
-            <PlayCircle className="h-4 w-4" />
-            动作序列视频预览
+          <Button variant="secondary" disabled={!previewPrescription} onClick={() => setPrescriptionPreviewOpen(true)}>
+            <Eye className="h-4 w-4" />
+            处方预览
           </Button>
         }
         left={
@@ -1710,21 +1753,10 @@ export function PrescriptionEditPage({
           </>
         }
       />
-      <CarePathVideoPreviewDialog
-        open={sequencePreviewOpen}
-        onOpenChange={setSequencePreviewOpen}
-        title={draft.sequenceName || summaryPrescription?.sequenceName || "动作序列视频预览"}
-        description="通过弹窗预览当前运动处方对应的动作序列视频，用于核对序列顺序、阶段和节奏。"
-        subtitle={`${draft.stage || patient?.stage || "阶段待补充"} · ${draft.frequency || "频率待补充"} · 共 ${draft.movements.length} 个动作`}
-        durationLabel={summaryPrescription?.videoDuration || "01:08"}
-        details={[
-          { label: "患者姓名", value: patient?.name ?? defaultPatientWorkspace.patientName },
-          { label: "动作序列", value: draft.sequenceName },
-          { label: "训练目标", value: draft.goal },
-          { label: "训练风险", value: draft.risk }
-        ]}
-        sequenceSteps={draft.movements.map((movement) => movement.name)}
-        noteText={draft.note || "当前预览用于在编辑页快速核对动作序列视频与处方字段是否一致。"}
+      <PrescriptionPreviewDialog
+        prescription={previewPrescription}
+        open={prescriptionPreviewOpen}
+        onOpenChange={setPrescriptionPreviewOpen}
       />
     </>
   );
@@ -2146,20 +2178,11 @@ export function CurrentActionEditPage({
           </>
         }
       />
-      <CarePathVideoPreviewDialog
+      <CurrentActionPreviewDialog
+        action={previewAction}
+        prescription={summaryPrescription}
         open={motionPreviewOpen}
         onOpenChange={setMotionPreviewOpen}
-        title={draft.title || summaryPrescription?.videoTitle || "标准动作视频预览"}
-        description="通过弹窗预览当前单体动作对应的标准动作视频，用于核对动作部位、时长和执行强度。"
-        subtitle={`${draft.part || "部位待补充"} · ${draft.duration || "时长待补充"} · ${draft.intensity || "强度待补充"}`}
-        durationLabel={summaryPrescription?.videoDuration || "00:42"}
-        details={[
-          { label: "患者姓名", value: patient?.name ?? defaultPatientWorkspace.patientName },
-          { label: "动作名称", value: draft.title },
-          { label: "动作部位", value: draft.part },
-          { label: "执行强度", value: draft.intensity }
-        ]}
-        noteText={draft.note || "当前预览用于在编辑页快速核对单体动作与标准动作视频说明是否一致。"}
       />
     </>
   );
