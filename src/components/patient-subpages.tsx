@@ -417,23 +417,21 @@ function SubPageLayout({
   title,
   description,
   actions,
+  top,
   left,
-  bottom,
-  fixedTop = false,
-  fixedBottom = false
+  bottom
 }: {
   eyebrow: React.ReactNode;
   title: string;
   description: string;
   actions?: React.ReactNode;
+  top?: React.ReactNode;
   left: React.ReactNode;
   right: React.ReactNode;
   bottom: React.ReactNode;
-  fixedTop?: boolean;
-  fixedBottom?: boolean;
 }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <div className="subpage-scroll-root flex min-h-0 flex-1 flex-col gap-3">
       <PageHeader
         eyebrow={eyebrow}
         title={title}
@@ -441,38 +439,15 @@ function SubPageLayout({
         badge="子页面"
         actions={actions}
       />
-      {fixedTop ? (
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
-          <Card className="shrink-0 border-primary/15 bg-primary/5">
-            <CardContent className="flex items-center justify-between gap-4 p-5">
-              {bottom}
-            </CardContent>
-          </Card>
-          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            <div className="space-y-3">{left}</div>
-          </div>
-        </div>
-      ) : fixedBottom ? (
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
-          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            <div className="space-y-3">{left}</div>
-          </div>
-          <Card className="shrink-0 border-primary/15 bg-primary/5">
-            <CardContent className="flex items-center justify-between gap-4 p-5">
-              {bottom}
-            </CardContent>
-          </Card>
-        </div>
-      ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
-          <div className="space-y-3">{left}</div>
-          <Card className="shrink-0 border-primary/15 bg-primary/5">
-            <CardContent className="flex items-center justify-between gap-4 p-5">
-              {bottom}
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {top ? <div className="shrink-0">{top}</div> : null}
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto pr-1">
+        <div className="flex min-h-full flex-col gap-3">{left}</div>
+      </div>
+      <Card className="shrink-0 border-primary/15 bg-primary/5">
+        <CardContent className="flex items-center justify-between gap-4 p-5">
+          {bottom}
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -633,7 +608,6 @@ export function PatientCreatePage() {
       eyebrow="患者档案管理 > 基础档案 > 新增档案"
       title="新增档案"
       description="用于录入患者基础信息和备注，提交前会校验必填项，并支持草稿恢复。"
-      fixedTop
       left={
         <>
           <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -827,7 +801,6 @@ export function PatientEditPage() {
       eyebrow="患者档案管理 > 基础档案 > 修改档案"
       title="修改档案"
       description="用于修改当前选中患者的基础信息与备注，保留表单与富文本联动结构。"
-      fixedTop
       left={
         <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <CardHeader className="border-b border-border/60">
@@ -1030,15 +1003,16 @@ export function PlanCreatePage({
       eyebrow={buildPlanBreadcrumb({ navigate, patient, plan: summaryPlan, currentLabel: "新增方案", scope })}
       title="新增方案"
       description={scope === "all" ? "从全员康复方案页新增方案，可选择目标患者后提交。" : "从患者档案进入的专属新增方案页，默认绑定当前患者。"}
+      top={
+        <PatientSummaryCard
+          patient={patient}
+          plan={summaryPlan}
+          prescription={null}
+          currentAction={null}
+        />
+      }
       left={
-        <>
-          <PatientSummaryCard
-            patient={patient}
-            plan={summaryPlan}
-            prescription={null}
-            currentAction={null}
-          />
-          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <CardHeader className="border-b border-border/60">
               <CardTitle>方案表单字段</CardTitle>
             </CardHeader>
@@ -1086,8 +1060,7 @@ export function PlanCreatePage({
                 </Field>
               </div>
             </CardContent>
-          </Card>
-        </>
+        </Card>
       }
       right={
         <Card className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -1222,10 +1195,9 @@ export function PlanEditPage({
             方案预览
           </Button>
         }
+        top={<PatientSummaryCard patient={patient} plan={summaryPlan} prescription={null} currentAction={null} />}
         left={
-          <>
-            <PatientSummaryCard patient={patient} plan={summaryPlan} prescription={null} currentAction={null} />
-            <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <CardHeader className="border-b border-border/60">
                 <CardTitle>方案表单字段</CardTitle>
               </CardHeader>
@@ -1256,8 +1228,7 @@ export function PlanEditPage({
                   </Field>
                 </div>
               </CardContent>
-            </Card>
-          </>
+          </Card>
         }
         right={
           <Card className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -1428,15 +1399,16 @@ export function PrescriptionCreatePage({
       eyebrow={buildPrescriptionBreadcrumb({ navigate, patient, plan: summaryPlan, currentLabel: "新增运动处方" })}
       title="新增动作处方"
       description="默认加载当前患者和当前方案，支持对动作序列中的各动作参数进行二次编辑。"
-      fixedBottom
+      top={
+        <PatientSummaryCard
+          patient={patient}
+          plan={summaryPlan}
+          prescription={null}
+          currentAction={null}
+        />
+      }
       left={
         <>
-          <PatientSummaryCard
-            patient={patient}
-            plan={summaryPlan}
-            prescription={null}
-            currentAction={null}
-          />
           <Card className="shrink-0 overflow-hidden">
             <CardHeader className="border-b border-border/60">
               <CardTitle>处方表单字段</CardTitle>
@@ -1652,9 +1624,9 @@ export function PrescriptionEditPage({
             处方预览
           </Button>
         }
+        top={<PatientSummaryCard patient={patient} plan={summaryPlan} prescription={summaryPrescription} currentAction={null} />}
         left={
           <>
-            <PatientSummaryCard patient={patient} plan={summaryPlan} prescription={summaryPrescription} currentAction={null} />
             <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <CardHeader className="border-b border-border/60">
                 <CardTitle>处方表单字段</CardTitle>
@@ -1847,15 +1819,16 @@ export function CurrentActionCreatePage({
       eyebrow={buildCurrentBreadcrumb({ navigate, patient, plan: summaryPlan, prescription: summaryPrescription, currentLabel: "新增单体动作" })}
       title="新增单体动作"
       description="当前原型页用于补充单体动作信息与视频预览位，提交后返回当前处方动作页。"
+      top={
+        <PatientSummaryCard
+          patient={patient}
+          plan={summaryPlan}
+          prescription={null}
+          currentAction={previewAction}
+        />
+      }
       left={
-        <>
-          <PatientSummaryCard
-            patient={patient}
-            plan={summaryPlan}
-            prescription={null}
-            currentAction={previewAction}
-          />
-          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <CardHeader className="border-b border-border/60">
               <CardTitle>单体动作字段</CardTitle>
             </CardHeader>
@@ -1878,8 +1851,7 @@ export function CurrentActionCreatePage({
                 </Field>
               </div>
             </CardContent>
-          </Card>
-        </>
+        </Card>
       }
       right={
         <Card className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -2084,15 +2056,16 @@ export function CurrentActionEditPage({
             标准动作视频预览
           </Button>
         }
+        top={
+          <PatientSummaryCard
+            patient={patient}
+            plan={summaryPlan}
+            prescription={summaryPrescription}
+            currentAction={previewAction}
+          />
+        }
         left={
-          <>
-            <PatientSummaryCard
-              patient={patient}
-              plan={summaryPlan}
-              prescription={summaryPrescription}
-              currentAction={previewAction}
-            />
-            <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <CardHeader className="border-b border-border/60">
                 <CardTitle>单体动作字段</CardTitle>
               </CardHeader>
@@ -2115,8 +2088,7 @@ export function CurrentActionEditPage({
                   </Field>
                 </div>
               </CardContent>
-            </Card>
-          </>
+          </Card>
         }
         right={
           <Card className="flex h-full min-h-0 flex-col overflow-hidden">
