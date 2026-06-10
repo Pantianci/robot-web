@@ -21,7 +21,7 @@ export function DashboardOverview() {
         eyebrow="首页概览"
         title="智慧康复机器人后台"
         description="按管理端首页的结构组织信息卡、工作待办和重点提醒，用于展示管理端核心态势。"
-        badge="P1 原型"
+        badge="管理总览"
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

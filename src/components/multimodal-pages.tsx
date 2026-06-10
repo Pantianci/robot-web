@@ -347,7 +347,7 @@ const defaultQaMessages: MultiModalQaMessage[] = [
   {
     id: "qa-example-assistant-video",
     role: "assistant",
-    text: "已继续生成视频回复预览：当前不接入真实视频文件，用视频窗口样式模拟 AI 生成的视频结果。",
+    text: "已继续生成视频回复预览。",
     sources: [],
     createdAt: "2026-06-09T09:00:09.000+08:00",
     summary: "这个视频预览同样是 AI 单独生成的回复附件，用于表达训练节奏和关键提示，不来自知识库素材库。",
@@ -424,7 +424,7 @@ function createGeneratedQaMediaMessage(item: QaMediaItem, sources: KnowledgeLibr
     id: generateId(isVideo ? "qa-assistant-video" : "qa-assistant-image"),
     role: "assistant",
     text: isVideo
-      ? "已生成视频回复预览：当前原型不接入真实视频文件，用视频窗口样式模拟 AI 生成结果。"
+      ? "已生成视频回复预览。"
       : "已生成图片回复：张三肩外展训练人物运动图，已叠加骨骼关键点和肩外展角度标注。",
     sources,
     createdAt: new Date().toISOString(),
@@ -615,8 +615,8 @@ function KnowledgeVideoPreviewDialog({
       : draft.title || "动作序列视频预览";
   const previewDescription =
     library === "motion"
-      ? "当前原型通过模拟播放器预览标准动作视频，便于编辑时快速核对动作信息。"
-      : "当前原型通过模拟播放器预览动作序列播放窗口，便于编辑时核对顺序和节奏。";
+      ? "预览标准动作视频，便于编辑时快速核对动作信息。"
+      : "预览动作序列播放窗口，便于编辑时核对顺序和节奏。";
   const sequenceSteps = draft.sequenceSteps.filter(Boolean);
 
   return (
@@ -699,7 +699,7 @@ function KnowledgeVideoPreviewDialog({
             ) : (
               <SectionCard title="预览说明">
                 <p className="text-sm leading-7 text-muted-foreground">
-                  当前为原型预览播放器，用于在编辑页核对标准动作视频的标题、参数和说明信息。
+                  用于在编辑页核对标准动作视频的标题、参数和说明信息。
                 </p>
               </SectionCard>
             )}
@@ -1047,7 +1047,7 @@ export function MultiModalEditorPage({
         <div className="flex min-h-0 flex-col gap-3">
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
           {meta.uploadSpec ? (
-            <SectionCard title={`${meta.uploadTitle}上传`} description="当前原型用页面内交互模拟上传和文件名回填。">
+            <SectionCard title={`${meta.uploadTitle}上传`}>
               <div className="rounded-[1.5rem] border border-dashed border-primary/30 bg-primary/5 p-6">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
@@ -1062,7 +1062,7 @@ export function MultiModalEditorPage({
                   </div>
                   <Button type="button" onClick={handleMockUpload}>
                     <FileUp className="h-4 w-4" />
-                    模拟上传
+                    上传
                   </Button>
                 </div>
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -1279,10 +1279,7 @@ export function MultiModalEditorPage({
           <Card className="shrink-0 border-primary/15 bg-primary/5">
             <CardContent className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-primary">当前页面支持草稿恢复</p>
-                <p className="mt-1 line-clamp-2 text-xs text-primary/80">
-                  草稿保存在本地浏览器 LocalStorage 中，再次进入页面可继续编辑。
-                </p>
+                <p className="text-sm font-medium text-primary">支持草稿保存</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button onClick={handleSubmit}>{mode === "edit" ? "提交更新" : "提交"}</Button>
@@ -1772,7 +1769,7 @@ export function MultiModalQaPage({ navigate }: MultiModalQaProps) {
               : undefined,
             summary: "本次回复按 AI 生成流程处理，图片和视频会作为独立回复附件返回。",
             suggestion: "点击生成的图片或视频卡片可以打开放大预览窗口。",
-            expertOpinion: "生成内容用于原型演示和训练宣教辅助，实际执行仍需结合处方审核。",
+            expertOpinion: "生成内容用于训练宣教辅助，实际执行仍需结合处方审核。",
             feedback: null
           },
           ...generatedMedia.map((item) => createGeneratedQaMediaMessage(item, sources))

@@ -23,10 +23,10 @@ export function DialogFormShell({
 }: {
   trigger?: ReactNode;
   title: string;
-  description: string;
+  description?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  children: ReactNode;
+  children?: ReactNode;
   onSubmit: () => void;
   submitLabel?: string;
   cancelLabel?: string;
@@ -37,9 +37,9 @@ export function DialogFormShell({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          {description ? <DialogDescription>{description}</DialogDescription> : null}
         </DialogHeader>
-        <div className="grid gap-4">{children}</div>
+        {children ? <div className="grid gap-4">{children}</div> : null}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {cancelLabel}

@@ -683,9 +683,9 @@ export function PatientCreatePage() {
             <SectionCard title="录入提示">
               <div className="space-y-3">
                 {[
-                  "富文本区域会自动加载表单内容，允许继续编辑。",
+                  "富文本区域会自动加载表单内容。",
                   "再次进入新增档案页时会恢复最近草稿。",
-                  "取消会清空当前页面信息并返回患者档案列表。"
+                  "取消会清空已填写信息并返回患者档案列表。"
                 ].map((item) => (
                   <div key={item} className="rounded-[1rem] border border-border/70 bg-surface-50 px-4 py-3 text-sm leading-7 text-muted-foreground">
                     {item}
@@ -1818,7 +1818,7 @@ export function CurrentActionCreatePage({
     <SubPageLayout
       eyebrow={buildCurrentBreadcrumb({ navigate, patient, plan: summaryPlan, prescription: summaryPrescription, currentLabel: "新增单体动作" })}
       title="新增单体动作"
-      description="当前原型页用于补充单体动作信息与视频预览位，提交后返回当前处方动作页。"
+      description="用于补充单体动作信息与视频预览位，提交后返回当前处方动作页。"
       top={
         <PatientSummaryCard
           patient={patient}
@@ -2508,7 +2508,7 @@ export function ReportExportPage() {
         exportCondition: "未审核 + 审核中 + 已审核",
         format: "PDF / XLSX / DOCX"
       }}
-      exportHint="当前原型保留导出项配置和结果反馈，适合演示查房归档流程。"
+      exportHint="可配置导出项并生成结果反馈，适合查房归档流程。"
       onGenerate={async () => {
         const result = await api.exportReports(2);
         return `已生成 ${result.fileName}，生成时间 ${formatDateTime(result.generatedAt)}`;

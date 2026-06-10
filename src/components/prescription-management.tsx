@@ -1729,13 +1729,10 @@ export function RehabPlanManagement() {
             setDeletePlanTarget(null);
           }
         }}
-        title="删除康复方案"
-        description={`确认删除“${deletePlanTarget?.id ?? ""}”后，列表会立即刷新。`}
+        title={`确定删除“${deletePlanTarget?.id ?? ""}”吗？`}
         onSubmit={handleDeletePlan}
         submitLabel="确认删除"
-      >
-        <p className="text-sm leading-7 text-muted-foreground">当前原型会直接从本地列表中移除该康复方案。</p>
-      </DialogFormShell>
+      />
     </div>
   );
 }
@@ -2924,13 +2921,10 @@ export function PrescriptionManagement({
             setDeletePlanTarget(null);
           }
         }}
-        title="删除康复方案"
-        description={`确认删除“${deletePlanTarget?.id ?? ""}”后，列表会立即刷新。`}
+        title={`确定删除“${deletePlanTarget?.id ?? ""}”吗？`}
         onSubmit={handleDeletePlan}
         submitLabel="确认删除"
-      >
-        <p className="text-sm leading-7 text-muted-foreground">当前原型会直接从本地列表中移除该康复方案。</p>
-      </DialogFormShell>
+      />
 
       <DialogFormShell
         open={Boolean(deleteActionTarget)}
@@ -2939,13 +2933,10 @@ export function PrescriptionManagement({
             setDeleteActionTarget(null);
           }
         }}
-        title="删除当前处方动作"
-        description={`确认删除“${deleteActionTarget?.title ?? ""}”后，列表会立即刷新。`}
+        title={`确定删除“${deleteActionTarget?.title ?? ""}”吗？`}
         onSubmit={handleDeleteAction}
         submitLabel="确认删除"
-      >
-        <p className="text-sm leading-7 text-muted-foreground">当前原型会直接从本地列表中移除该动作。</p>
-      </DialogFormShell>
+      />
 
       <DialogFormShell
         open={Boolean(deletePrescriptionTarget)}
@@ -2954,13 +2945,10 @@ export function PrescriptionManagement({
             setDeletePrescriptionTarget(null);
           }
         }}
-        title="删除运动处方"
-        description={`确认删除“${deletePrescriptionTarget?.id ?? ""}”后，列表会立即刷新。`}
+        title={`确定删除“${deletePrescriptionTarget?.id ?? ""}”吗？`}
         onSubmit={handleDeletePrescription}
         submitLabel="确认删除"
-      >
-        <p className="text-sm leading-7 text-muted-foreground">当前原型会直接从本地列表中移除该运动处方。</p>
-      </DialogFormShell>
+      />
 
     </div>
   );

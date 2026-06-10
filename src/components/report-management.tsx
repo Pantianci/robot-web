@@ -390,7 +390,7 @@ export function ReportManagement() {
         </Field>
       </FilterBar>
 
-      <Card className="flex min-h-0 flex-col overflow-hidden">
+      <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <CardHeader className="border-b border-border/60">
               <div>
                 <CardTitle>评估报告列表</CardTitle>
@@ -533,15 +533,10 @@ export function ReportManagement() {
             setDeleteTarget(null);
           }
         }}
-        title="删除评估报告"
-        description={`确认删除“${deleteTarget?.id ?? ""}”后，列表会立即刷新。`}
+        title={`确定删除“${deleteTarget?.id ?? ""}”吗？`}
         onSubmit={handleDeleteReport}
         submitLabel="确认删除"
-      >
-        <p className="text-sm leading-7 text-muted-foreground">
-          确定删除“{deleteTarget?.patientName ?? ""}”的评估报告吗？此操作在当前原型中不可恢复。
-        </p>
-      </DialogFormShell>
+      />
     </div>
   );
 }

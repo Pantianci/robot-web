@@ -397,15 +397,10 @@ export function PatientManagement() {
             setDeleteTarget(null);
           }
         }}
-        title="删除患者档案"
-        description={`确认删除“${deleteTarget?.name ?? ""}”后，列表会立即刷新，并记录最近处理日志。`}
+        title={`确定删除“${deleteTarget?.name ?? ""}”吗？`}
         onSubmit={handleDelete}
         submitLabel="确认删除"
-      >
-        <div className="rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-7 text-amber-800">
-          当前原型会直接从本地数据中删除该患者档案。若该患者已作为当前上下文，后续页面会自动回退到张三。
-        </div>
-      </DialogFormShell>
+      />
     </div>
   );
 }

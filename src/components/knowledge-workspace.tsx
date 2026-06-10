@@ -1157,9 +1157,7 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
                     }))
                   }
                 />
-                <p className="text-xs text-muted-foreground">
-                  支持图片、文本、视频资料，当前原型仅记录文件名，不强制上传。
-                </p>
+                <p className="text-xs text-muted-foreground">支持图片、文本、视频资料。</p>
                 {aiDraft.uploadName ? (
                   <p className="text-xs text-surface-900">当前选择：{aiDraft.uploadName}</p>
                 ) : null}
@@ -1232,15 +1230,10 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
             setDeleteTarget(null);
           }
         }}
-        title="删除知识记录"
-        description="确认删除后将刷新列表，并在原型中模拟记录最近操作信息。"
+        title={`确定删除“${deleteTarget?.title ?? ""}”吗？`}
         onSubmit={handleDeleteKnowledge}
         submitLabel="确认删除"
-      >
-        <p className="text-sm leading-7 text-muted-foreground">
-          确定删除“{deleteTarget?.title}”吗？此操作在当前原型中不可恢复。
-        </p>
-      </DialogFormShell>
+      />
     </div>
   );
 }

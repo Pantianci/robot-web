@@ -849,7 +849,7 @@ function ActionPreviewPanel({
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      {(descriptions.length ? descriptions : ["当前页面内容将在这里生成预览，便于和 Figma 版式保持一致。"]).map((item) => (
+      {(descriptions.length ? descriptions : ["内容将在这里生成预览，便于核对版式和字段。"]).map((item) => (
         <div key={item} className="rounded-[1.5rem] border border-border/70 bg-white p-5 text-sm leading-7 text-muted-foreground">
           {item}
         </div>
@@ -1337,14 +1337,14 @@ export function ActionFormPage({
             </SectionCard>
           ) : null}
 
-          <SectionCard title={previewCardTitles[scenario]} description="这里补成更接近 Figma 的具体内容区，不再只是通用原型壳页。">
+          <SectionCard title={previewCardTitles[scenario]}>
             <ActionPreviewPanel scenario={scenario} values={values} fields={fields} />
           </SectionCard>
 
           <Card className="border-primary/15 bg-primary/5">
             <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p className="text-sm font-medium text-primary">页面内提交仍保持原型交互</p>
+                <p className="text-sm font-medium text-primary">页面内提交后会保存当前配置</p>
                 <p className="mt-1 text-sm text-primary/80">
                   当前版本重点展示页面结构、信息层级和表单流转，不连接真实生产接口。
                 </p>
@@ -1504,7 +1504,7 @@ export function ExportPage({
             </div>
           </SectionCard>
 
-          <SectionCard title="导出内容预览" description="模拟 Figma 中的结果清单区，用于快速确认导出内容。">
+          <SectionCard title="导出内容预览" description="用于快速确认导出内容。">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -2313,15 +2313,10 @@ export function TagManagementPage({
             setDeletingTag(null);
           }
         }}
-        title="删除标签"
-        description={`确认删除“${deletingTag?.name ?? ""}”后，将从当前标签库中移除。`}
+        title={`确定删除“${deletingTag?.name ?? ""}”吗？`}
         onSubmit={handleDeleteTag}
         submitLabel="确认删除"
-      >
-        <div className="rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-7 text-amber-800">
-          删除前请确认该标签的业务关系已处理完成。当前原型会直接更新列表与详情区域。
-        </div>
-      </DialogFormShell>
+      />
     </SubPageScaffold>
   );
 }

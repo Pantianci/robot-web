@@ -33,7 +33,7 @@ export const Route = createRootRouteWithContext<{
       {
         name: "description",
         content:
-          "智慧康复机器人后台原型，基于 TanStack Start、shadcn/ui、MSW 和 LocalStorage。"
+          "智慧康复机器人后台管理系统。"
       }
     ],
     links: [{ rel: "stylesheet", href: indexCss }]

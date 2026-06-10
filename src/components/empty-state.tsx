@@ -33,7 +33,7 @@ export function NotFoundState({ title }: { title: string }) {
         <SearchX className="mx-auto h-10 w-10 text-surface-500" />
         <h1 className="text-2xl font-semibold text-surface-900">{title}</h1>
         <p className="text-sm text-muted-foreground">
-          检查地址是否正确，或从左侧导航返回原型首页。
+          检查地址是否正确，或从左侧导航返回首页。
         </p>
       </div>
     </div>

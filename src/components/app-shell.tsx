@@ -17,7 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </div>
                 <div>
                   <p className="text-lg font-semibold">智慧康复机器人</p>
-                  <p className="text-xs text-white/65">康复原型管理平台</p>
+                  <p className="text-xs text-white/65">康复管理平台</p>
                 </div>
               </div>
             </div>
@@ -78,9 +78,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <p className="text-sm font-medium">当前角色</p>
                 <Badge className="bg-white/16 text-white">康复科主任</Badge>
               </div>
-              <p className="mt-3 text-xs leading-6 text-white/65">
-                当前原型覆盖管理端 P1 范围：知识库、档案、处方、评估和机器人调度。
-              </p>
             </div>
           </div>
         </aside>
