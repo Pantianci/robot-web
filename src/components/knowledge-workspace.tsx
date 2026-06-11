@@ -4,6 +4,7 @@ import {
   ChevronRight,
   FileOutput,
   PencilLine,
+  PlayCircle,
   Plus,
   Sparkles,
   Trash2
@@ -42,6 +43,10 @@ import { DialogFormShell } from "@/components/dialog-form-shell";
 import { EmptyState } from "@/components/empty-state";
 import { Field } from "@/components/field";
 import { FilterBar } from "@/components/filter-bar";
+import {
+  KnowledgeVideoPreviewDialog,
+  type KnowledgeVideoPreviewDraft
+} from "@/components/knowledge-video-preview-dialog";
 import { PageHeader } from "@/components/page-header";
 import { PropertyList } from "@/components/property-list";
 import { SectionCard } from "@/components/section-card";
@@ -474,6 +479,27 @@ function statusColumnIndexForLibrary(library: KnowledgeLibrary) {
   return 4;
 }
 
+function createVideoPreviewDraft(item: KnowledgeItem): KnowledgeVideoPreviewDraft {
+  if (item.library === "sequence") {
+    return {
+      title: item.title,
+      stage: item.stage,
+      goal: item.goal,
+      durationMinutes: item.durationMinutes,
+      sequenceSteps: item.sequenceSteps
+    };
+  }
+
+  return {
+    title: item.title,
+    actionName: item.actionName,
+    part: item.part,
+    angle: item.angle,
+    direction: item.direction,
+    durationMinutes: item.durationMinutes
+  };
+}
+
 export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
   const meta = knowledgeLibraryMeta[library];
   const contextKey = createMultiModalListContextKey(library);
@@ -483,6 +509,7 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
   const [aiDraft, setAiDraft] = useState<AiKnowledgeDraft>(createDefaultAiKnowledgeDraft);
   const [aiErrorMessage, setAiErrorMessage] = useState("");
+  const [videoPreviewTarget, setVideoPreviewTarget] = useState<KnowledgeItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<KnowledgeItem | null>(null);
 
   const { data: items = [] } = useKnowledgeQuery(library);
@@ -905,6 +932,19 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
                             ))}
                             <TableCell onClick={(event) => event.stopPropagation()}>
                               <div className="flex gap-2">
+                                {library === "motion" || library === "sequence" ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      setVideoPreviewTarget(item);
+                                    }}
+                                    aria-label={`视频预览 ${item.title}`}
+                                  >
+                                    <PlayCircle className="h-4 w-4" />
+                                  </Button>
+                                ) : null}
                                 <Button
                                   asChild
                                   variant="ghost"
@@ -1096,6 +1136,19 @@ export function KnowledgeWorkspace({ library }: { library: KnowledgeLibrary }) {
           </DetailPanel>
         }
       />
+
+      {videoPreviewTarget && (library === "motion" || library === "sequence") ? (
+        <KnowledgeVideoPreviewDialog
+          open={Boolean(videoPreviewTarget)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setVideoPreviewTarget(null);
+            }
+          }}
+          library={library}
+          draft={createVideoPreviewDraft(videoPreviewTarget)}
+        />
+      ) : null}
 
       <DialogFormShell
         open={aiDialogOpen}
