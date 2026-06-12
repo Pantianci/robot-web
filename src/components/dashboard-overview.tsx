@@ -1,34 +1,93 @@
-import { useDashboardQuery, usePlansQuery, usePrescriptionsQuery, useReportsQuery, useRobotsQuery } from "@/lib/hooks";
+import { useDashboardQuery, usePlansQuery, usePrescriptionsQuery, useReportsQuery, usePatientsQuery } from "@/lib/hooks";
 import { formatDateTime } from "@/lib/utils";
-import { MetricCard } from "@/components/metric-card";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link } from "@tanstack/react-router";
+import { FileText, Users, Clipboard, Calendar } from "lucide-react";
 
 export function DashboardOverview() {
   const { data } = useDashboardQuery();
   const { data: plans = [] } = usePlansQuery();
   const { data: prescriptions = [] } = usePrescriptionsQuery();
   const { data: reports = [] } = useReportsQuery();
-  const { data: robots = [] } = useRobotsQuery();
+  const { data: patients = [] } = usePatientsQuery();
 
   const dashboard = data?.dashboard;
-  const summary = data?.summary;
 
   return (
     <div className="space-y-3">
       <PageHeader
         eyebrow="首页概览"
         title="智慧康复机器人后台"
-        description="按管理端首页的结构组织信息卡、工作待办和重点提醒，用于展示管理端核心态势。"
+        description="快速访问患者档案、处方、评估报告和机器人任务排班等核心功能。"
         badge="管理总览"
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="在线机器人" value={summary?.onlineRobots ?? 0} hint="执行中与正常总数" />
-        <MetricCard label="患者档案" value={summary?.patientCount ?? 0} hint="当前建档患者" />
-        <MetricCard label="待审处方" value={summary?.pendingPrescriptions ?? 0} hint="等待医生审核" />
-        <MetricCard label="知识资产" value={summary?.knowledgeAssets ?? 0} hint="康复知识库有效内容" />
+        <Link to="/patients/base" className="block">
+          <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10">
+                  <Users className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">患者档案</p>
+                  <p className="text-3xl font-bold">{patients.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/patients/prescriptions" className="block">
+          <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-500/10">
+                  <Clipboard className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">运动处方</p>
+                  <p className="text-3xl font-bold">{prescriptions.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/patients/reports" className="block">
+          <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/10">
+                  <FileText className="h-6 w-6 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">评估报告</p>
+                  <p className="text-3xl font-bold">{reports.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/robots/detail" className="block">
+          <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10">
+                  <Calendar className="h-6 w-6 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">任务排班</p>
+                  <p className="text-3xl font-bold">{plans.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
@@ -72,65 +131,24 @@ export function DashboardOverview() {
         </Card>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>工作待办</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {dashboard?.todos.map((todo) => (
-              <div key={todo.id} className="rounded-2xl border border-border/70 bg-surface-50 p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <p className="font-medium text-surface-900">{todo.title}</p>
-                  <Badge>{todo.status}</Badge>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  负责人 {todo.owner} · 截止 {formatDateTime(todo.dueAt)}
-                </p>
+      <Card>
+        <CardHeader>
+          <CardTitle>工作待办</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {dashboard?.todos.map((todo) => (
+            <div key={todo.id} className="rounded-2xl border border-border/70 bg-surface-50 p-4">
+              <div className="flex items-center justify-between gap-4">
+                <p className="font-medium text-surface-900">{todo.title}</p>
+                <Badge>{todo.status}</Badge>
               </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>业务快照</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="rounded-2xl bg-surface-50 p-4">
-              <p className="stat-kicker">康复方案</p>
-              <p className="mt-2 text-2xl font-semibold text-surface-900">{plans.length}</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                负责人 {todo.owner} · 截止 {formatDateTime(todo.dueAt)}
+              </p>
             </div>
-            <div className="rounded-2xl bg-surface-50 p-4">
-              <p className="stat-kicker">运动处方</p>
-              <p className="mt-2 text-2xl font-semibold text-surface-900">{prescriptions.length}</p>
-            </div>
-            <div className="rounded-2xl bg-surface-50 p-4">
-              <p className="stat-kicker">评估报告</p>
-              <p className="mt-2 text-2xl font-semibold text-surface-900">{reports.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>设备调度概况</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {robots.map((robot) => (
-              <div key={robot.id} className="rounded-2xl border border-border/70 bg-white p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-medium text-surface-900">{robot.id}</p>
-                  <Badge>{robot.status}</Badge>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  患者 {robot.patientName} · 电量 {robot.battery}% · {robot.trainingStatus}
-                </p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }
