@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Clock, User, ChevronRight } from "lucide-react";
+import { Plus, Clock, User, ChevronRight, Play, Trash2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { usePrescriptionsQuery } from "@/lib/hooks";
@@ -107,6 +107,10 @@ function RobotDetailPage() {
     setSelectedPrescription("");
   };
 
+  const handleDeleteSchedule = (id: string) => {
+    setSchedules(schedules.filter((s) => s.id !== id));
+  };
+
   const completedCount = schedules.filter((s) => s.status === "已完成").length;
   const totalCount = schedules.length;
 
@@ -150,7 +154,13 @@ function RobotDetailPage() {
               <p className="mt-1 text-xs text-muted-foreground/70">点击下方按钮导入康复处方创建任务</p>
             </div>
           ) : (
-            schedules.map((schedule) => <ScheduleCard key={schedule.id} schedule={schedule} />)
+            schedules.map((schedule) => (
+              <ScheduleCard
+                key={schedule.id}
+                schedule={schedule}
+                onDelete={handleDeleteSchedule}
+              />
+            ))
           )}
         </div>
 
@@ -244,13 +254,28 @@ function RobotDetailPage() {
   );
 }
 
-function ScheduleCard({ schedule }: { schedule: Schedule }) {
+function ScheduleCard({ schedule, onDelete }: { schedule: Schedule; onDelete: (id: string) => void }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [videoOpen, setVideoOpen] = useState(false);
+  const [actionVideoOpen, setActionVideoOpen] = useState(false);
+  const [selectedAction, setSelectedAction] = useState<ScheduleAction | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const statusColors = {
     待执行: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20",
     执行中: "bg-blue-500/10 text-blue-700 border-blue-500/20",
     已完成: "bg-green-500/10 text-green-700 border-green-500/20"
+  };
+
+  const handleActionClick = (action: ScheduleAction) => {
+    setSelectedAction(action);
+    setActionVideoOpen(true);
+  };
+
+  const handleDelete = () => {
+    onDelete(schedule.id);
+    setDeleteOpen(false);
   };
 
   return (
@@ -278,28 +303,175 @@ function ScheduleCard({ schedule }: { schedule: Schedule }) {
               </div>
             </div>
           </div>
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="rounded-lg p-1 transition-colors hover:bg-surface-100"
-          >
-            <ChevronRight
-              className={`h-5 w-5 text-muted-foreground transition-transform ${isExpanded ? "rotate-90" : ""}`}
-            />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="rounded-lg p-1 transition-colors hover:bg-surface-100"
+            >
+              <ChevronRight
+                className={`h-5 w-5 text-muted-foreground transition-transform ${isExpanded ? "rotate-90" : ""}`}
+              />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* 动作序列 */}
       <div className="p-4">
-        <div className="mb-2 text-xs font-medium text-muted-foreground">
-          动作序列（共 {schedule.actions.length} 个动作）
+        <div className="mb-2 flex items-center justify-between">
+          <div className="text-xs font-medium text-muted-foreground">
+            动作序列（共 {schedule.actions.length} 个动作）
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setVideoOpen(true)}>
+            <Play className="mr-1 h-3 w-3" />
+            预览序列
+          </Button>
         </div>
         <div className={`grid gap-2 ${isExpanded ? "grid-cols-1" : "grid-cols-2 md:grid-cols-4"}`}>
           {schedule.actions.map((action, index) => (
-            <ActionCard key={action.id} action={action} order={index + 1} isExpanded={isExpanded} />
+            <ActionCard
+              key={action.id}
+              action={action}
+              order={index + 1}
+              isExpanded={isExpanded}
+              onClick={() => handleActionClick(action)}
+            />
           ))}
         </div>
       </div>
+
+      {/* 底部操作按钮 */}
+      <div className="flex items-center justify-end gap-2 border-t border-border/50 bg-surface-50/50 p-3">
+        {schedule.status === "已完成" && (
+          <Button variant="outline" size="sm" onClick={() => setReportOpen(true)}>
+            <FileText className="mr-1 h-3 w-3" />
+            训练报告
+          </Button>
+        )}
+        <Button variant="outline" size="sm" onClick={() => setDeleteOpen(true)}>
+          <Trash2 className="mr-1 h-3 w-3" />
+          删除
+        </Button>
+      </div>
+
+      {/* 动作序列视频弹窗 */}
+      <Dialog open={videoOpen} onOpenChange={setVideoOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>{schedule.prescriptionName} - 完整动作序列</DialogTitle>
+          </DialogHeader>
+          <div className="aspect-video rounded-lg bg-muted flex items-center justify-center">
+            <Play className="h-16 w-16 text-muted-foreground" />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            动作序列视频演示，包含 {schedule.actions.length} 个标准动作
+          </p>
+        </DialogContent>
+      </Dialog>
+
+      {/* 单个动作视频弹窗 */}
+      <Dialog open={actionVideoOpen} onOpenChange={setActionVideoOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>{selectedAction?.type} - 标准动作</DialogTitle>
+          </DialogHeader>
+          <div className="aspect-video rounded-lg bg-muted flex items-center justify-center">
+            <Play className="h-16 w-16 text-muted-foreground" />
+          </div>
+          {selectedAction && (
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">时长</span>
+                <span>{selectedAction.duration}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">组数</span>
+                <span>{selectedAction.sets} 组</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">次数</span>
+                <span>{selectedAction.reps} 次</span>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 删除确认弹窗 */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>确认删除</DialogTitle>
+            <DialogDescription>
+              确定要删除 {schedule.scheduledTime} 的排班任务吗？此操作无法撤销。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+              取消
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              确认删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 训练报告弹窗 */}
+      <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Armguider 康复训练日报</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between rounded-lg bg-orange-50 p-3">
+              <div>
+                <div className="text-xs text-muted-foreground">训练日期</div>
+                <div className="font-medium">2025-01-15</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">完成率</div>
+                <div className="text-lg font-bold text-orange-600">100%</div>
+              </div>
+            </div>
+
+            <div className="aspect-[4/3] rounded-lg border bg-gradient-to-br from-orange-50 to-yellow-50 p-4">
+              <div className="text-center text-sm font-medium text-muted-foreground mb-2">关节活动度趋势</div>
+              <div className="h-full flex items-center justify-center text-muted-foreground">
+                [图表数据]
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-lg border bg-yellow-50 p-3 text-center">
+                <div className="text-xs text-muted-foreground">平均ROM</div>
+                <div className="text-xl font-bold">27°</div>
+              </div>
+              <div className="rounded-lg border bg-orange-50 p-3 text-center">
+                <div className="text-xs text-muted-foreground">训练时长</div>
+                <div className="text-xl font-bold">115</div>
+              </div>
+              <div className="rounded-lg border bg-amber-50 p-3 text-center">
+                <div className="text-xs text-muted-foreground">活动次数</div>
+                <div className="text-xl font-bold">35.8</div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border bg-orange-50 p-3">
+              <div className="mb-2 text-sm font-medium">本周小结</div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                患者本周训练配合度良好，关节活动度持续改善，建议继续当前训练方案。
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReportOpen(false)}>
+              关闭
+            </Button>
+            <Button>导出报告</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -307,15 +479,20 @@ function ScheduleCard({ schedule }: { schedule: Schedule }) {
 function ActionCard({
   action,
   order,
-  isExpanded
+  isExpanded,
+  onClick
 }: {
   action: ScheduleAction;
   order: number;
   isExpanded: boolean;
+  onClick: () => void;
 }) {
   if (isExpanded) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-surface-50 p-3 transition-colors hover:bg-surface-100">
+      <button
+        onClick={onClick}
+        className="flex items-center gap-3 rounded-xl border border-border/50 bg-surface-50 p-3 text-left transition-colors hover:bg-surface-100"
+      >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/20 text-sm font-bold text-primary">
           {order}
         </div>
@@ -332,12 +509,15 @@ function ActionCard({
             <span className="text-2xl">{action.icon}</span>
           </div>
         </div>
-      </div>
+      </button>
     );
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-border/50 bg-surface-50 p-3 transition-colors hover:bg-surface-100">
+    <button
+      onClick={onClick}
+      className="flex flex-col gap-2 rounded-xl border border-border/50 bg-surface-50 p-3 text-left transition-colors hover:bg-surface-100"
+    >
       <div className="flex items-center justify-between">
         <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/20 text-xs font-bold text-primary">
           {order}
@@ -352,6 +532,6 @@ function ActionCard({
         <span className="rounded bg-primary/20 px-1.5 py-0.5 font-medium text-primary">{action.sets}组</span>
         <span className="text-muted-foreground">× {action.reps}</span>
       </div>
-    </div>
+    </button>
   );
 }
