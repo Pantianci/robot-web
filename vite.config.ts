@@ -19,6 +19,9 @@ export default defineConfig({
       pages: [
         { path: "/" },
         { path: "/knowledge" },
+        { path: "/campus" },
+        { path: "/campus/maps" },
+        { path: "/campus/beds" },
         { path: "/patients" },
         { path: "/prescriptions" },
         { path: "/reports" },

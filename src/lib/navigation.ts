@@ -1,5 +1,6 @@
 import {
   BookCopy,
+  Building2,
   Home,
   type LucideIcon,
   MonitorCog,
@@ -57,6 +58,15 @@ export const navigationGroups = [
       { to: "/tags/voice", label: "问答对标签库" },
       { to: "/tags/motion", label: "标准动作标签库" },
       { to: "/tags/sequence", label: "动作序列标签库" }
+    ]
+  },
+  {
+    label: "院区管理",
+    to: "/campus/maps",
+    icon: Building2,
+    items: [
+      { to: "/campus/maps", label: "地图管理" },
+      { to: "/campus/beds", label: "病床管理" }
     ]
   },
   {

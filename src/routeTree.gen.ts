@@ -14,10 +14,12 @@ import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as PrescriptionsRouteImport } from './routes/prescriptions'
 import { Route as PatientsRouteImport } from './routes/patients'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
+import { Route as CampusRouteImport } from './routes/campus'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RobotsIndexRouteImport } from './routes/robots.index'
 import { Route as PatientsIndexRouteImport } from './routes/patients.index'
 import { Route as KnowledgeIndexRouteImport } from './routes/knowledge.index'
+import { Route as CampusIndexRouteImport } from './routes/campus.index'
 import { Route as TagsVoiceRouteImport } from './routes/tags.voice'
 import { Route as TagsSequenceRouteImport } from './routes/tags.sequence'
 import { Route as TagsMotionRouteImport } from './routes/tags.motion'
@@ -35,6 +37,8 @@ import { Route as KnowledgeSequenceRouteImport } from './routes/knowledge.sequen
 import { Route as KnowledgeQaRouteImport } from './routes/knowledge.qa'
 import { Route as KnowledgeMotionRouteImport } from './routes/knowledge.motion'
 import { Route as KnowledgeLibraryRouteImport } from './routes/knowledge.library'
+import { Route as CampusMapsRouteImport } from './routes/campus.maps'
+import { Route as CampusBedsRouteImport } from './routes/campus.beds'
 import { Route as PatientsReportsIndexRouteImport } from './routes/patients.reports.index'
 import { Route as PatientsPrescriptionsIndexRouteImport } from './routes/patients.prescriptions.index'
 import { Route as PatientsPlansIndexRouteImport } from './routes/patients.plans.index'
@@ -113,6 +117,11 @@ const KnowledgeRoute = KnowledgeRouteImport.update({
   path: '/knowledge',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CampusRoute = CampusRouteImport.update({
+  id: '/campus',
+  path: '/campus',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -132,6 +141,11 @@ const KnowledgeIndexRoute = KnowledgeIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => KnowledgeRoute,
+} as any)
+const CampusIndexRoute = CampusIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CampusRoute,
 } as any)
 const TagsVoiceRoute = TagsVoiceRouteImport.update({
   id: '/tags/voice',
@@ -217,6 +231,16 @@ const KnowledgeLibraryRoute = KnowledgeLibraryRouteImport.update({
   id: '/library',
   path: '/library',
   getParentRoute: () => KnowledgeRoute,
+} as any)
+const CampusMapsRoute = CampusMapsRouteImport.update({
+  id: '/maps',
+  path: '/maps',
+  getParentRoute: () => CampusRoute,
+} as any)
+const CampusBedsRoute = CampusBedsRouteImport.update({
+  id: '/beds',
+  path: '/beds',
+  getParentRoute: () => CampusRoute,
 } as any)
 const PatientsReportsIndexRoute = PatientsReportsIndexRouteImport.update({
   id: '/',
@@ -509,11 +533,14 @@ const PatientsPatientIdPlansPlanIdPrescriptionsPrescriptionIdCurrentCreateRoute 
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/campus': typeof CampusRouteWithChildren
   '/knowledge': typeof KnowledgeRouteWithChildren
   '/patients': typeof PatientsRouteWithChildren
   '/prescriptions': typeof PrescriptionsRoute
   '/reports': typeof ReportsRoute
   '/robots': typeof RobotsRouteWithChildren
+  '/campus/beds': typeof CampusBedsRoute
+  '/campus/maps': typeof CampusMapsRoute
   '/knowledge/library': typeof KnowledgeLibraryRouteWithChildren
   '/knowledge/motion': typeof KnowledgeMotionRouteWithChildren
   '/knowledge/qa': typeof KnowledgeQaRoute
@@ -531,6 +558,7 @@ export interface FileRoutesByFullPath {
   '/tags/motion': typeof TagsMotionRouteWithChildren
   '/tags/sequence': typeof TagsSequenceRouteWithChildren
   '/tags/voice': typeof TagsVoiceRouteWithChildren
+  '/campus/': typeof CampusIndexRoute
   '/knowledge/': typeof KnowledgeIndexRoute
   '/patients/': typeof PatientsIndexRoute
   '/robots/': typeof RobotsIndexRoute
@@ -591,6 +619,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/prescriptions': typeof PrescriptionsRoute
   '/reports': typeof ReportsRoute
+  '/campus/beds': typeof CampusBedsRoute
+  '/campus/maps': typeof CampusMapsRoute
   '/knowledge/qa': typeof KnowledgeQaRoute
   '/robots/create': typeof RobotsCreateRoute
   '/robots/detail': typeof RobotsDetailRoute
@@ -599,6 +629,7 @@ export interface FileRoutesByTo {
   '/tags/motion': typeof TagsMotionRouteWithChildren
   '/tags/sequence': typeof TagsSequenceRouteWithChildren
   '/tags/voice': typeof TagsVoiceRouteWithChildren
+  '/campus': typeof CampusIndexRoute
   '/knowledge': typeof KnowledgeIndexRoute
   '/patients': typeof PatientsIndexRoute
   '/robots': typeof RobotsIndexRoute
@@ -655,11 +686,14 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/campus': typeof CampusRouteWithChildren
   '/knowledge': typeof KnowledgeRouteWithChildren
   '/patients': typeof PatientsRouteWithChildren
   '/prescriptions': typeof PrescriptionsRoute
   '/reports': typeof ReportsRoute
   '/robots': typeof RobotsRouteWithChildren
+  '/campus/beds': typeof CampusBedsRoute
+  '/campus/maps': typeof CampusMapsRoute
   '/knowledge/library': typeof KnowledgeLibraryRouteWithChildren
   '/knowledge/motion': typeof KnowledgeMotionRouteWithChildren
   '/knowledge/qa': typeof KnowledgeQaRoute
@@ -677,6 +711,7 @@ export interface FileRoutesById {
   '/tags/motion': typeof TagsMotionRouteWithChildren
   '/tags/sequence': typeof TagsSequenceRouteWithChildren
   '/tags/voice': typeof TagsVoiceRouteWithChildren
+  '/campus/': typeof CampusIndexRoute
   '/knowledge/': typeof KnowledgeIndexRoute
   '/patients/': typeof PatientsIndexRoute
   '/robots/': typeof RobotsIndexRoute
@@ -737,11 +772,14 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/campus'
     | '/knowledge'
     | '/patients'
     | '/prescriptions'
     | '/reports'
     | '/robots'
+    | '/campus/beds'
+    | '/campus/maps'
     | '/knowledge/library'
     | '/knowledge/motion'
     | '/knowledge/qa'
@@ -759,6 +797,7 @@ export interface FileRouteTypes {
     | '/tags/motion'
     | '/tags/sequence'
     | '/tags/voice'
+    | '/campus/'
     | '/knowledge/'
     | '/patients/'
     | '/robots/'
@@ -819,6 +858,8 @@ export interface FileRouteTypes {
     | '/'
     | '/prescriptions'
     | '/reports'
+    | '/campus/beds'
+    | '/campus/maps'
     | '/knowledge/qa'
     | '/robots/create'
     | '/robots/detail'
@@ -827,6 +868,7 @@ export interface FileRouteTypes {
     | '/tags/motion'
     | '/tags/sequence'
     | '/tags/voice'
+    | '/campus'
     | '/knowledge'
     | '/patients'
     | '/robots'
@@ -882,11 +924,14 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/campus'
     | '/knowledge'
     | '/patients'
     | '/prescriptions'
     | '/reports'
     | '/robots'
+    | '/campus/beds'
+    | '/campus/maps'
     | '/knowledge/library'
     | '/knowledge/motion'
     | '/knowledge/qa'
@@ -904,6 +949,7 @@ export interface FileRouteTypes {
     | '/tags/motion'
     | '/tags/sequence'
     | '/tags/voice'
+    | '/campus/'
     | '/knowledge/'
     | '/patients/'
     | '/robots/'
@@ -963,6 +1009,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CampusRoute: typeof CampusRouteWithChildren
   KnowledgeRoute: typeof KnowledgeRouteWithChildren
   PatientsRoute: typeof PatientsRouteWithChildren
   PrescriptionsRoute: typeof PrescriptionsRoute
@@ -1011,6 +1058,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KnowledgeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/campus': {
+      id: '/campus'
+      path: '/campus'
+      fullPath: '/campus'
+      preLoaderRoute: typeof CampusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -1038,6 +1092,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/knowledge/'
       preLoaderRoute: typeof KnowledgeIndexRouteImport
       parentRoute: typeof KnowledgeRoute
+    }
+    '/campus/': {
+      id: '/campus/'
+      path: '/'
+      fullPath: '/campus/'
+      preLoaderRoute: typeof CampusIndexRouteImport
+      parentRoute: typeof CampusRoute
     }
     '/tags/voice': {
       id: '/tags/voice'
@@ -1157,6 +1218,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/knowledge/library'
       preLoaderRoute: typeof KnowledgeLibraryRouteImport
       parentRoute: typeof KnowledgeRoute
+    }
+    '/campus/maps': {
+      id: '/campus/maps'
+      path: '/maps'
+      fullPath: '/campus/maps'
+      preLoaderRoute: typeof CampusMapsRouteImport
+      parentRoute: typeof CampusRoute
+    }
+    '/campus/beds': {
+      id: '/campus/beds'
+      path: '/beds'
+      fullPath: '/campus/beds'
+      preLoaderRoute: typeof CampusBedsRouteImport
+      parentRoute: typeof CampusRoute
     }
     '/patients/reports/': {
       id: '/patients/reports/'
@@ -1525,6 +1600,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface CampusRouteChildren {
+  CampusBedsRoute: typeof CampusBedsRoute
+  CampusMapsRoute: typeof CampusMapsRoute
+  CampusIndexRoute: typeof CampusIndexRoute
+}
+
+const CampusRouteChildren: CampusRouteChildren = {
+  CampusBedsRoute: CampusBedsRoute,
+  CampusMapsRoute: CampusMapsRoute,
+  CampusIndexRoute: CampusIndexRoute,
+}
+
+const CampusRouteWithChildren =
+  CampusRoute._addFileChildren(CampusRouteChildren)
+
 interface KnowledgeLibraryRouteChildren {
   KnowledgeLibraryCreateRoute: typeof KnowledgeLibraryCreateRoute
   KnowledgeLibraryEditRoute: typeof KnowledgeLibraryEditRoute
@@ -1866,6 +1956,7 @@ const TagsVoiceRouteWithChildren = TagsVoiceRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CampusRoute: CampusRouteWithChildren,
   KnowledgeRoute: KnowledgeRouteWithChildren,
   PatientsRoute: PatientsRouteWithChildren,
   PrescriptionsRoute: PrescriptionsRoute,
