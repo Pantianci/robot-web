@@ -199,15 +199,8 @@ type LocateState = {
   pointId: string;
 };
 
-type PendingMapAction = {
-  mapId: string;
-  mode: "bed" | "nav";
-};
-
 const CAMPUS_STATE_KEY = "robot-web-prototype::campus-state-v2";
 const CAMPUS_LOCATE_KEY = "robot-web-prototype::campus-locate";
-const CAMPUS_FOCUSED_BED_KEY = "robot-web-prototype::campus-focused-bed";
-const CAMPUS_PENDING_MAP_ACTION_KEY = "robot-web-prototype::campus-pending-map-action";
 
 const mapTypes: CampusMapType[] = ["病房地图", "导航地图"];
 const recordStatuses: CampusRecordStatus[] = ["启用", "停用"];
@@ -730,7 +723,7 @@ export function CampusMapsPage() {
       data.maps.filter((map) => {
         const keywordMatch =
           !query ||
-          [map.name, map.description, map.creator, map.fileName].join(" ").toLowerCase().includes(query.toLowerCase());
+          [map.name, map.description, map.fileName].join(" ").toLowerCase().includes(query.toLowerCase());
         const typeMatch = typeFilter === "全部" || map.type === typeFilter;
         const statusMatch = statusFilter === "全部" || map.status === statusFilter;
         return keywordMatch && typeMatch && statusMatch;
@@ -825,14 +818,6 @@ export function CampusMapsPage() {
     navigate({ to: `/campus/maps/${mapId}` });
   };
 
-  const openCreatePoint = (map: CampusMap) => {
-    writeState<PendingMapAction>(CAMPUS_PENDING_MAP_ACTION_KEY, {
-      mapId: map.id,
-      mode: map.type === "病房地图" ? "bed" : "nav"
-    });
-    navigate({ to: `/campus/maps/${map.id}` });
-  };
-
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <PageHeader
@@ -889,9 +874,7 @@ export function CampusMapsPage() {
                 <TableHead>地图类型</TableHead>
                 <TableHead>地图说明</TableHead>
                 <TableHead>关联病床数量</TableHead>
-                <TableHead>创建人</TableHead>
                 <TableHead>创建时间</TableHead>
-                <TableHead>更新时间</TableHead>
                 <TableHead>状态</TableHead>
                 <TableHead>操作</TableHead>
               </TableRow>
@@ -904,19 +887,13 @@ export function CampusMapsPage() {
                   <TableCell>{map.type}</TableCell>
                   <TableCell className="max-w-[260px] truncate">{map.description}</TableCell>
                   <TableCell>{data.bedPoints.filter((point) => point.mapId === map.id).length}</TableCell>
-                  <TableCell>{map.creator}</TableCell>
                   <TableCell>{formatDateTime(map.createdAt)}</TableCell>
-                  <TableCell>{formatDateTime(map.updatedAt)}</TableCell>
                   <TableCell><Badge className={badgeClassForStatus(map.status)}>{map.status}</Badge></TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-2">
                       <Button variant="ghost" size="sm" onClick={(event) => { event.stopPropagation(); goToMapDetail(map.id); }}>
                         <LocateFixed className="h-4 w-4" />
                         点位
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={(event) => { event.stopPropagation(); openCreatePoint(map); }}>
-                        <MapPinned className="h-4 w-4" />
-                        新增点位
                       </Button>
                       <Button variant="ghost" size="sm" onClick={(event) => { event.stopPropagation(); openEditMap(map); }}>
                         <Edit3 className="h-4 w-4" />
@@ -1028,21 +1005,6 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
       clearState(CAMPUS_LOCATE_KEY);
     }
 
-    const pending = readState<PendingMapAction>(CAMPUS_PENDING_MAP_ACTION_KEY);
-    if (pending?.mapId === mapId) {
-      if (pending.mode === "bed" && selectedMap?.type === "病房地图") {
-        setEditingBedPoint(null);
-        setBedPointDraft(createDefaultBedPointDraft(selectedMap));
-        setBedPointError("");
-        setBedPointDialogOpen(true);
-      }
-      if (pending.mode === "nav" && selectedMap?.type === "导航地图") {
-        setEditingNavPoint(null);
-        setNavPointDraft(createDefaultNavPointDraft());
-        setNavPointDialogOpen(true);
-      }
-      clearState(CAMPUS_PENDING_MAP_ACTION_KEY);
-    }
   }, [mapId, selectedMap]);
 
   const updateCampus = (mutator: (next: CampusState) => void) => {
@@ -1398,7 +1360,7 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
 export function CampusBedsPage() {
   const navigate = useNavigate();
   const [data, setData] = useCampusState();
-  const [filters, setFilters] = useState({ code: "", name: "", wardName: "", status: "全部", usageStatus: "全部", dateFrom: "", dateTo: "" });
+  const [filters, setFilters] = useState({ keyword: "", status: "全部", dateFrom: "", dateTo: "" });
   const [bedDialogOpen, setBedDialogOpen] = useState(false);
   const [bedDraft, setBedDraft] = useState<BedDraft>(createDefaultBedDraft);
   const [editingBed, setEditingBed] = useState<BedRecord | null>(null);
@@ -1424,20 +1386,19 @@ export function CampusBedsPage() {
 
   const filteredBeds = useMemo(
     () => bedsWithUsage.filter((bed) => {
-      const codeMatch = !filters.code || bed.code.toLowerCase().includes(filters.code.toLowerCase());
-      const nameMatch = !filters.name || bed.name.toLowerCase().includes(filters.name.toLowerCase());
-      const wardMatch = !filters.wardName || bed.wardName.toLowerCase().includes(filters.wardName.toLowerCase());
-      const statusMatch = filters.status === "全部" || bed.status === filters.status;
-      const usageMatch = filters.usageStatus === "全部" || bed.usageStatus === filters.usageStatus;
+      const keywordMatch =
+        !filters.keyword ||
+        [bed.code, bed.name, bed.wardName].join(" ").toLowerCase().includes(filters.keyword.toLowerCase());
+      const statusMatch = filters.status === "全部" || bed.displayStatus === filters.status;
       const usageRecord = bed.currentUsage ?? bed.nextReservation;
       const fromMatch = !filters.dateFrom || (usageRecord && new Date(usageRecord.startAt) >= new Date(`${filters.dateFrom}T00:00`));
       const toMatch = !filters.dateTo || (usageRecord && new Date(usageRecord.startAt) <= new Date(`${filters.dateTo}T23:59`));
-      return codeMatch && nameMatch && wardMatch && statusMatch && usageMatch && fromMatch && toMatch;
+      return keywordMatch && statusMatch && fromMatch && toMatch;
     }),
     [bedsWithUsage, filters]
   );
 
-  const resetFilters = () => setFilters({ code: "", name: "", wardName: "", status: "全部", usageStatus: "全部", dateFrom: "", dateTo: "" });
+  const resetFilters = () => setFilters({ keyword: "", status: "全部", dateFrom: "", dateTo: "" });
 
   const openCreateBed = () => {
     setEditingBed(null);
@@ -1530,11 +1491,8 @@ export function CampusBedsPage() {
       <PageHeader eyebrow="院区管理 > 病床管理" title="病床管理" description="统一管理病床位置、状态、使用登记、使用记录和地图联动定位。" badge="病床列表" actions={<Button onClick={openCreateBed}><Plus className="h-4 w-4" />新增病床</Button>} />
       {message ? <p className="text-sm text-primary">{message}</p> : null}
       <FilterBar actions={<><Button variant="secondary" onClick={resetFilters}>重置</Button><Button>查询</Button></>}>
-        <Field label="病床编号"><Input value={filters.code} placeholder="BED-302-01" onChange={(event) => setFilters((current) => ({ ...current, code: event.target.value }))} /></Field>
-        <Field label="病床名称"><Input value={filters.name} placeholder="302-1床" onChange={(event) => setFilters((current) => ({ ...current, name: event.target.value }))} /></Field>
-        <Field label="病房名称"><Input value={filters.wardName} placeholder="骨科三病区302" onChange={(event) => setFilters((current) => ({ ...current, wardName: event.target.value }))} /></Field>
-        <Field label="病床状态"><select className="native-select" value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}><option value="全部">全部</option>{bedStatuses.map((status) => <option key={status} value={status}>{status}</option>)}</select></Field>
-        <Field label="使用状态"><select className="native-select" value={filters.usageStatus} onChange={(event) => setFilters((current) => ({ ...current, usageStatus: event.target.value }))}><option value="全部">全部</option>{usageStatuses.map((status) => <option key={status} value={status}>{status}</option>)}</select></Field>
+        <Field label="关键词"><Input value={filters.keyword} placeholder="BED-302-01 / 302-1床 / 骨科三病区302" onChange={(event) => setFilters((current) => ({ ...current, keyword: event.target.value }))} /></Field>
+        <Field label="病床状态"><select className="native-select" value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}><option value="全部">全部</option>{["空闲", "使用中", "已预约", "停用", "维修中"].map((status) => <option key={status} value={status}>{status}</option>)}</select></Field>
         <Field label="使用时间范围"><div className="grid grid-cols-2 gap-2"><Input type="date" value={filters.dateFrom} onChange={(event) => setFilters((current) => ({ ...current, dateFrom: event.target.value }))} /><Input type="date" value={filters.dateTo} onChange={(event) => setFilters((current) => ({ ...current, dateTo: event.target.value }))} /></div></Field>
       </FilterBar>
 
@@ -1544,7 +1502,7 @@ export function CampusBedsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>病床编号</TableHead><TableHead>病床名称</TableHead><TableHead>所属病房</TableHead><TableHead>病床类型</TableHead><TableHead>病床状态</TableHead><TableHead>使用状态</TableHead><TableHead>当前患者</TableHead><TableHead>开始使用时间</TableHead><TableHead>预计结束时间</TableHead><TableHead>最近结束使用时间</TableHead><TableHead>地图绑定状态</TableHead><TableHead>更新时间</TableHead><TableHead>操作</TableHead>
+                <TableHead>病床编号</TableHead><TableHead>病床名称</TableHead><TableHead>所属病房</TableHead><TableHead>病床类型</TableHead><TableHead>病床状态</TableHead><TableHead>当前患者</TableHead><TableHead>开始使用时间</TableHead><TableHead>预计结束时间</TableHead><TableHead>地图绑定状态</TableHead><TableHead>操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1556,14 +1514,11 @@ export function CampusBedsPage() {
                     <TableCell>{bed.name}</TableCell>
                     <TableCell>{bed.wardName}</TableCell>
                     <TableCell>{bed.type}</TableCell>
-                    <TableCell><Badge className={badgeClassForStatus(bed.status)}>{bed.status}</Badge></TableCell>
                     <TableCell><Badge className={badgeClassForStatus(bed.displayStatus)}>{bed.displayStatus}</Badge></TableCell>
                     <TableCell>{current?.patientName ?? "-"}</TableCell>
                     <TableCell>{current ? formatDateTime(current.startAt) : "-"}</TableCell>
                     <TableCell>{current ? formatDateTime(current.expectedEndAt) : "-"}</TableCell>
-                    <TableCell>{bed.lastEndedAt ? formatDateTime(bed.lastEndedAt) : "-"}</TableCell>
                     <TableCell>{bed.mapId ? "已绑定" : "未绑定"}</TableCell>
-                    <TableCell>{formatDateTime(bed.updatedAt)}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-2">
                         <Button variant="ghost" size="sm" onClick={(event) => { event.stopPropagation(); navigate({ to: `/campus/beds/${bed.id}` }); }}><BedDouble className="h-4 w-4" />查看</Button>
@@ -1753,7 +1708,7 @@ export function CampusBedDetailPage({ bedId }: { bedId: string }) {
       <SectionCard title="病床详情">
         <div className="space-y-4">
           <div className="grid gap-3 md:grid-cols-3">
-            {[["病床编号", selectedBed.code], ["病床名称", selectedBed.name], ["所属病房", selectedBed.wardName], ["病床类型", selectedBed.type], ["病床状态", selectedBed.status], ["使用状态", getBedDisplayStatus(selectedBed, data.usageRecords)]].map(([label, value]) => (
+            {[["病床编号", selectedBed.code], ["病床名称", selectedBed.name], ["所属病房", selectedBed.wardName], ["病床类型", selectedBed.type], ["病床状态", getBedDisplayStatus(selectedBed, data.usageRecords)]].map(([label, value]) => (
               <div key={label} className="rounded-xl border border-border/70 bg-surface-50 px-4 py-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 font-medium text-surface-900">{value}</p></div>
             ))}
           </div>

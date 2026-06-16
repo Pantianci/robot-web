@@ -1,10 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { CampusMapsPage } from "@/components/campus-management";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/campus/maps")({
   component: CampusMapsRoute
 });
 
 function CampusMapsRoute() {
-  return <CampusMapsPage />;
+  return <Outlet />;
 }

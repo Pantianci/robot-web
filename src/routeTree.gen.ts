@@ -48,6 +48,8 @@ import { Route as KnowledgeVoiceIndexRouteImport } from './routes/knowledge.voic
 import { Route as KnowledgeSequenceIndexRouteImport } from './routes/knowledge.sequence.index'
 import { Route as KnowledgeMotionIndexRouteImport } from './routes/knowledge.motion.index'
 import { Route as KnowledgeLibraryIndexRouteImport } from './routes/knowledge.library.index'
+import { Route as CampusMapsIndexRouteImport } from './routes/campus.maps.index'
+import { Route as CampusBedsIndexRouteImport } from './routes/campus.beds.index'
 import { Route as TagsVoiceCreateRouteImport } from './routes/tags.voice.create'
 import { Route as TagsSequenceCreateRouteImport } from './routes/tags.sequence.create'
 import { Route as TagsMotionCreateRouteImport } from './routes/tags.motion.create'
@@ -289,6 +291,16 @@ const KnowledgeLibraryIndexRoute = KnowledgeLibraryIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => KnowledgeLibraryRoute,
+} as any)
+const CampusMapsIndexRoute = CampusMapsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CampusMapsRoute,
+} as any)
+const CampusBedsIndexRoute = CampusBedsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CampusBedsRoute,
 } as any)
 const TagsVoiceCreateRoute = TagsVoiceCreateRouteImport.update({
   id: '/create',
@@ -606,6 +618,8 @@ export interface FileRoutesByFullPath {
   '/tags/motion/create': typeof TagsMotionCreateRoute
   '/tags/sequence/create': typeof TagsSequenceCreateRoute
   '/tags/voice/create': typeof TagsVoiceCreateRoute
+  '/campus/beds/': typeof CampusBedsIndexRoute
+  '/campus/maps/': typeof CampusMapsIndexRoute
   '/knowledge/library/': typeof KnowledgeLibraryIndexRoute
   '/knowledge/motion/': typeof KnowledgeMotionIndexRoute
   '/knowledge/sequence/': typeof KnowledgeSequenceIndexRoute
@@ -633,8 +647,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/prescriptions': typeof PrescriptionsRoute
   '/reports': typeof ReportsRoute
-  '/campus/beds': typeof CampusBedsRouteWithChildren
-  '/campus/maps': typeof CampusMapsRouteWithChildren
   '/knowledge/qa': typeof KnowledgeQaRoute
   '/robots/create': typeof RobotsCreateRoute
   '/robots/detail': typeof RobotsDetailRoute
@@ -678,6 +690,8 @@ export interface FileRoutesByTo {
   '/tags/motion/create': typeof TagsMotionCreateRoute
   '/tags/sequence/create': typeof TagsSequenceCreateRoute
   '/tags/voice/create': typeof TagsVoiceCreateRoute
+  '/campus/beds': typeof CampusBedsIndexRoute
+  '/campus/maps': typeof CampusMapsIndexRoute
   '/knowledge/library': typeof KnowledgeLibraryIndexRoute
   '/knowledge/motion': typeof KnowledgeMotionIndexRoute
   '/knowledge/sequence': typeof KnowledgeSequenceIndexRoute
@@ -763,6 +777,8 @@ export interface FileRoutesById {
   '/tags/motion/create': typeof TagsMotionCreateRoute
   '/tags/sequence/create': typeof TagsSequenceCreateRoute
   '/tags/voice/create': typeof TagsVoiceCreateRoute
+  '/campus/beds/': typeof CampusBedsIndexRoute
+  '/campus/maps/': typeof CampusMapsIndexRoute
   '/knowledge/library/': typeof KnowledgeLibraryIndexRoute
   '/knowledge/motion/': typeof KnowledgeMotionIndexRoute
   '/knowledge/sequence/': typeof KnowledgeSequenceIndexRoute
@@ -851,6 +867,8 @@ export interface FileRouteTypes {
     | '/tags/motion/create'
     | '/tags/sequence/create'
     | '/tags/voice/create'
+    | '/campus/beds/'
+    | '/campus/maps/'
     | '/knowledge/library/'
     | '/knowledge/motion/'
     | '/knowledge/sequence/'
@@ -878,8 +896,6 @@ export interface FileRouteTypes {
     | '/'
     | '/prescriptions'
     | '/reports'
-    | '/campus/beds'
-    | '/campus/maps'
     | '/knowledge/qa'
     | '/robots/create'
     | '/robots/detail'
@@ -923,6 +939,8 @@ export interface FileRouteTypes {
     | '/tags/motion/create'
     | '/tags/sequence/create'
     | '/tags/voice/create'
+    | '/campus/beds'
+    | '/campus/maps'
     | '/knowledge/library'
     | '/knowledge/motion'
     | '/knowledge/sequence'
@@ -1007,6 +1025,8 @@ export interface FileRouteTypes {
     | '/tags/motion/create'
     | '/tags/sequence/create'
     | '/tags/voice/create'
+    | '/campus/beds/'
+    | '/campus/maps/'
     | '/knowledge/library/'
     | '/knowledge/motion/'
     | '/knowledge/sequence/'
@@ -1319,6 +1339,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/knowledge/library/'
       preLoaderRoute: typeof KnowledgeLibraryIndexRouteImport
       parentRoute: typeof KnowledgeLibraryRoute
+    }
+    '/campus/maps/': {
+      id: '/campus/maps/'
+      path: '/'
+      fullPath: '/campus/maps/'
+      preLoaderRoute: typeof CampusMapsIndexRouteImport
+      parentRoute: typeof CampusMapsRoute
+    }
+    '/campus/beds/': {
+      id: '/campus/beds/'
+      path: '/'
+      fullPath: '/campus/beds/'
+      preLoaderRoute: typeof CampusBedsIndexRouteImport
+      parentRoute: typeof CampusBedsRoute
     }
     '/tags/voice/create': {
       id: '/tags/voice/create'
@@ -1640,10 +1674,12 @@ declare module '@tanstack/react-router' {
 
 interface CampusBedsRouteChildren {
   CampusBedsBedIdRoute: typeof CampusBedsBedIdRoute
+  CampusBedsIndexRoute: typeof CampusBedsIndexRoute
 }
 
 const CampusBedsRouteChildren: CampusBedsRouteChildren = {
   CampusBedsBedIdRoute: CampusBedsBedIdRoute,
+  CampusBedsIndexRoute: CampusBedsIndexRoute,
 }
 
 const CampusBedsRouteWithChildren = CampusBedsRoute._addFileChildren(
@@ -1652,10 +1688,12 @@ const CampusBedsRouteWithChildren = CampusBedsRoute._addFileChildren(
 
 interface CampusMapsRouteChildren {
   CampusMapsMapIdRoute: typeof CampusMapsMapIdRoute
+  CampusMapsIndexRoute: typeof CampusMapsIndexRoute
 }
 
 const CampusMapsRouteChildren: CampusMapsRouteChildren = {
   CampusMapsMapIdRoute: CampusMapsMapIdRoute,
+  CampusMapsIndexRoute: CampusMapsIndexRoute,
 }
 
 const CampusMapsRouteWithChildren = CampusMapsRoute._addFileChildren(
@@ -2032,12 +2070,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
