@@ -2,7 +2,6 @@ import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
   BedDouble,
-  ClipboardList,
   Edit3,
   Expand,
   FileImage,
@@ -11,7 +10,6 @@ import {
   Minus,
   Plus,
   RotateCcw,
-  Route,
   Trash2,
   ZoomIn
 } from "lucide-react";
@@ -1539,9 +1537,26 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
                     {draftZonePoints.length ? (
                       <>
                         {draftZonePoints.length >= 3 ? (
-                          <polygon points={draftZonePoints.map((point) => `${point.x}% ${point.y}%`).join(" ")} fill="rgba(245,158,11,0.14)" stroke="#f59e0b" strokeWidth="3" strokeDasharray="8 6" />
+                          <>
+                            <polygon points={draftZonePoints.map((point) => `${point.x}% ${point.y}%`).join(" ")} fill="rgba(245,158,11,0.22)" stroke="rgba(245,158,11,0.18)" strokeWidth="1" />
+                            <polyline
+                              points={[...draftZonePoints, draftZonePoints[0]].map((point) => `${point.x}% ${point.y}%`).join(" ")}
+                              fill="none"
+                              stroke="#f59e0b"
+                              strokeWidth="3"
+                              strokeDasharray="8 6"
+                              strokeLinejoin="round"
+                            />
+                          </>
                         ) : (
-                          <polyline points={draftZonePoints.map((point) => `${point.x}% ${point.y}%`).join(" ")} fill="none" stroke="#f59e0b" strokeWidth="3" strokeDasharray="8 6" />
+                          <polyline
+                            points={draftZonePoints.map((point) => `${point.x}% ${point.y}%`).join(" ")}
+                            fill="none"
+                            stroke="#f59e0b"
+                            strokeWidth="3"
+                            strokeDasharray="8 6"
+                            strokeLinejoin="round"
+                          />
                         )}
                         {draftZonePoints.map((point, index) => (
                           <circle key={`${point.x}-${point.y}-${index}`} cx={`${point.x}%`} cy={`${point.y}%`} r="7" fill="#f59e0b" stroke="white" strokeWidth="3" />
@@ -1559,7 +1574,7 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
                           <button
                             key={point.id}
                             type="button"
-                            className={cn("absolute flex h-16 w-20 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-2xl border-2 border-white text-xs font-semibold shadow-panel transition hover:scale-105", statusColorClass(displayStatus), highlightPointId === point.id && "ring-4 ring-primary/45")}
+                            className="absolute -translate-x-1/2 -translate-y-1/2 transition hover:scale-105"
                             style={{ left: `${point.x}%`, top: `${point.y}%` }}
                             onClick={(event) => {
                               event.stopPropagation();
@@ -1567,8 +1582,16 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
                               setHighlightPointId(point.id);
                             }}
                           >
-                            <span>{bed.code}</span>
-                            <span className="mt-1 text-[11px] opacity-90">{displayStatus}</span>
+                            <span
+                              className={cn(
+                                "block h-3.5 w-3.5 rounded-full border-2 border-white shadow-panel",
+                                statusColorClass(displayStatus),
+                                highlightPointId === point.id && "ring-4 ring-primary/45"
+                              )}
+                            />
+                            <span className="absolute left-1/2 top-[calc(100%+6px)] -translate-x-1/2 whitespace-nowrap rounded-full bg-white/92 px-2 py-0.5 text-[11px] font-semibold text-surface-800 shadow-soft">
+                              {bed.code}
+                            </span>
                           </button>
                         );
                       })
@@ -1576,7 +1599,7 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
                         <button
                           key={point.id}
                           type="button"
-                          className={cn("absolute flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white text-white shadow-panel transition hover:scale-105", pendingLinkPointId === point.id ? "bg-amber-500" : "bg-primary")}
+                          className="absolute -translate-x-1/2 -translate-y-1/2 transition hover:scale-105"
                           style={{ left: `${point.x}%`, top: `${point.y}%` }}
                           onClick={(event) => {
                             event.stopPropagation();
@@ -1588,7 +1611,15 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
                           }}
                           title={point.name}
                         >
-                          <Route className="h-5 w-5" />
+                          <span
+                            className={cn(
+                              "block h-3.5 w-3.5 rounded-full border-2 border-white shadow-panel",
+                              pendingLinkPointId === point.id ? "bg-amber-500" : "bg-primary"
+                            )}
+                          />
+                          <span className="absolute left-1/2 top-[calc(100%+6px)] -translate-x-1/2 whitespace-nowrap rounded-full bg-white/92 px-2 py-0.5 text-[11px] font-semibold text-surface-800 shadow-soft">
+                            {point.name}
+                          </span>
                         </button>
                       ))}
                 </div>
@@ -1955,7 +1986,6 @@ export function CampusBedsPage() {
                         <Button variant="ghost" size="sm" onClick={(event) => { event.stopPropagation(); navigate({ to: `/campus/beds/${bed.id}` }); }}><BedDouble className="h-4 w-4" />查看</Button>
                         <Button variant="ghost" size="sm" onClick={(event) => { event.stopPropagation(); openEditBed(bed); }}><Edit3 className="h-4 w-4" />编辑</Button>
                         <Button variant="ghost" size="sm" onClick={(event) => { event.stopPropagation(); locateBedOnMap(bed); }}><LocateFixed className="h-4 w-4" />定位</Button>
-                        <Button variant="ghost" size="sm" onClick={(event) => { event.stopPropagation(); setRecordsBed(bed); }}><ClipboardList className="h-4 w-4" />使用记录</Button>
                         <Button variant="ghost" size="sm" className="text-rose-600" onClick={(event) => { event.stopPropagation(); setDeleteBed(bed); }}><Trash2 className="h-4 w-4" />删除</Button>
                       </div>
                     </TableCell>
