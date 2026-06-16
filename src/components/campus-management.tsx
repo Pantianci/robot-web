@@ -1089,6 +1089,9 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
   const [navPointDialogOpen, setNavPointDialogOpen] = useState(false);
   const [editingNavPoint, setEditingNavPoint] = useState<NavigationPoint | null>(null);
   const [navPointDraft, setNavPointDraft] = useState<NavPointDraft>(createDefaultNavPointDraft);
+  const [segmentDialogOpen, setSegmentDialogOpen] = useState(false);
+  const [editingSegment, setEditingSegment] = useState<NavigationSegment | null>(null);
+  const [segmentDraft, setSegmentDraft] = useState({ fromPointId: "", toPointId: "" });
   const [pointPreview, setPointPreview] = useState<BedPoint | NavigationPoint | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -1096,6 +1099,7 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
   const [interactionMode, setInteractionMode] = useState<MapInteractionMode>("pan");
   const [pendingLinkPointId, setPendingLinkPointId] = useState("");
   const [draftZonePoints, setDraftZonePoints] = useState<ZoneVertex[]>([]);
+  const [editingZoneId, setEditingZoneId] = useState("");
   const [dragStart, setDragStart] = useState<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const mapAreaRef = useRef<HTMLDivElement | null>(null);
 
@@ -1203,18 +1207,28 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
     }
 
     updateCampus((next) => {
-      next.noGoZones.unshift({
-        id: generateId("no-go-zone"),
-        mapId: selectedMap.id,
-        name: `禁行区 ${next.noGoZones.filter((zone) => zone.mapId === selectedMap.id).length + 1}`,
-        points: draftZonePoints,
-        updatedAt: new Date().toISOString()
-      });
+      const now = new Date().toISOString();
+      if (editingZoneId) {
+        next.noGoZones = next.noGoZones.map((zone) =>
+          zone.id === editingZoneId
+            ? { ...zone, points: draftZonePoints, updatedAt: now }
+            : zone
+        );
+      } else {
+        next.noGoZones.unshift({
+          id: generateId("no-go-zone"),
+          mapId: selectedMap.id,
+          name: `禁行区 ${next.noGoZones.filter((zone) => zone.mapId === selectedMap.id).length + 1}`,
+          points: draftZonePoints,
+          updatedAt: now
+        });
+      }
     });
 
     setDraftZonePoints([]);
+    setEditingZoneId("");
     setInteractionMode("pan");
-    setMessage("禁行区已标记。");
+    setMessage(editingZoneId ? "禁行区已更新。" : "禁行区已标记。");
   };
 
   const pickDraftPointFromPreview = (
@@ -1351,6 +1365,65 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
     });
   };
 
+  const openEditSegment = (segment: NavigationSegment) => {
+    setEditingSegment(segment);
+    setSegmentDraft({ fromPointId: segment.fromPointId, toPointId: segment.toPointId });
+    setSegmentDialogOpen(true);
+  };
+
+  const submitSegment = () => {
+    if (!selectedMap || selectedMap.type !== "导航地图" || !editingSegment) {
+      return;
+    }
+    if (!segmentDraft.fromPointId || !segmentDraft.toPointId || segmentDraft.fromPointId === segmentDraft.toPointId) {
+      setMessage("请为导航连线选择两个不同的点位。");
+      return;
+    }
+
+    updateCampus((next) => {
+      next.navigationSegments = next.navigationSegments.map((segment) =>
+        segment.id === editingSegment.id
+          ? {
+              ...segment,
+              fromPointId: segmentDraft.fromPointId,
+              toPointId: segmentDraft.toPointId,
+              updatedAt: new Date().toISOString()
+            }
+          : segment
+      );
+    });
+
+    setEditingSegment(null);
+    setSegmentDialogOpen(false);
+    setMessage("导航连线已更新。");
+  };
+
+  const deleteSegment = (segmentId: string) => {
+    updateCampus((next) => {
+      next.navigationSegments = next.navigationSegments.filter((segment) => segment.id !== segmentId);
+    });
+    setMessage("导航连线已删除。");
+  };
+
+  const startEditZone = (zone: NoGoZone) => {
+    setEditingZoneId(zone.id);
+    setDraftZonePoints(zone.points);
+    setInteractionMode("polygon");
+    setMessage("已载入禁行区边界，可撤销、清空重绘后保存。");
+  };
+
+  const deleteNoGoZone = (zoneId: string) => {
+    updateCampus((next) => {
+      next.noGoZones = next.noGoZones.filter((zone) => zone.id !== zoneId);
+    });
+    if (editingZoneId === zoneId) {
+      setEditingZoneId("");
+      setDraftZonePoints([]);
+      setInteractionMode("pan");
+    }
+    setMessage("禁行区已删除。");
+  };
+
   if (!selectedMap) {
     return <EmptyState title="地图不存在" />;
   }
@@ -1400,13 +1473,15 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
                         连线工具
                       </Button>
                     ) : null}
-                    <Button variant={interactionMode === "polygon" ? "default" : "outline"} size="sm" onClick={() => { setInteractionMode("polygon"); setDraftZonePoints([]); setMessage("请在地图上连续点击绘制禁行区。"); }}>
+                    <Button variant={interactionMode === "polygon" ? "default" : "outline"} size="sm" onClick={() => { setInteractionMode("polygon"); setEditingZoneId(""); setDraftZonePoints([]); setMessage("请在地图上连续点击绘制禁行区。"); }}>
                       禁行区工具
                     </Button>
                     {interactionMode === "polygon" ? (
                       <>
-                        <Button variant="outline" size="sm" onClick={saveNoGoZone} disabled={draftZonePoints.length < 3}>完成禁行区</Button>
-                        <Button variant="outline" size="sm" onClick={() => { setDraftZonePoints([]); setInteractionMode("pan"); }}>取消</Button>
+                        <Button variant="outline" size="sm" onClick={() => setDraftZonePoints((current) => current.slice(0, -1))} disabled={!draftZonePoints.length}>撤销一点</Button>
+                        <Button variant="outline" size="sm" onClick={() => setDraftZonePoints([])} disabled={!draftZonePoints.length}>清空重绘</Button>
+                        <Button variant="outline" size="sm" onClick={saveNoGoZone} disabled={draftZonePoints.length < 3}>{editingZoneId ? "保存禁行区" : "完成禁行区"}</Button>
+                        <Button variant="outline" size="sm" onClick={() => { setDraftZonePoints([]); setEditingZoneId(""); setInteractionMode("pan"); }}>取消</Button>
                       </>
                     ) : null}
                     <Button variant="outline" size="sm" onClick={() => setZoom((value) => Math.min(2, value + 0.1))}><ZoomIn className="h-4 w-4" />放大</Button>
@@ -1425,7 +1500,10 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
             <CardContent className="min-h-0 flex-1 p-4">
               <div
                 ref={mapAreaRef}
-                className="relative h-full min-h-[560px] overflow-hidden rounded-[1.5rem] border border-border/70 bg-surface-100"
+                className={cn(
+                  "relative h-full min-h-[560px] overflow-hidden rounded-[1.5rem] border border-border/70 bg-surface-100",
+                  interactionMode === "pan" ? "cursor-grab" : "cursor-crosshair"
+                )}
                 onMouseDown={(event) => {
                   if (interactionMode !== "pan") return;
                   setDragStart({ x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y });
@@ -1459,7 +1537,16 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
                       <polygon key={zone.id} points={zone.points.map((point) => `${point.x}% ${point.y}%`).join(" ")} fill="rgba(239,68,68,0.18)" stroke="#ef4444" strokeWidth="3" strokeDasharray="8 6" />
                     ))}
                     {draftZonePoints.length ? (
-                      <polyline points={draftZonePoints.map((point) => `${point.x}% ${point.y}%`).join(" ")} fill="rgba(245,158,11,0.12)" stroke="#f59e0b" strokeWidth="3" strokeDasharray="8 6" />
+                      <>
+                        {draftZonePoints.length >= 3 ? (
+                          <polygon points={draftZonePoints.map((point) => `${point.x}% ${point.y}%`).join(" ")} fill="rgba(245,158,11,0.14)" stroke="#f59e0b" strokeWidth="3" strokeDasharray="8 6" />
+                        ) : (
+                          <polyline points={draftZonePoints.map((point) => `${point.x}% ${point.y}%`).join(" ")} fill="none" stroke="#f59e0b" strokeWidth="3" strokeDasharray="8 6" />
+                        )}
+                        {draftZonePoints.map((point, index) => (
+                          <circle key={`${point.x}-${point.y}-${index}`} cx={`${point.x}%`} cy={`${point.y}%`} r="7" fill="#f59e0b" stroke="white" strokeWidth="3" />
+                        ))}
+                      </>
                     ) : null}
                   </svg>
 
@@ -1556,7 +1643,15 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
                       {currentSegments.length ? currentSegments.map((segment) => {
                         const fromPoint = currentNavPoints.find((point) => point.id === segment.fromPointId);
                         const toPoint = currentNavPoints.find((point) => point.id === segment.toPointId);
-                        return <p key={segment.id}>{fromPoint?.name ?? segment.fromPointId} {" -> "} {toPoint?.name ?? segment.toPointId}</p>;
+                        return (
+                          <div key={segment.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-surface-50 px-3 py-2">
+                            <p>{fromPoint?.name ?? segment.fromPointId} {" -> "} {toPoint?.name ?? segment.toPointId}</p>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="sm" onClick={() => openEditSegment(segment)}>编辑</Button>
+                              <Button variant="ghost" size="sm" className="text-rose-600" onClick={() => deleteSegment(segment.id)}>删除</Button>
+                            </div>
+                          </div>
+                        );
                       }) : <p>暂无导航连线</p>}
                     </div>
                   </SectionCard>
@@ -1564,7 +1659,15 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
               ) : null}
               <SectionCard title="禁行区">
                 <div className="space-y-2 text-sm text-muted-foreground">
-                  {currentZones.length ? currentZones.map((zone) => <p key={zone.id}>{zone.name} · {zone.points.length} 个顶点</p>) : <p>暂无禁行区</p>}
+                  {currentZones.length ? currentZones.map((zone) => (
+                    <div key={zone.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-surface-50 px-3 py-2">
+                      <p>{zone.name} · {zone.points.length} 个顶点</p>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => startEditZone(zone)}>编辑</Button>
+                        <Button variant="ghost" size="sm" className="text-rose-600" onClick={() => deleteNoGoZone(zone.id)}>删除</Button>
+                      </div>
+                    </div>
+                  )) : <p>暂无禁行区</p>}
                 </div>
               </SectionCard>
             </CardContent>
@@ -1627,6 +1730,23 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
           </Field>
           <div className="md:col-span-2"><Field label="描述"><Textarea value={navPointDraft.description} onChange={(event) => setNavPointDraft((current) => ({ ...current, description: event.target.value }))} /></Field></div>
           <div className="md:col-span-2"><Field label="备注"><Textarea value={navPointDraft.note} onChange={(event) => setNavPointDraft((current) => ({ ...current, note: event.target.value }))} /></Field></div>
+        </div>
+      </DialogFormShell>
+
+      <DialogFormShell open={segmentDialogOpen} onOpenChange={setSegmentDialogOpen} title="编辑导航连线" description="选择两个导航点位后保存连线。" onSubmit={submitSegment} submitLabel="保存">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="起点" required>
+            <select className="native-select" value={segmentDraft.fromPointId} onChange={(event) => setSegmentDraft((current) => ({ ...current, fromPointId: event.target.value }))}>
+              <option value="">请选择起点</option>
+              {currentNavPoints.map((point) => <option key={point.id} value={point.id}>{point.name}</option>)}
+            </select>
+          </Field>
+          <Field label="终点" required>
+            <select className="native-select" value={segmentDraft.toPointId} onChange={(event) => setSegmentDraft((current) => ({ ...current, toPointId: event.target.value }))}>
+              <option value="">请选择终点</option>
+              {currentNavPoints.map((point) => <option key={point.id} value={point.id}>{point.name}</option>)}
+            </select>
+          </Field>
         </div>
       </DialogFormShell>
 
@@ -1814,7 +1934,7 @@ export function CampusBedsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>病床编号</TableHead><TableHead>病床名称</TableHead><TableHead>所属病房</TableHead><TableHead>病床类型</TableHead><TableHead>病床状态</TableHead><TableHead>当前患者</TableHead><TableHead>开始使用时间</TableHead><TableHead>预计结束时间</TableHead><TableHead>地图绑定状态</TableHead><TableHead>操作</TableHead>
+                <TableHead>病床编号</TableHead><TableHead>病床名称</TableHead><TableHead>所属病房</TableHead><TableHead>病床状态</TableHead><TableHead>当前患者</TableHead><TableHead>开始使用时间</TableHead><TableHead>预计结束时间</TableHead><TableHead>地图绑定状态</TableHead><TableHead>操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1825,7 +1945,6 @@ export function CampusBedsPage() {
                     <TableCell className="font-medium">{bed.code}</TableCell>
                     <TableCell>{bed.name}</TableCell>
                     <TableCell>{bed.wardName}</TableCell>
-                    <TableCell>{bed.type}</TableCell>
                     <TableCell><Badge className={badgeClassForStatus(bed.displayStatus)}>{bed.displayStatus}</Badge></TableCell>
                     <TableCell>{current?.patientName ?? "-"}</TableCell>
                     <TableCell>{current ? formatDateTime(current.startAt) : "-"}</TableCell>
@@ -1853,7 +1972,6 @@ export function CampusBedsPage() {
           <Field label="病床编号" required><Input value={bedDraft.code} onChange={(event) => setBedDraft((current) => ({ ...current, code: event.target.value }))} /></Field>
           <Field label="病床名称" required><Input value={bedDraft.name} onChange={(event) => setBedDraft((current) => ({ ...current, name: event.target.value }))} /></Field>
           <Field label="所属病房" required><Input value={bedDraft.wardName} onChange={(event) => setBedDraft((current) => ({ ...current, wardName: event.target.value }))} /></Field>
-          <Field label="病床类型"><Input value={bedDraft.type} onChange={(event) => setBedDraft((current) => ({ ...current, type: event.target.value }))} /></Field>
           <Field label="病床状态"><select className="native-select" value={bedDraft.status} onChange={(event) => setBedDraft((current) => ({ ...current, status: event.target.value as BedStatus }))}>{bedStatuses.map((status) => <option key={status} value={status}>{status}</option>)}</select></Field>
           <Field label="绑定地图点位"><select className="native-select" value={bedDraft.mapId} onChange={(event) => setBedDraft((current) => ({ ...current, mapId: event.target.value }))}><option value="">暂不绑定</option>{data.maps.filter((map) => map.type === "病房地图").map((map) => <option key={map.id} value={map.id}>{map.name}</option>)}</select></Field>
           <Field label="地图位置 X / Y"><div className="grid grid-cols-2 gap-2"><Input value={bedDraft.x} onChange={(event) => setBedDraft((current) => ({ ...current, x: event.target.value }))} /><Input value={bedDraft.y} onChange={(event) => setBedDraft((current) => ({ ...current, y: event.target.value }))} /></div></Field>
@@ -1905,7 +2023,6 @@ export function CampusBedDetailPage({ bedId }: { bedId: string }) {
   const [usageDraft, setUsageDraft] = useState<UsageDraft>(createUsageDraft);
   const [endingBed, setEndingBed] = useState<BedRecord | null>(null);
   const [endDraft, setEndDraft] = useState({ endAt: toDateTimeInput(new Date().toISOString()), note: "" });
-  const [recordsBed, setRecordsBed] = useState<BedRecord | null>(null);
   const [recordDateFrom, setRecordDateFrom] = useState("");
   const [recordDateTo, setRecordDateTo] = useState("");
   const [message, setMessage] = useState("");
@@ -1963,15 +2080,6 @@ export function CampusBedDetailPage({ bedId }: { bedId: string }) {
     setBedDialogOpen(false);
   };
 
-  const locateBedOnMap = (bed: BedRecord) => {
-    if (!bed.mapId || !bed.pointId) {
-      setMessage(`病床 ${bed.code} 尚未绑定地图点位。`);
-      return;
-    }
-    writeState(CAMPUS_LOCATE_KEY, { mapId: bed.mapId, pointId: bed.pointId });
-    navigate({ to: `/campus/maps/${bed.mapId}` });
-  };
-
   const openUsageDialog = (bed: BedRecord) => {
     if (bed.status === "停用" || bed.status === "维修中") {
       setMessage(`病床 ${bed.code} 当前为${bed.status}，不可登记使用。`);
@@ -2003,7 +2111,14 @@ export function CampusBedDetailPage({ bedId }: { bedId: string }) {
     setEndingBed(null);
   };
 
-  const selectedRecords = recordsBed ? data.usageRecords.filter((record) => record.bedId === recordsBed.id).filter((record) => (!recordDateFrom || new Date(record.startAt) >= new Date(`${recordDateFrom}T00:00`)) && (!recordDateTo || new Date(record.startAt) <= new Date(`${recordDateTo}T23:59`))).sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime()) : [];
+  const selectedRecords = data.usageRecords
+    .filter((record) => record.bedId === (selectedBed?.id ?? ""))
+    .filter(
+      (record) =>
+        (!recordDateFrom || new Date(record.startAt) >= new Date(`${recordDateFrom}T00:00`)) &&
+        (!recordDateTo || new Date(record.startAt) <= new Date(`${recordDateTo}T23:59`))
+    )
+    .sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime());
   const completedRecords = selectedRecords.filter((record) => record.endAt);
   const totalDuration = completedRecords.reduce((sum, record) => sum + Math.max(0, new Date(record.endAt ?? record.expectedEndAt).getTime() - new Date(record.startAt).getTime()), 0);
   const totalHours = totalDuration / (1000 * 60 * 60);
@@ -2020,7 +2135,7 @@ export function CampusBedDetailPage({ bedId }: { bedId: string }) {
       <SectionCard title="病床详情">
         <div className="space-y-4">
           <div className="grid gap-3 md:grid-cols-3">
-            {[["病床编号", selectedBed.code], ["病床名称", selectedBed.name], ["所属病房", selectedBed.wardName], ["病床类型", selectedBed.type], ["病床状态", getBedDisplayStatus(selectedBed, data.usageRecords)]].map(([label, value]) => (
+            {[["病床编号", selectedBed.code], ["病床名称", selectedBed.name], ["所属病房", selectedBed.wardName], ["病床状态", getBedDisplayStatus(selectedBed, data.usageRecords)]].map(([label, value]) => (
               <div key={label} className="rounded-xl border border-border/70 bg-surface-50 px-4 py-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 font-medium text-surface-900">{value}</p></div>
             ))}
           </div>
@@ -2030,7 +2145,6 @@ export function CampusBedDetailPage({ bedId }: { bedId: string }) {
             <p>地图位置：{selectedBed.x && selectedBed.y ? `${selectedBed.x}% / ${selectedBed.y}%` : "未绑定位置"}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => locateBedOnMap(selectedBed)} disabled={!selectedBed.mapId}><LocateFixed className="h-4 w-4" />查看地图位置</Button>
             <Button variant="outline" onClick={() => navigate({ to: selectedMap ? `/campus/maps/${selectedMap.id}` : "/campus/maps" })}><MapPinned className="h-4 w-4" />跳转地图管理</Button>
             <Button variant="outline" onClick={() => openEditBed(selectedBed)}><Edit3 className="h-4 w-4" />编辑病床</Button>
           </div>
@@ -2046,9 +2160,34 @@ export function CampusBedDetailPage({ bedId }: { bedId: string }) {
             <div className="rounded-xl border border-border/70 bg-surface-50 px-4 py-3"><p className="text-xs text-muted-foreground">预计结束时间</p><p className="mt-1 font-medium">{selectedUsage ? formatDateTime(selectedUsage.expectedEndAt) : "暂无"}</p></div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => openUsageDialog(selectedBed)} disabled={selectedBed.status !== "启用"}><Plus className="h-4 w-4" />使用登记</Button>
             <Button variant="outline" disabled={!getCurrentUsage(selectedBed, data.usageRecords)} onClick={() => { setEndingBed(selectedBed); setEndDraft({ endAt: toDateTimeInput(new Date().toISOString()), note: "" }); }}>结束使用</Button>
-            <Button variant="outline" onClick={() => setRecordsBed(selectedBed)}><ClipboardList className="h-4 w-4" />使用记录</Button>
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="使用记录">
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => openUsageDialog(selectedBed)} disabled={selectedBed.status !== "启用"}><Plus className="h-4 w-4" />使用登记</Button>
+          </div>
+          <div className="grid gap-3 md:grid-cols-5">
+            <MetricCard label="使用次数" value={selectedRecords.length} hint="当前查询范围" />
+            <MetricCard label="累计使用时长" value={`${totalHours.toFixed(1)}h`} hint="已结束记录" />
+            <MetricCard label="平均使用时长" value={completedRecords.length ? `${(totalHours / completedRecords.length).toFixed(1)}h` : "0h"} hint="已结束记录均值" />
+            <Field label="开始日期"><Input type="date" value={recordDateFrom} onChange={(event) => setRecordDateFrom(event.target.value)} /></Field>
+            <Field label="结束日期"><Input type="date" value={recordDateTo} onChange={(event) => setRecordDateTo(event.target.value)} /></Field>
+          </div>
+          <div className="overflow-auto rounded-xl border border-border/70">
+            <Table>
+              <TableHeader><TableRow><TableHead>患者姓名</TableHead><TableHead>开始使用时间</TableHead><TableHead>结束使用时间</TableHead><TableHead>使用时长</TableHead><TableHead>登记人</TableHead><TableHead>登记时间</TableHead><TableHead>备注</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {selectedRecords.map((record) => (
+                  <TableRow key={record.id}>
+                    <TableCell>{record.patientName}</TableCell><TableCell>{formatDateTime(record.startAt)}</TableCell><TableCell>{record.endAt ? formatDateTime(record.endAt) : "未结束"}</TableCell><TableCell>{formatDuration(record.startAt, record.endAt ?? record.expectedEndAt)}</TableCell><TableCell>{record.registrar}</TableCell><TableCell>{formatDateTime(record.registeredAt)}</TableCell><TableCell>{record.endNote ?? record.note}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </div>
       </SectionCard>
@@ -2058,7 +2197,6 @@ export function CampusBedDetailPage({ bedId }: { bedId: string }) {
           <Field label="病床编号" required><Input value={bedDraft.code} onChange={(event) => setBedDraft((current) => ({ ...current, code: event.target.value }))} /></Field>
           <Field label="病床名称" required><Input value={bedDraft.name} onChange={(event) => setBedDraft((current) => ({ ...current, name: event.target.value }))} /></Field>
           <Field label="所属病房" required><Input value={bedDraft.wardName} onChange={(event) => setBedDraft((current) => ({ ...current, wardName: event.target.value }))} /></Field>
-          <Field label="病床类型"><Input value={bedDraft.type} onChange={(event) => setBedDraft((current) => ({ ...current, type: event.target.value }))} /></Field>
           <Field label="病床状态"><select className="native-select" value={bedDraft.status} onChange={(event) => setBedDraft((current) => ({ ...current, status: event.target.value as BedStatus }))}>{bedStatuses.map((status) => <option key={status} value={status}>{status}</option>)}</select></Field>
           <Field label="绑定地图点位"><select className="native-select" value={bedDraft.mapId} onChange={(event) => setBedDraft((current) => ({ ...current, mapId: event.target.value }))}><option value="">暂不绑定</option>{data.maps.filter((map) => map.type === "病房地图").map((map) => <option key={map.id} value={map.id}>{map.name}</option>)}</select></Field>
           <Field label="地图位置 X / Y"><div className="grid grid-cols-2 gap-2"><Input value={bedDraft.x} onChange={(event) => setBedDraft((current) => ({ ...current, x: event.target.value }))} /><Input value={bedDraft.y} onChange={(event) => setBedDraft((current) => ({ ...current, y: event.target.value }))} /></div></Field>
@@ -2080,33 +2218,6 @@ export function CampusBedDetailPage({ bedId }: { bedId: string }) {
         <Field label="实际结束时间"><Input type="datetime-local" value={endDraft.endAt} onChange={(event) => setEndDraft((current) => ({ ...current, endAt: event.target.value }))} /></Field>
         <Field label="备注"><Textarea value={endDraft.note} onChange={(event) => setEndDraft((current) => ({ ...current, note: event.target.value }))} /></Field>
       </DialogFormShell>
-
-      <Dialog open={Boolean(recordsBed)} onOpenChange={(open) => !open && setRecordsBed(null)}>
-        <DialogContent className="w-[min(96vw,980px)] max-w-none">
-          <DialogHeader><DialogTitle>{recordsBed?.code ?? ""} 使用记录</DialogTitle><DialogDescription>保存全部历史记录，并自动统计使用次数、累计使用时长和平均使用时长。</DialogDescription></DialogHeader>
-          <div className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-5">
-              <MetricCard label="使用次数" value={selectedRecords.length} hint="当前查询范围" />
-              <MetricCard label="累计使用时长" value={`${totalHours.toFixed(1)}h`} hint="已结束记录" />
-              <MetricCard label="平均使用时长" value={completedRecords.length ? `${(totalHours / completedRecords.length).toFixed(1)}h` : "0h"} hint="已结束记录均值" />
-              <Field label="开始日期"><Input type="date" value={recordDateFrom} onChange={(event) => setRecordDateFrom(event.target.value)} /></Field>
-              <Field label="结束日期"><Input type="date" value={recordDateTo} onChange={(event) => setRecordDateTo(event.target.value)} /></Field>
-            </div>
-            <div className="max-h-[420px] overflow-auto rounded-xl border border-border/70">
-              <Table>
-                <TableHeader><TableRow><TableHead>患者姓名</TableHead><TableHead>开始使用时间</TableHead><TableHead>结束使用时间</TableHead><TableHead>使用时长</TableHead><TableHead>登记人</TableHead><TableHead>登记时间</TableHead><TableHead>备注</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {selectedRecords.map((record) => (
-                    <TableRow key={record.id}>
-                      <TableCell>{record.patientName}</TableCell><TableCell>{formatDateTime(record.startAt)}</TableCell><TableCell>{record.endAt ? formatDateTime(record.endAt) : "未结束"}</TableCell><TableCell>{formatDuration(record.startAt, record.endAt ?? record.expectedEndAt)}</TableCell><TableCell>{record.registrar}</TableCell><TableCell>{formatDateTime(record.registeredAt)}</TableCell><TableCell>{record.endNote ?? record.note}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
