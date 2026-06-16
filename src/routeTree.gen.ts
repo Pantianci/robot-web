@@ -78,6 +78,8 @@ import { Route as KnowledgeMotionCreateRouteImport } from './routes/knowledge.mo
 import { Route as KnowledgeLibraryExportRouteImport } from './routes/knowledge.library.export'
 import { Route as KnowledgeLibraryEditRouteImport } from './routes/knowledge.library.edit'
 import { Route as KnowledgeLibraryCreateRouteImport } from './routes/knowledge.library.create'
+import { Route as CampusMapsMapIdRouteImport } from './routes/campus.maps.$mapId'
+import { Route as CampusBedsBedIdRouteImport } from './routes/campus.beds.$bedId'
 import { Route as PatientsPatientIdPlansIndexRouteImport } from './routes/patients.$patientId.plans.index'
 import { Route as PatientsPatientIdPlansExportRouteImport } from './routes/patients.$patientId.plans.export'
 import { Route as PatientsPatientIdPlansEditRouteImport } from './routes/patients.$patientId.plans.edit'
@@ -441,6 +443,16 @@ const KnowledgeLibraryCreateRoute = KnowledgeLibraryCreateRouteImport.update({
   path: '/create',
   getParentRoute: () => KnowledgeLibraryRoute,
 } as any)
+const CampusMapsMapIdRoute = CampusMapsMapIdRouteImport.update({
+  id: '/$mapId',
+  path: '/$mapId',
+  getParentRoute: () => CampusMapsRoute,
+} as any)
+const CampusBedsBedIdRoute = CampusBedsBedIdRouteImport.update({
+  id: '/$bedId',
+  path: '/$bedId',
+  getParentRoute: () => CampusBedsRoute,
+} as any)
 const PatientsPatientIdPlansIndexRoute =
   PatientsPatientIdPlansIndexRouteImport.update({
     id: '/',
@@ -539,8 +551,8 @@ export interface FileRoutesByFullPath {
   '/prescriptions': typeof PrescriptionsRoute
   '/reports': typeof ReportsRoute
   '/robots': typeof RobotsRouteWithChildren
-  '/campus/beds': typeof CampusBedsRoute
-  '/campus/maps': typeof CampusMapsRoute
+  '/campus/beds': typeof CampusBedsRouteWithChildren
+  '/campus/maps': typeof CampusMapsRouteWithChildren
   '/knowledge/library': typeof KnowledgeLibraryRouteWithChildren
   '/knowledge/motion': typeof KnowledgeMotionRouteWithChildren
   '/knowledge/qa': typeof KnowledgeQaRoute
@@ -562,6 +574,8 @@ export interface FileRoutesByFullPath {
   '/knowledge/': typeof KnowledgeIndexRoute
   '/patients/': typeof PatientsIndexRoute
   '/robots/': typeof RobotsIndexRoute
+  '/campus/beds/$bedId': typeof CampusBedsBedIdRoute
+  '/campus/maps/$mapId': typeof CampusMapsMapIdRoute
   '/knowledge/library/create': typeof KnowledgeLibraryCreateRoute
   '/knowledge/library/edit': typeof KnowledgeLibraryEditRoute
   '/knowledge/library/export': typeof KnowledgeLibraryExportRoute
@@ -619,8 +633,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/prescriptions': typeof PrescriptionsRoute
   '/reports': typeof ReportsRoute
-  '/campus/beds': typeof CampusBedsRoute
-  '/campus/maps': typeof CampusMapsRoute
+  '/campus/beds': typeof CampusBedsRouteWithChildren
+  '/campus/maps': typeof CampusMapsRouteWithChildren
   '/knowledge/qa': typeof KnowledgeQaRoute
   '/robots/create': typeof RobotsCreateRoute
   '/robots/detail': typeof RobotsDetailRoute
@@ -633,6 +647,8 @@ export interface FileRoutesByTo {
   '/knowledge': typeof KnowledgeIndexRoute
   '/patients': typeof PatientsIndexRoute
   '/robots': typeof RobotsIndexRoute
+  '/campus/beds/$bedId': typeof CampusBedsBedIdRoute
+  '/campus/maps/$mapId': typeof CampusMapsMapIdRoute
   '/knowledge/library/create': typeof KnowledgeLibraryCreateRoute
   '/knowledge/library/edit': typeof KnowledgeLibraryEditRoute
   '/knowledge/library/export': typeof KnowledgeLibraryExportRoute
@@ -692,8 +708,8 @@ export interface FileRoutesById {
   '/prescriptions': typeof PrescriptionsRoute
   '/reports': typeof ReportsRoute
   '/robots': typeof RobotsRouteWithChildren
-  '/campus/beds': typeof CampusBedsRoute
-  '/campus/maps': typeof CampusMapsRoute
+  '/campus/beds': typeof CampusBedsRouteWithChildren
+  '/campus/maps': typeof CampusMapsRouteWithChildren
   '/knowledge/library': typeof KnowledgeLibraryRouteWithChildren
   '/knowledge/motion': typeof KnowledgeMotionRouteWithChildren
   '/knowledge/qa': typeof KnowledgeQaRoute
@@ -715,6 +731,8 @@ export interface FileRoutesById {
   '/knowledge/': typeof KnowledgeIndexRoute
   '/patients/': typeof PatientsIndexRoute
   '/robots/': typeof RobotsIndexRoute
+  '/campus/beds/$bedId': typeof CampusBedsBedIdRoute
+  '/campus/maps/$mapId': typeof CampusMapsMapIdRoute
   '/knowledge/library/create': typeof KnowledgeLibraryCreateRoute
   '/knowledge/library/edit': typeof KnowledgeLibraryEditRoute
   '/knowledge/library/export': typeof KnowledgeLibraryExportRoute
@@ -801,6 +819,8 @@ export interface FileRouteTypes {
     | '/knowledge/'
     | '/patients/'
     | '/robots/'
+    | '/campus/beds/$bedId'
+    | '/campus/maps/$mapId'
     | '/knowledge/library/create'
     | '/knowledge/library/edit'
     | '/knowledge/library/export'
@@ -872,6 +892,8 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/patients'
     | '/robots'
+    | '/campus/beds/$bedId'
+    | '/campus/maps/$mapId'
     | '/knowledge/library/create'
     | '/knowledge/library/edit'
     | '/knowledge/library/export'
@@ -953,6 +975,8 @@ export interface FileRouteTypes {
     | '/knowledge/'
     | '/patients/'
     | '/robots/'
+    | '/campus/beds/$bedId'
+    | '/campus/maps/$mapId'
     | '/knowledge/library/create'
     | '/knowledge/library/edit'
     | '/knowledge/library/export'
@@ -1506,6 +1530,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KnowledgeLibraryCreateRouteImport
       parentRoute: typeof KnowledgeLibraryRoute
     }
+    '/campus/maps/$mapId': {
+      id: '/campus/maps/$mapId'
+      path: '/$mapId'
+      fullPath: '/campus/maps/$mapId'
+      preLoaderRoute: typeof CampusMapsMapIdRouteImport
+      parentRoute: typeof CampusMapsRoute
+    }
+    '/campus/beds/$bedId': {
+      id: '/campus/beds/$bedId'
+      path: '/$bedId'
+      fullPath: '/campus/beds/$bedId'
+      preLoaderRoute: typeof CampusBedsBedIdRouteImport
+      parentRoute: typeof CampusBedsRoute
+    }
     '/patients/$patientId/plans/': {
       id: '/patients/$patientId/plans/'
       path: '/'
@@ -1600,15 +1638,39 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface CampusBedsRouteChildren {
+  CampusBedsBedIdRoute: typeof CampusBedsBedIdRoute
+}
+
+const CampusBedsRouteChildren: CampusBedsRouteChildren = {
+  CampusBedsBedIdRoute: CampusBedsBedIdRoute,
+}
+
+const CampusBedsRouteWithChildren = CampusBedsRoute._addFileChildren(
+  CampusBedsRouteChildren,
+)
+
+interface CampusMapsRouteChildren {
+  CampusMapsMapIdRoute: typeof CampusMapsMapIdRoute
+}
+
+const CampusMapsRouteChildren: CampusMapsRouteChildren = {
+  CampusMapsMapIdRoute: CampusMapsMapIdRoute,
+}
+
+const CampusMapsRouteWithChildren = CampusMapsRoute._addFileChildren(
+  CampusMapsRouteChildren,
+)
+
 interface CampusRouteChildren {
-  CampusBedsRoute: typeof CampusBedsRoute
-  CampusMapsRoute: typeof CampusMapsRoute
+  CampusBedsRoute: typeof CampusBedsRouteWithChildren
+  CampusMapsRoute: typeof CampusMapsRouteWithChildren
   CampusIndexRoute: typeof CampusIndexRoute
 }
 
 const CampusRouteChildren: CampusRouteChildren = {
-  CampusBedsRoute: CampusBedsRoute,
-  CampusMapsRoute: CampusMapsRoute,
+  CampusBedsRoute: CampusBedsRouteWithChildren,
+  CampusMapsRoute: CampusMapsRouteWithChildren,
   CampusIndexRoute: CampusIndexRoute,
 }
 
