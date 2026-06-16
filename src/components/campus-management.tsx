@@ -198,7 +198,7 @@ type LocateState = {
   pointId: string;
 };
 
-const CAMPUS_STATE_KEY = "robot-web-prototype::campus-state";
+const CAMPUS_STATE_KEY = "robot-web-prototype::campus-state-v2";
 const CAMPUS_LOCATE_KEY = "robot-web-prototype::campus-locate";
 const CAMPUS_FOCUSED_BED_KEY = "robot-web-prototype::campus-focused-bed";
 
@@ -695,89 +695,6 @@ function createUsageDraft(bed?: BedRecord | null): UsageDraft {
   };
 }
 
-function CampusStats({ data }: { data: CampusState }) {
-  const bedsWithUsage = data.beds.map((bed) => ({
-    ...bed,
-    usage: deriveBedUsageStatus(bed, data.usageRecords)
-  }));
-  const enabledBeds = bedsWithUsage.filter((bed) => bed.status === "启用");
-  const usingCount = bedsWithUsage.filter((bed) => bed.usage === "使用中").length;
-  const rate = enabledBeds.length ? Math.round((usingCount / enabledBeds.length) * 100) : 0;
-
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
-          {["今日", "本周", "本月", "自定义"].map((item) => (
-            <Button key={item} variant={item === "今日" ? "default" : "outline"} size="sm">
-              {item}
-            </Button>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Input type="date" className="h-9 w-[160px]" defaultValue="2026-06-16" />
-          <Input type="date" className="h-9 w-[160px]" defaultValue="2026-06-16" />
-        </div>
-      </div>
-      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
-        <MetricCard label="地图总数" value={data.maps.length} hint={`病房 ${data.maps.filter((item) => item.type === "病房地图").length} / 导航 ${data.maps.filter((item) => item.type === "导航地图").length}`} />
-        <MetricCard label="病床总数" value={data.beds.length} hint="全院病床台账" />
-        <MetricCard label="使用中病床" value={usingCount} hint="当前有效使用记录" />
-        <MetricCard label="空闲病床" value={bedsWithUsage.filter((bed) => bed.status === "启用" && bed.usage === "空闲").length} hint="可登记使用" />
-        <MetricCard label="病床使用率" value={`${rate}%`} hint="使用中 / 启用病床" />
-      </div>
-      <div className="grid gap-3 md:grid-cols-4">
-        <MetricCard label="已预约病床" value={bedsWithUsage.filter((bed) => bed.status === "启用" && bed.usage === "已预约").length} hint="未来使用计划" />
-        <MetricCard label="停用病床" value={bedsWithUsage.filter((bed) => bed.status === "停用").length} hint="管理员手动停用" />
-        <MetricCard label="维修中病床" value={bedsWithUsage.filter((bed) => bed.status === "维修中").length} hint="不可登记使用" />
-        <MetricCard label="导航点位" value={data.navigationPoints.length} hint="跨病房导航预留" />
-      </div>
-    </div>
-  );
-}
-
-function PermissionStrip() {
-  return (
-    <div className="flex flex-wrap gap-2 text-sm">
-      <Badge className="bg-white text-surface-700">查看权限：地图 / 病床 / 使用记录</Badge>
-      <Badge className="bg-white text-surface-700">编辑权限：新增 / 编辑地图及病床</Badge>
-      <Badge className="bg-white text-surface-700">管理权限：删除 / 状态修改 / 使用登记</Badge>
-    </div>
-  );
-}
-
-function OperationLogTable({ logs }: { logs: OperationLog[] }) {
-  return (
-    <Card>
-      <CardHeader className="border-b border-border/60">
-        <CardTitle>操作日志</CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>操作人</TableHead>
-              <TableHead>操作时间</TableHead>
-              <TableHead>操作类型</TableHead>
-              <TableHead>操作详情</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {logs.slice(0, 8).map((log) => (
-              <TableRow key={log.id}>
-                <TableCell>{log.operator}</TableCell>
-                <TableCell>{formatDateTime(log.operatedAt)}</TableCell>
-                <TableCell>{log.type}</TableCell>
-                <TableCell>{log.detail}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  );
-}
-
 function useCampusState() {
   const [data, setData] = useState<CampusState>(getStoredCampusState);
 
@@ -944,9 +861,12 @@ export function CampusMapsPage() {
     setDeleteMap(null);
   };
 
-  const openCreateBedPoint = () => {
+  const openCreateBedPoint = (map = selectedMap) => {
     setEditingBedPoint(null);
-    setBedPointDraft(createDefaultBedPointDraft(selectedMap));
+    if (map) {
+      setSelectedMapId(map.id);
+    }
+    setBedPointDraft(createDefaultBedPointDraft(map));
     setBedPointError("");
     setBedPointDialogOpen(true);
   };
@@ -1078,8 +998,11 @@ export function CampusMapsPage() {
     });
   };
 
-  const openCreateNavPoint = () => {
+  const openCreateNavPoint = (map = selectedMap) => {
     setEditingNavPoint(null);
+    if (map) {
+      setSelectedMapId(map.id);
+    }
     setNavPointDraft(createDefaultNavPointDraft());
     setNavPointDialogOpen(true);
   };
@@ -1173,37 +1096,14 @@ export function CampusMapsPage() {
         description="统一管理病房地图、公共导航地图、病床点位和机器人导航点位。"
         badge="地图基础数据"
         actions={
-          <>
-            <Button onClick={openCreateMap}>
-              <Plus className="h-4 w-4" />
-              新增地图
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (selectedMap?.type === "病房地图") {
-                  openCreateBedPoint();
-                } else {
-                  openCreateNavPoint();
-                }
-              }}
-              disabled={!selectedMap}
-            >
-              <MapPinned className="h-4 w-4" />
-              新增点位
-            </Button>
-          </>
+          <Button onClick={openCreateMap}>
+            <Plus className="h-4 w-4" />
+            新增地图
+          </Button>
         }
       />
 
-      <CampusStats data={data} />
-      <PermissionStrip />
-
-      {message ? (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="p-4 text-sm text-primary">{message}</CardContent>
-        </Card>
-      ) : null}
+      {message ? <p className="text-sm text-primary">{message}</p> : null}
 
       <FilterBar
         actions={
@@ -1273,6 +1173,21 @@ export function CampusMapsPage() {
                       <Button variant="ghost" size="sm" onClick={(event) => { event.stopPropagation(); setSelectedMapId(map.id); }}>
                         <LocateFixed className="h-4 w-4" />
                         点位
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (map.type === "病房地图") {
+                            openCreateBedPoint(map);
+                            return;
+                          }
+                          openCreateNavPoint(map);
+                        }}
+                      >
+                        <MapPinned className="h-4 w-4" />
+                        新增点位
                       </Button>
                       <Button variant="ghost" size="sm" onClick={(event) => { event.stopPropagation(); openEditMap(map); }}>
                         <Edit3 className="h-4 w-4" />
@@ -1452,8 +1367,6 @@ export function CampusMapsPage() {
           </div>
         </CardContent>
       </Card>
-
-      <OperationLogTable logs={data.logs} />
 
       <DialogFormShell
         open={mapDialogOpen}
@@ -2015,14 +1928,7 @@ export function CampusBedsPage() {
         }
       />
 
-      <CampusStats data={data} />
-      <PermissionStrip />
-
-      {message ? (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="p-4 text-sm text-primary">{message}</CardContent>
-        </Card>
-      ) : null}
+      {message ? <p className="text-sm text-primary">{message}</p> : null}
 
       <FilterBar
         actions={
@@ -2226,8 +2132,6 @@ export function CampusBedsPage() {
           )}
         </SectionCard>
       </div>
-
-      <OperationLogTable logs={data.logs} />
 
       <DialogFormShell
         open={bedDialogOpen}
