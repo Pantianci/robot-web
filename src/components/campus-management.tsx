@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DialogFormShell } from "@/components/dialog-form-shell";
+import { CollapsibleSplitLayout } from "@/components/collapsible-side-panel";
 import { EmptyState } from "@/components/empty-state";
 import { Field } from "@/components/field";
 import { FilterBar } from "@/components/filter-bar";
@@ -126,6 +127,27 @@ type NavigationPoint = {
   updatedAt: string;
 };
 
+type NavigationSegment = {
+  id: string;
+  mapId: string;
+  fromPointId: string;
+  toPointId: string;
+  updatedAt: string;
+};
+
+type ZoneVertex = {
+  x: number;
+  y: number;
+};
+
+type NoGoZone = {
+  id: string;
+  mapId: string;
+  name: string;
+  points: ZoneVertex[];
+  updatedAt: string;
+};
+
 type OperationLog = {
   id: string;
   operator: string;
@@ -139,6 +161,8 @@ type CampusState = {
   beds: BedRecord[];
   bedPoints: BedPoint[];
   navigationPoints: NavigationPoint[];
+  navigationSegments: NavigationSegment[];
+  noGoZones: NoGoZone[];
   usageRecords: BedUsageRecord[];
   logs: OperationLog[];
 };
@@ -199,7 +223,9 @@ type LocateState = {
   pointId: string;
 };
 
-const CAMPUS_STATE_KEY = "robot-web-prototype::campus-state-v2";
+type MapInteractionMode = "pan" | "pick-bed" | "pick-nav" | "link" | "polygon";
+
+const CAMPUS_STATE_KEY = "robot-web-prototype::campus-state-v4";
 const CAMPUS_LOCATE_KEY = "robot-web-prototype::campus-locate";
 
 const mapTypes: CampusMapType[] = ["病房地图", "导航地图"];
@@ -439,6 +465,36 @@ function createCampusSeed(): CampusState {
         x: 78,
         y: 70,
         updatedAt: "2026-06-15T11:30"
+      }
+    ],
+    navigationSegments: [
+      {
+        id: "seg-2f-001",
+        mapId: "map-nav-2f",
+        fromPointId: "np-2f-001",
+        toPointId: "np-2f-002",
+        updatedAt: "2026-06-15T11:20"
+      },
+      {
+        id: "seg-2f-002",
+        mapId: "map-nav-2f",
+        fromPointId: "np-2f-002",
+        toPointId: "np-2f-003",
+        updatedAt: "2026-06-15T11:30"
+      }
+    ],
+    noGoZones: [
+      {
+        id: "zone-2f-001",
+        mapId: "map-nav-2f",
+        name: "电梯厅禁行区",
+        points: [
+          { x: 58, y: 18 },
+          { x: 70, y: 22 },
+          { x: 68, y: 34 },
+          { x: 56, y: 30 }
+        ],
+        updatedAt: "2026-06-15T11:40"
       }
     ],
     usageRecords: [
@@ -695,6 +751,59 @@ function createUsageDraft(bed?: BedRecord | null): UsageDraft {
   };
 }
 
+function renderWardScanBlueprint(mapId: string) {
+  if (mapId === "map-ward-302") {
+    return (
+      <>
+        <div className="absolute left-[14%] top-[12%] h-[72%] w-[70%] border-[3px] border-surface-900/75 bg-white/95" />
+        <div className="absolute left-[14%] top-[12%] h-[3px] w-[40%] bg-surface-900/75" />
+        <div className="absolute left-[54%] top-[12%] h-[3px] w-[30%] bg-surface-900/75" />
+        <div className="absolute left-[14%] top-[56%] h-[3px] w-[52%] bg-surface-900/75" />
+        <div className="absolute left-[14%] top-[26%] h-[3px] w-[18%] bg-surface-900/75" />
+        <div className="absolute left-[66%] top-[56%] h-[16%] w-[3px] bg-surface-900/75" />
+        <div className="absolute left-[32%] top-[36%] h-[36%] w-[3px] bg-surface-900/75" />
+        <div className="absolute left-[49%] top-[28%] h-[44%] w-[3px] bg-surface-900/75" />
+        <div className="absolute left-[18%] top-[20%] h-[11%] w-[16%] border-[3px] border-surface-900/70" />
+        <div className="absolute left-[54%] top-[20%] h-[11%] w-[16%] border-[3px] border-surface-900/70" />
+        <div className="absolute left-[18%] top-[60%] h-[11%] w-[16%] border-[3px] border-surface-900/70" />
+        <div className="absolute left-[54%] top-[60%] h-[11%] w-[16%] border-[3px] border-surface-900/70" />
+        <div className="absolute left-[72%] top-[36%] h-[10%] w-[8%] border-[3px] border-surface-900/55" />
+        <div className="absolute inset-0 opacity-25 [background-image:radial-gradient(rgba(15,23,42,0.7)_0.7px,transparent_0.7px)] [background-size:18px_18px]" />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="absolute left-[18%] top-[12%] h-[72%] w-[62%] border-[3px] border-surface-900/75 bg-white/95" />
+      <div className="absolute left-[18%] top-[34%] h-[3px] w-[42%] bg-surface-900/75" />
+      <div className="absolute left-[18%] top-[56%] h-[3px] w-[42%] bg-surface-900/75" />
+      <div className="absolute left-[60%] top-[20%] h-[50%] w-[3px] bg-surface-900/75" />
+      <div className="absolute left-[32%] top-[18%] h-[10%] w-[18%] border-[3px] border-surface-900/70" />
+      <div className="absolute left-[32%] top-[40%] h-[10%] w-[18%] border-[3px] border-surface-900/70" />
+      <div className="absolute left-[32%] top-[62%] h-[10%] w-[18%] border-[3px] border-surface-900/70" />
+      <div className="absolute left-[64%] top-[24%] h-[8%] w-[10%] border-[3px] border-surface-900/55" />
+      <div className="absolute left-[64%] top-[40%] h-[8%] w-[10%] border-[3px] border-surface-900/55" />
+      <div className="absolute left-[64%] top-[56%] h-[8%] w-[10%] border-[3px] border-surface-900/55" />
+      <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(rgba(15,23,42,0.75)_0.7px,transparent_0.7px)] [background-size:16px_16px]" />
+    </>
+  );
+}
+
+function renderNavigationScanBlueprint() {
+  return (
+    <>
+      <div className="absolute left-[10%] top-[14%] h-[16%] w-[76%] border-[3px] border-surface-900/70 bg-white/90" />
+      <div className="absolute left-[24%] top-[14%] h-[58%] w-[10%] border-x-[3px] border-surface-900/70" />
+      <div className="absolute left-[52%] top-[14%] h-[58%] w-[10%] border-x-[3px] border-surface-900/70" />
+      <div className="absolute left-[10%] top-[64%] h-[14%] w-[76%] border-[3px] border-surface-900/70 bg-white/90" />
+      <div className="absolute left-[10%] top-[38%] h-[3px] w-[76%] bg-surface-900/70" />
+      <div className="absolute left-[10%] top-[52%] h-[3px] w-[76%] bg-surface-900/40" />
+      <div className="absolute inset-0 opacity-15 [background-image:radial-gradient(rgba(15,23,42,0.75)_0.7px,transparent_0.7px)] [background-size:16px_16px]" />
+    </>
+  );
+}
+
 function useCampusState() {
   const [data, setData] = useState<CampusState>(getStoredCampusState);
 
@@ -860,12 +969,12 @@ export function CampusMapsPage() {
         </Field>
       </FilterBar>
 
-      <Card className="overflow-hidden">
+      <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <CardHeader className="border-b border-border/60">
           <CardTitle>地图列表</CardTitle>
           <p className="text-sm text-muted-foreground">共 {filteredMaps.length} 张地图</p>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="min-h-0 flex-1 p-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -984,12 +1093,17 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [fullscreen, setFullscreen] = useState(false);
+  const [interactionMode, setInteractionMode] = useState<MapInteractionMode>("pan");
+  const [pendingLinkPointId, setPendingLinkPointId] = useState("");
+  const [draftZonePoints, setDraftZonePoints] = useState<ZoneVertex[]>([]);
   const [dragStart, setDragStart] = useState<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const mapAreaRef = useRef<HTMLDivElement | null>(null);
 
   const selectedMap = data.maps.find((map) => map.id === mapId) ?? null;
   const currentBedPoints = selectedMap ? data.bedPoints.filter((point) => point.mapId === selectedMap.id) : [];
   const currentNavPoints = selectedMap ? data.navigationPoints.filter((point) => point.mapId === selectedMap.id) : [];
+  const currentSegments = selectedMap ? data.navigationSegments.filter((segment) => segment.mapId === selectedMap.id) : [];
+  const currentZones = selectedMap ? data.noGoZones.filter((zone) => zone.mapId === selectedMap.id) : [];
   const selectedBedPoint = pointPreview && "bedId" in pointPreview ? pointPreview : null;
   const selectedNavPoint = pointPreview && "code" in pointPreview && !("bedId" in pointPreview) ? pointPreview : null;
   const selectedBed = selectedBedPoint ? data.beds.find((bed) => bed.id === selectedBedPoint.bedId) ?? null : null;
@@ -1015,10 +1129,115 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
     });
   };
 
+  const handleMapClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const frame = mapAreaRef.current?.querySelector("[data-map-frame='true']") as HTMLDivElement | null;
+    if (!frame) {
+      return;
+    }
+
+    const rect = frame.getBoundingClientRect();
+    const x = clampPercent(((event.clientX - rect.left) / rect.width) * 100);
+    const y = clampPercent(((event.clientY - rect.top) / rect.height) * 100);
+
+    if (interactionMode === "pick-bed") {
+      setBedPointDraft((current) => ({ ...current, x: String(x), y: String(y) }));
+      setInteractionMode("pan");
+      setMessage(`已加载病床点位坐标：${x}% / ${y}%。`);
+      return;
+    }
+
+    if (interactionMode === "pick-nav") {
+      setNavPointDraft((current) => ({ ...current, x: String(x), y: String(y) }));
+      setInteractionMode("pan");
+      setMessage(`已加载导航点位坐标：${x}% / ${y}%。`);
+      return;
+    }
+
+    if (interactionMode === "polygon") {
+      setDraftZonePoints((current) => [...current, { x, y }]);
+    }
+  };
+
+  const createNavigationSegment = (pointId: string) => {
+    if (!selectedMap || selectedMap.type !== "导航地图") {
+      return;
+    }
+
+    if (!pendingLinkPointId) {
+      setPendingLinkPointId(pointId);
+      setMessage("已选择起点，请点击第二个点位完成连线。");
+      return;
+    }
+
+    if (pendingLinkPointId === pointId) {
+      return;
+    }
+
+    const exists = data.navigationSegments.some(
+      (segment) =>
+        segment.mapId === selectedMap.id &&
+        ((segment.fromPointId === pendingLinkPointId && segment.toPointId === pointId) ||
+          (segment.fromPointId === pointId && segment.toPointId === pendingLinkPointId))
+    );
+
+    if (!exists) {
+      updateCampus((next) => {
+        next.navigationSegments.unshift({
+          id: generateId("nav-segment"),
+          mapId: selectedMap.id,
+          fromPointId: pendingLinkPointId,
+          toPointId: pointId,
+          updatedAt: new Date().toISOString()
+        });
+      });
+    }
+
+    setPendingLinkPointId("");
+    setInteractionMode("pan");
+    setMessage("导航连线已创建。");
+  };
+
+  const saveNoGoZone = () => {
+    if (!selectedMap || draftZonePoints.length < 3) {
+      return;
+    }
+
+    updateCampus((next) => {
+      next.noGoZones.unshift({
+        id: generateId("no-go-zone"),
+        mapId: selectedMap.id,
+        name: `禁行区 ${next.noGoZones.filter((zone) => zone.mapId === selectedMap.id).length + 1}`,
+        points: draftZonePoints,
+        updatedAt: new Date().toISOString()
+      });
+    });
+
+    setDraftZonePoints([]);
+    setInteractionMode("pan");
+    setMessage("禁行区已标记。");
+  };
+
+  const pickDraftPointFromPreview = (
+    event: React.MouseEvent<HTMLDivElement>,
+    target: "bed" | "nav"
+  ) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = clampPercent(((event.clientX - rect.left) / rect.width) * 100);
+    const y = clampPercent(((event.clientY - rect.top) / rect.height) * 100);
+
+    if (target === "bed") {
+      setBedPointDraft((current) => ({ ...current, x: String(x), y: String(y) }));
+      return;
+    }
+
+    setNavPointDraft((current) => ({ ...current, x: String(x), y: String(y) }));
+  };
+
   const openCreateBedPoint = () => {
     setEditingBedPoint(null);
     setBedPointDraft(createDefaultBedPointDraft(selectedMap));
     setBedPointError("");
+    setInteractionMode("pan");
     setBedPointDialogOpen(true);
   };
 
@@ -1037,6 +1256,7 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
       y: String(point.y)
     });
     setBedPointError("");
+    setInteractionMode("pan");
     setBedPointDialogOpen(true);
   };
 
@@ -1079,6 +1299,7 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
         next.bedPoints.unshift({ id: pointId, mapId: selectedMap.id, bedId, x: clampPercent(bedPointDraft.x), y: clampPercent(bedPointDraft.y), note: bedPointDraft.note, createdAt: now, updatedAt: now });
       }
     });
+    setInteractionMode("pan");
     setBedPointDialogOpen(false);
   };
 
@@ -1094,12 +1315,14 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
   const openCreateNavPoint = () => {
     setEditingNavPoint(null);
     setNavPointDraft(createDefaultNavPointDraft());
+    setInteractionMode("pan");
     setNavPointDialogOpen(true);
   };
 
   const openEditNavPoint = (point: NavigationPoint) => {
     setEditingNavPoint(point);
     setNavPointDraft({ id: point.id, name: point.name, code: point.code, type: point.type, description: point.description, note: point.note, x: String(point.x), y: String(point.y) });
+    setInteractionMode("pan");
     setNavPointDialogOpen(true);
   };
 
@@ -1118,6 +1341,7 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
         next.navigationPoints.unshift({ id: generateId("nav-point"), mapId: selectedMap.id, name: navPointDraft.name.trim(), code: navPointDraft.code.trim(), type: navPointDraft.type, description: navPointDraft.description, note: navPointDraft.note, x: clampPercent(navPointDraft.x), y: clampPercent(navPointDraft.y), updatedAt: now });
       }
     });
+    setInteractionMode("pan");
     setNavPointDialogOpen(false);
   };
 
@@ -1154,127 +1378,199 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
 
       {message ? <p className="text-sm text-primary">{message}</p> : null}
 
-      <Card className={cn("overflow-hidden", fullscreen && "fixed inset-4 z-50 flex flex-col")}>
-        <CardHeader className="border-b border-border/60">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <CardTitle>{selectedMap.name}</CardTitle>
-              <p className="mt-1 text-sm text-muted-foreground">{selectedMap.type} · {selectedMap.fileName}</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={() => setZoom((value) => Math.min(2, value + 0.1))}><ZoomIn className="h-4 w-4" />放大</Button>
-              <Button variant="outline" size="sm" onClick={() => setZoom((value) => Math.max(0.65, value - 0.1))}><Minus className="h-4 w-4" />缩小</Button>
-              <Button variant="outline" size="sm" onClick={() => setFullscreen((value) => !value)}><Expand className="h-4 w-4" />全屏</Button>
-              <Button variant="outline" size="sm" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}><RotateCcw className="h-4 w-4" />重置视图</Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-5">
-          <div
-            ref={mapAreaRef}
-            className="relative min-h-[560px] overflow-hidden rounded-[1.5rem] border border-border/70 bg-surface-100"
-            onMouseDown={(event) => setDragStart({ x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y })}
-            onMouseMove={(event) => {
-              if (!dragStart) return;
-              setPan({ x: dragStart.panX + event.clientX - dragStart.x, y: dragStart.panY + event.clientY - dragStart.y });
-            }}
-            onMouseUp={() => setDragStart(null)}
-            onMouseLeave={() => setDragStart(null)}
-          >
-            <div className="absolute inset-8 rounded-[1.75rem] border border-surface-300 bg-white shadow-inner" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: "center" }}>
-              <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(15,23,42,0.06)_1px,transparent_1px),linear-gradient(180deg,rgba(15,23,42,0.06)_1px,transparent_1px)] bg-[length:48px_48px]" />
-              <div className="absolute left-[10%] top-[16%] h-[68%] w-[80%] rounded-[1.25rem] border-2 border-surface-300 bg-surface-50/80" />
-              <div className="absolute left-[12%] top-[48%] h-4 w-[76%] rounded-full bg-surface-200" />
-              <div className="absolute left-[48%] top-[20%] h-[56%] w-4 rounded-full bg-surface-200" />
-              <div className="absolute left-8 top-6 flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-surface-700 shadow-soft">
-                <FileImage className="h-4 w-4" />
-                {selectedMap.fileName}
-              </div>
-
-              {selectedMap.type === "病房地图"
-                ? currentBedPoints.map((point) => {
-                    const bed = data.beds.find((item) => item.id === point.bedId);
-                    if (!bed) return null;
-                    const displayStatus = getBedDisplayStatus(bed, data.usageRecords);
-                    return (
-                      <button
-                        key={point.id}
-                        type="button"
-                        className={cn("absolute flex h-16 w-20 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-2xl border-2 border-white text-xs font-semibold shadow-panel transition hover:scale-105", statusColorClass(displayStatus), highlightPointId === point.id && "ring-4 ring-primary/45")}
-                        style={{ left: `${point.x}%`, top: `${point.y}%` }}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setPointPreview(point);
-                          setHighlightPointId(point.id);
-                        }}
-                      >
-                        <span>{bed.code}</span>
-                        <span className="mt-1 text-[11px] opacity-90">{displayStatus}</span>
-                      </button>
-                    );
-                  })
-                : currentNavPoints.map((point) => (
-                    <button
-                      key={point.id}
-                      type="button"
-                      className="absolute flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-primary text-white shadow-panel transition hover:scale-105"
-                      style={{ left: `${point.x}%`, top: `${point.y}%` }}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setPointPreview(point);
-                      }}
-                      title={point.name}
-                    >
-                      <Route className="h-5 w-5" />
-                    </button>
-                  ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <SectionCard title={selectedMap.type === "病房地图" ? "点位列表" : "导航点位列表"}>
-        <div className="space-y-2">
-          {selectedMap.type === "病房地图" ? (
-            currentBedPoints.length ? (
-              currentBedPoints.map((point) => {
-                const bed = data.beds.find((item) => item.id === point.bedId);
-                const status = bed ? getBedDisplayStatus(bed, data.usageRecords) : "空闲";
-                return (
-                  <div key={point.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-surface-50 px-3 py-2">
-                    <div>
-                      <p className="text-sm font-medium text-surface-900">{bed?.code ?? point.id}</p>
-                      <p className="text-xs text-muted-foreground">{bed?.name ?? "未关联病床"} · {point.x}% / {point.y}%</p>
-                    </div>
-                    <div className="flex gap-1">
-                      <Badge className={badgeClassForStatus(status)}>{status}</Badge>
-                      <Button variant="ghost" size="sm" onClick={() => openEditBedPoint(point)}>编辑</Button>
-                      <Button variant="ghost" size="sm" className="text-rose-600" onClick={() => deleteBedPoint(point)}>删除</Button>
-                    </div>
+      <CollapsibleSplitLayout
+        label={selectedMap.type === "病房地图" ? "点位列表" : "地图侧栏"}
+        defaultCollapsed={false}
+        sideWidthClassName="w-full xl:w-[360px]"
+        main={
+          <Card className={cn("flex min-h-0 flex-1 flex-col overflow-hidden", fullscreen && "fixed inset-4 z-50")}>
+            <CardHeader className="border-b border-border/60">
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <CardTitle>{selectedMap.name}</CardTitle>
+                    <p className="mt-1 text-sm text-muted-foreground">{selectedMap.type} · {selectedMap.fileName}</p>
                   </div>
-                );
-              })
-            ) : (
-              <EmptyState title="暂无病床点位" />
-            )
-          ) : currentNavPoints.length ? (
-            currentNavPoints.map((point) => (
-              <div key={point.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-surface-50 px-3 py-2">
-                <div>
-                  <p className="text-sm font-medium text-surface-900">{point.name}</p>
-                  <p className="text-xs text-muted-foreground">{point.code} · {point.type}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant={interactionMode === "pan" ? "default" : "outline"} size="sm" onClick={() => { setInteractionMode("pan"); setPendingLinkPointId(""); }}>
+                      拖拽
+                    </Button>
+                    {selectedMap.type === "导航地图" ? (
+                      <Button variant={interactionMode === "link" ? "default" : "outline"} size="sm" onClick={() => { setInteractionMode("link"); setPendingLinkPointId(""); setMessage("请依次点击两个导航点位完成连线。"); }}>
+                        连线工具
+                      </Button>
+                    ) : null}
+                    <Button variant={interactionMode === "polygon" ? "default" : "outline"} size="sm" onClick={() => { setInteractionMode("polygon"); setDraftZonePoints([]); setMessage("请在地图上连续点击绘制禁行区。"); }}>
+                      禁行区工具
+                    </Button>
+                    {interactionMode === "polygon" ? (
+                      <>
+                        <Button variant="outline" size="sm" onClick={saveNoGoZone} disabled={draftZonePoints.length < 3}>完成禁行区</Button>
+                        <Button variant="outline" size="sm" onClick={() => { setDraftZonePoints([]); setInteractionMode("pan"); }}>取消</Button>
+                      </>
+                    ) : null}
+                    <Button variant="outline" size="sm" onClick={() => setZoom((value) => Math.min(2, value + 0.1))}><ZoomIn className="h-4 w-4" />放大</Button>
+                    <Button variant="outline" size="sm" onClick={() => setZoom((value) => Math.max(0.65, value - 0.1))}><Minus className="h-4 w-4" />缩小</Button>
+                    <Button variant="outline" size="sm" onClick={() => setFullscreen((value) => !value)}><Expand className="h-4 w-4" />全屏</Button>
+                    <Button variant="outline" size="sm" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}><RotateCcw className="h-4 w-4" />重置视图</Button>
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="sm" onClick={() => openEditNavPoint(point)}>编辑</Button>
-                  <Button variant="ghost" size="sm" className="text-rose-600" onClick={() => deleteNavPoint(point)}>删除</Button>
+                <p className="text-xs text-muted-foreground">
+                  {interactionMode === "pick-bed" || interactionMode === "pick-nav" ? "地图选点中：请直接点击中间地图加载坐标。" : null}
+                  {interactionMode === "link" ? "连线模式：点击两个导航点位建立路径。" : null}
+                  {interactionMode === "polygon" ? `禁行区绘制中：已记录 ${draftZonePoints.length} 个顶点。` : null}
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="min-h-0 flex-1 p-4">
+              <div
+                ref={mapAreaRef}
+                className="relative h-full min-h-[560px] overflow-hidden rounded-[1.5rem] border border-border/70 bg-surface-100"
+                onMouseDown={(event) => {
+                  if (interactionMode !== "pan") return;
+                  setDragStart({ x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y });
+                }}
+                onMouseMove={(event) => {
+                  if (!dragStart || interactionMode !== "pan") return;
+                  setPan({ x: dragStart.panX + event.clientX - dragStart.x, y: dragStart.panY + event.clientY - dragStart.y });
+                }}
+                onMouseUp={() => setDragStart(null)}
+                onMouseLeave={() => setDragStart(null)}
+                onClick={handleMapClick}
+              >
+                <div
+                  data-map-frame="true"
+                  className="absolute inset-8 overflow-hidden rounded-[1.75rem] border border-surface-300 bg-white shadow-inner"
+                  style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: "center" }}
+                >
+                  {selectedMap.type === "病房地图" ? renderWardScanBlueprint(selectedMap.id) : renderNavigationScanBlueprint()}
+                  <div className="absolute left-8 top-6 flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-surface-700 shadow-soft">
+                    <FileImage className="h-4 w-4" />
+                    {selectedMap.fileName}
+                  </div>
+                  <svg className="absolute inset-0 h-full w-full">
+                    {currentSegments.map((segment) => {
+                      const fromPoint = currentNavPoints.find((point) => point.id === segment.fromPointId);
+                      const toPoint = currentNavPoints.find((point) => point.id === segment.toPointId);
+                      if (!fromPoint || !toPoint) return null;
+                      return <line key={segment.id} x1={`${fromPoint.x}%`} y1={`${fromPoint.y}%`} x2={`${toPoint.x}%`} y2={`${toPoint.y}%`} stroke="#2563eb" strokeWidth="4" strokeLinecap="round" opacity="0.8" />;
+                    })}
+                    {currentZones.map((zone) => (
+                      <polygon key={zone.id} points={zone.points.map((point) => `${point.x}% ${point.y}%`).join(" ")} fill="rgba(239,68,68,0.18)" stroke="#ef4444" strokeWidth="3" strokeDasharray="8 6" />
+                    ))}
+                    {draftZonePoints.length ? (
+                      <polyline points={draftZonePoints.map((point) => `${point.x}% ${point.y}%`).join(" ")} fill="rgba(245,158,11,0.12)" stroke="#f59e0b" strokeWidth="3" strokeDasharray="8 6" />
+                    ) : null}
+                  </svg>
+
+                  {selectedMap.type === "病房地图"
+                    ? currentBedPoints.map((point) => {
+                        const bed = data.beds.find((item) => item.id === point.bedId);
+                        if (!bed) return null;
+                        const displayStatus = getBedDisplayStatus(bed, data.usageRecords);
+                        return (
+                          <button
+                            key={point.id}
+                            type="button"
+                            className={cn("absolute flex h-16 w-20 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-2xl border-2 border-white text-xs font-semibold shadow-panel transition hover:scale-105", statusColorClass(displayStatus), highlightPointId === point.id && "ring-4 ring-primary/45")}
+                            style={{ left: `${point.x}%`, top: `${point.y}%` }}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setPointPreview(point);
+                              setHighlightPointId(point.id);
+                            }}
+                          >
+                            <span>{bed.code}</span>
+                            <span className="mt-1 text-[11px] opacity-90">{displayStatus}</span>
+                          </button>
+                        );
+                      })
+                    : currentNavPoints.map((point) => (
+                        <button
+                          key={point.id}
+                          type="button"
+                          className={cn("absolute flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white text-white shadow-panel transition hover:scale-105", pendingLinkPointId === point.id ? "bg-amber-500" : "bg-primary")}
+                          style={{ left: `${point.x}%`, top: `${point.y}%` }}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (interactionMode === "link") {
+                              createNavigationSegment(point.id);
+                              return;
+                            }
+                            setPointPreview(point);
+                          }}
+                          title={point.name}
+                        >
+                          <Route className="h-5 w-5" />
+                        </button>
+                      ))}
                 </div>
               </div>
-            ))
-          ) : (
-            <EmptyState title="暂无导航点位" />
-          )}
-        </div>
-      </SectionCard>
+            </CardContent>
+          </Card>
+        }
+        side={
+          <Card className="flex min-h-0 flex-col overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <CardTitle>{selectedMap.type === "病房地图" ? "点位列表" : "地图侧栏"}</CardTitle>
+            </CardHeader>
+            <CardContent className="min-h-0 flex-1 space-y-3 overflow-auto p-4">
+              <SectionCard title={selectedMap.type === "病房地图" ? "病床点位" : "导航点位"}>
+                <div className="space-y-2">
+                  {selectedMap.type === "病房地图" ? (
+                    currentBedPoints.length ? currentBedPoints.map((point) => {
+                      const bed = data.beds.find((item) => item.id === point.bedId);
+                      const status = bed ? getBedDisplayStatus(bed, data.usageRecords) : "空闲";
+                      return (
+                        <div key={point.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-surface-50 px-3 py-2">
+                          <div>
+                            <p className="text-sm font-medium text-surface-900">{bed?.code ?? point.id}</p>
+                            <p className="text-xs text-muted-foreground">{bed?.name ?? "未关联病床"} · {point.x}% / {point.y}%</p>
+                          </div>
+                          <div className="flex gap-1">
+                            <Badge className={badgeClassForStatus(status)}>{status}</Badge>
+                            <Button variant="ghost" size="sm" onClick={() => openEditBedPoint(point)}>编辑</Button>
+                            <Button variant="ghost" size="sm" className="text-rose-600" onClick={() => deleteBedPoint(point)}>删除</Button>
+                          </div>
+                        </div>
+                      );
+                    }) : <EmptyState title="暂无病床点位" />
+                  ) : currentNavPoints.length ? currentNavPoints.map((point) => (
+                    <div key={point.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-surface-50 px-3 py-2">
+                      <div>
+                        <p className="text-sm font-medium text-surface-900">{point.name}</p>
+                        <p className="text-xs text-muted-foreground">{point.code} · {point.type}</p>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => openEditNavPoint(point)}>编辑</Button>
+                        <Button variant="ghost" size="sm" className="text-rose-600" onClick={() => deleteNavPoint(point)}>删除</Button>
+                      </div>
+                    </div>
+                  )) : <EmptyState title="暂无导航点位" />}
+                </div>
+              </SectionCard>
+              {selectedMap.type === "导航地图" ? (
+                <>
+                  <SectionCard title="导航连线">
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      {currentSegments.length ? currentSegments.map((segment) => {
+                        const fromPoint = currentNavPoints.find((point) => point.id === segment.fromPointId);
+                        const toPoint = currentNavPoints.find((point) => point.id === segment.toPointId);
+                        return <p key={segment.id}>{fromPoint?.name ?? segment.fromPointId} {" -> "} {toPoint?.name ?? segment.toPointId}</p>;
+                      }) : <p>暂无导航连线</p>}
+                    </div>
+                  </SectionCard>
+                </>
+              ) : null}
+              <SectionCard title="禁行区">
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  {currentZones.length ? currentZones.map((zone) => <p key={zone.id}>{zone.name} · {zone.points.length} 个顶点</p>) : <p>暂无禁行区</p>}
+                </div>
+              </SectionCard>
+            </CardContent>
+          </Card>
+        }
+      />
 
       <DialogFormShell open={bedPointDialogOpen} onOpenChange={setBedPointDialogOpen} title={editingBedPoint ? "编辑病床点位" : "新增病床点位"} description="保存后自动同步病床管理；删除点位只解除地图关联。" onSubmit={submitBedPoint} submitLabel="保存">
         <div className="grid gap-4 md:grid-cols-2">
@@ -1287,10 +1583,18 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
               {bedStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
             </select>
           </Field>
-          <Field label="地图位置 X / Y">
-            <div className="grid grid-cols-2 gap-2">
-              <Input value={bedPointDraft.x} onChange={(event) => setBedPointDraft((current) => ({ ...current, x: event.target.value }))} />
-              <Input value={bedPointDraft.y} onChange={(event) => setBedPointDraft((current) => ({ ...current, y: event.target.value }))} />
+          <Field label="地图位置">
+            <div className="space-y-2">
+              <Input value={bedPointDraft.x && bedPointDraft.y ? `${bedPointDraft.x}% / ${bedPointDraft.y}%` : ""} readOnly placeholder="点击下方按钮后，在地图中选点" />
+              <div
+                className="relative h-40 cursor-crosshair overflow-hidden rounded-xl border border-border/70 bg-surface-100"
+                onClick={(event) => pickDraftPointFromPreview(event, "bed")}
+              >
+                {selectedMap ? renderWardScanBlueprint(selectedMap.id) : null}
+                {bedPointDraft.x && bedPointDraft.y ? (
+                  <div className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-primary" style={{ left: `${bedPointDraft.x}%`, top: `${bedPointDraft.y}%` }} />
+                ) : null}
+              </div>
             </div>
           </Field>
           <div className="md:col-span-2"><Field label="备注"><Textarea value={bedPointDraft.note} onChange={(event) => setBedPointDraft((current) => ({ ...current, note: event.target.value }))} /></Field></div>
@@ -1307,10 +1611,18 @@ export function CampusMapDetailPage({ mapId }: { mapId: string }) {
               {navigationPointTypes.map((type) => <option key={type} value={type}>{type}</option>)}
             </select>
           </Field>
-          <Field label="地图位置 X / Y">
-            <div className="grid grid-cols-2 gap-2">
-              <Input value={navPointDraft.x} onChange={(event) => setNavPointDraft((current) => ({ ...current, x: event.target.value }))} />
-              <Input value={navPointDraft.y} onChange={(event) => setNavPointDraft((current) => ({ ...current, y: event.target.value }))} />
+          <Field label="地图位置">
+            <div className="space-y-2">
+              <Input value={navPointDraft.x && navPointDraft.y ? `${navPointDraft.x}% / ${navPointDraft.y}%` : ""} readOnly placeholder="点击下方按钮后，在地图中选点" />
+              <div
+                className="relative h-40 cursor-crosshair overflow-hidden rounded-xl border border-border/70 bg-surface-100"
+                onClick={(event) => pickDraftPointFromPreview(event, "nav")}
+              >
+                {renderNavigationScanBlueprint()}
+                {navPointDraft.x && navPointDraft.y ? (
+                  <div className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-primary" style={{ left: `${navPointDraft.x}%`, top: `${navPointDraft.y}%` }} />
+                ) : null}
+              </div>
             </div>
           </Field>
           <div className="md:col-span-2"><Field label="描述"><Textarea value={navPointDraft.description} onChange={(event) => setNavPointDraft((current) => ({ ...current, description: event.target.value }))} /></Field></div>
@@ -1496,9 +1808,9 @@ export function CampusBedsPage() {
         <Field label="使用时间范围"><div className="grid grid-cols-2 gap-2"><Input type="date" value={filters.dateFrom} onChange={(event) => setFilters((current) => ({ ...current, dateFrom: event.target.value }))} /><Input type="date" value={filters.dateTo} onChange={(event) => setFilters((current) => ({ ...current, dateTo: event.target.value }))} /></div></Field>
       </FilterBar>
 
-      <Card className="overflow-hidden">
+      <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <CardHeader className="border-b border-border/60"><CardTitle>病床列表</CardTitle><p className="text-sm text-muted-foreground">共 {filteredBeds.length} 张病床</p></CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="min-h-0 flex-1 p-0">
           <Table>
             <TableHeader>
               <TableRow>
